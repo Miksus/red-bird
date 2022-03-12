@@ -14,6 +14,7 @@ from pymongo.database import Database
 from pymongo.cursor import Cursor
 
 from redrepo.base import BaseResult, BaseRepo
+from redrepo.operation import Operation
 
 class MongoSession:
 
@@ -42,13 +43,13 @@ class MongoResult(BaseResult):
     def query(self):
         col = self.repo._get_collection()
         for item in col.find(self.query_):
-            yield self.parse_item(item)
+            yield self.repo.parse_item(item)
 
     def limit(self, n:int):
         "Get n first items"
         col = self.repo._get_collection()
         return [
-            self.parse_item(item)
+            self.repo.parse_item(item)
             for item in col.find(self.query_).limit(n)
         ]
 
@@ -67,6 +68,18 @@ class MongoResult(BaseResult):
         col = self.repo._get_collection()
         return col.count_documents(self.query_)
 
+    def format_greater_than(self, oper:Operation):
+        return {"$gt": oper.value}
+
+    def format_less_than(self, oper:Operation):
+        return {"$lt": oper.value}
+
+    def format_greater_equal(self, oper:Operation):
+        return {"$ge": oper.value}
+
+    def format_less_equal(self, oper:Operation):
+        return {"$le": oper.value}
+
 class MongoRepo(BaseRepo):
 
     cls_item: BaseModel = None
@@ -80,20 +93,25 @@ class MongoRepo(BaseRepo):
 
     def add(self, item):
         col = self._get_collection()
-        col.insert_one(item.dict())
+        col.insert_one(self.format_item(item))
 
-    def update(self, item):
-        col = self._get_collection()
-        d = self.format_item(item)
-        col.update_one(
-            {self.id_field: d[self.id_field]},
-            d
-        )
+    #def update(self, item):
+    #    col = self._get_collection()
+    #    d = self.parse_item(item)
+    #    col.update_one(
+    #        {self.id_field: d[self.id_field]},
+    #        d
+    #    )
 
     def delete_by(self, **kwargs):
         col = self._get_collection()
         return col.delete_many(kwargs).deleted_count
     
+    def filter_by(self, **kwargs) -> BaseResult:
+        # Rename id_field --> "_id"
+        if self.id_field in kwargs:
+            kwargs["_id"] = kwargs.pop(self.id_field)
+        return super().filter_by(**kwargs)
 
     def _get_collection(self) -> Collection:
         database = self._get_database()
@@ -113,3 +131,13 @@ class MongoRepo(BaseRepo):
         except ValidationError as exc:
             raise ValidationError(f"Formatting for {item[self.id_field]} failed.") from exc
 
+    def parse_item(self, json:dict):
+        # Rename _id to whatever is as id_field
+        json[self.id_field] = json.pop("_id")
+        return self.cls_item(**json)
+
+    def format_item(self, item):
+        json = item.dict()
+        # Rename whatever is as id_field to _id
+        json["_id"] = json.pop(self.id_field)
+        return json

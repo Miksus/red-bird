@@ -1,6 +1,7 @@
 
 from typing import List
 from redrepo import BaseRepo, BaseResult
+from redrepo.operation import Operation
 
 class ListResult(BaseResult):
 
@@ -10,7 +11,7 @@ class ListResult(BaseResult):
     def query(self):
         l = self.repo.store
         for item in l:
-            if self.repo._match_kwargs(item, self.query_):
+            if self._match(item):
                 yield item
 
     def update(self, **kwargs):
@@ -23,8 +24,17 @@ class ListResult(BaseResult):
         self.repo.store = [
             item 
             for item in cont 
-            if not self.repo._match_kwargs(item, self.query_)
+            if not self._match(item)
         ]
+
+    def format_query(self, query:dict):
+        return query
+
+    def _match(self, item):
+        return all(
+            val.evaluate(getattr(item, key)) if isinstance(val, Operation) else getattr(item, key) == val
+            for key, val in self.query_.items()
+        )
 
 class ListRepo(BaseRepo):
 
@@ -45,13 +55,13 @@ class ListRepo(BaseRepo):
     def add(self, item):
         self.store.append(item)
 
-    def update(self, item):
-        id = getattr(item, self.id_field)
-        for repo_item in self.store:
-            if self._match_kwargs(repo_item, {self.id_field: id}):
-                for key, val in vars(item):
-                    setattr(repo_item, key, val)
-                return
+    #def update(self, item):
+    #    id = getattr(item, self.id_field)
+    #    for repo_item in self.store:
+    #        if self._match_kwargs(repo_item, {self.id_field: id}):
+    #            for key, val in vars(item):
+    #                setattr(repo_item, key, val)
+    #            return
 
     def _match_kwargs(self, item, kwargs):
         return all(

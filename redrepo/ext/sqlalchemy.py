@@ -1,6 +1,9 @@
 
 from redrepo import BaseRepo, BaseResult
-from sqlalchemy import orm
+from sqlalchemy import Column, column, orm, true
+from sqlalchemy.sql import True_
+
+from redrepo.operation import Operation
 
 class SQLAlchemyResult(BaseResult):
 
@@ -9,7 +12,7 @@ class SQLAlchemyResult(BaseResult):
     def query(self):
         model = self.repo.cls_item
         session = self.repo.session
-        return session.query(model).filter_by(**self.query_)
+        return session.query(model).filter(self.query_)
 
     def first(self):
         return self.query().first()
@@ -19,17 +22,37 @@ class SQLAlchemyResult(BaseResult):
         model = self.repo.cls_item
         session = self.repo.session
 
-        session.query(model).filter_by(**self.query_).update(kwargs)
+        session.query(model).filter(self.query_).update(kwargs)
 
     def delete(self):
         model = self.repo.cls_item
         session = self.repo.session
-        session.query(model).filter_by(**self.query_).delete()
+        session.query(model).filter(self.query_).delete()
 
     def count(self):
         model = self.repo.cls_item
         session = self.repo.session
-        return session.query(model).filter_by(**self.query_).count()
+        return session.query(model).filter(self.query_).count()
+
+    def format_query(self, oper: dict):
+        stmt = true()
+        for column_name, oper_or_value in oper.items():
+            if isinstance(oper_or_value, Operation):
+                oper = oper_or_value
+                magic = oper.__py_magic__
+                oper_method = getattr(column(column_name), magic)
+
+                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
+                sql_oper = oper_method(oper.value)
+            else:
+                value = oper_or_value
+                sql_oper = column(column_name) == value
+            stmt &= sql_oper
+        return stmt
+
+    def format_greater_than(self, oper:Operation):
+        model = self.repo.cls_item
+        return 
 
 class SQLAlchemyRepo(BaseRepo):
     """SQLAlchemy Repository
@@ -57,12 +80,17 @@ class SQLAlchemyRepo(BaseRepo):
         self.session.add(item)
         self.session.commit()
 
-    def update(self, item):
-        self.session.query(self.cls_item).update()
+    #def update(self, item):
+    #    self.session.query(self.cls_item).update()
 
     def create_scoped_session(self, engine):
         Session = orm.sessionmaker(bind=engine)
         return orm.scoped_session(Session)
+
+    def item_to_dict(self, item):
+        d = vars(item)
+        d.pop("_sa_instance_state")
+        return d
 
     def create(self):
         self.cls_item.__table__.create(bind=self.session.bind)

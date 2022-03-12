@@ -5,14 +5,22 @@ import pytest
 from redrepo.ext.sqlalchemy import SQLAlchemyRepo
 from redrepo.ext.memory import ListRepo
 from redrepo.ext.mongo import MongoRepo
+from redrepo.operation import greater_than, less_than
 
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.orm import declarative_base
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class PydanticItem(BaseModel):
     __colname__ = 'items'
+    id: str
+    name: str
+    age: int
+
+class MongoItem(BaseModel):
+    __colname__ = 'items'
+    _id: str = Field(alias="id")
     id: str
     name: str
     age: int
@@ -86,6 +94,8 @@ def populated_repo(request):
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
+        for item in attrs:
+            item["_id"] = item.pop("id")
         col.insert_many(attrs)
     return repo
 
@@ -153,9 +163,9 @@ class TestPopulated:
         repo.filter_by(age=30).delete()
         assert repo.filter_by().all() == [
             Item(id="a", name="Jack", age=20),
-            #Item(id="b", name="Something", age=30),
-            #Item(id="c", name="Something", age=30),
-            #Item(id="d", name="Something", age=30),
+            #Item(id="b", name="John", age=30),
+            #Item(id="c", name="James", age=30),
+            #Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
         ]
 
@@ -164,11 +174,36 @@ class TestPopulated:
         Item = repo.cls_item
         assert repo.filter_by(age=30).count() == 3
 
+    def test_filter_by_greater_than(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+        assert repo.filter_by(age=greater_than(20)).all() == [
+            #Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_filter_by_less_than(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+        assert repo.filter_by(age=less_than(40)).all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            #Item(id="e", name="Jesse", age=40),
+        ]
+
     def test_getitem(self, populated_repo):
         repo = populated_repo
         Item = repo.cls_item
 
         assert repo["b"] == Item(id="b", name="John", age=30)
+
+    def test_getitem_missing(self, populated_repo):
+        repo = populated_repo
         with pytest.raises(KeyError):
             repo["not_found"]
 
@@ -184,6 +219,9 @@ class TestPopulated:
             Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
         ]
+
+    def test_delitem_missing(self, populated_repo):
+        repo = populated_repo
         with pytest.raises(KeyError):
             del repo["not_found"]
 
@@ -195,11 +233,14 @@ class TestPopulated:
 
         assert repo.filter_by().all() == [
             Item(id="a", name="Jack", age=20),
-            #Item(id="b", name="John", age=30),
+            Item(id="b", name="John", age=30),
             Item(id="c", name="James", age=30),
             Item(id="d", name="Johnny boy", age=30),
             Item(id="e", name="Jesse", age=40),
         ]
+
+    def test_setitem_missing(self, populated_repo):
+        repo = populated_repo
         with pytest.raises(KeyError):
             repo["not_found"] = {"name": "something"}
 
@@ -226,4 +267,45 @@ class TestEmpty:
         assert repo.filter_by().all() == [
             Item(id="a", name="Jack", age=20),
             Item(id="b", name="John", age=30)
+        ]
+
+    def test_update(self, repo):
+        Item = repo.cls_item
+
+        repo.add(Item(id="a", name="Jack", age=20))
+        repo.add(Item(id="b", name="John", age=30))
+
+        repo.update(Item(id="a", name="Max", age=50))
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Max", age=50),
+            Item(id="b", name="John", age=30),
+        ]
+
+    def test_add_exist(self, repo):
+        Item = repo.cls_item
+    
+        repo.add(Item(id="a", name="Jack", age=20))
+        with pytest.raises(Exception):
+            repo.add(Item(id="a", name="John", age=30))
+
+    def test_add_exist_ignore(self, repo):
+        Item = repo.cls_item
+    
+        repo.add(Item(id="a", name="Jack", age=20), if_exists="ignore")
+        repo.add(Item(id="a", name="John", age=30), if_exists="ignore")
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+        ]
+
+    def test_add_exist_update(self, repo):
+        Item = repo.cls_item
+    
+        repo.add(Item(id="a", name="Jack", age=20), if_exists="update")
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+        ]
+
+        repo.add(Item(id="a", name="John", age=30), if_exists="update")
+        assert repo.filter_by().all() == [
+            Item(id="a", name="John", age=30),
         ]

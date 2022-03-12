@@ -1,8 +1,10 @@
 
 from abc import abstractmethod, ABC
 from ctypes import Union
-from typing import Any, Generator, List
+from typing import Any, Dict, Generator, List, Mapping, Tuple
 from dataclasses import dataclass
+
+from .operation import Operation
 
 class BaseResult(ABC):
     """Result of a filter"""
@@ -11,7 +13,7 @@ class BaseResult(ABC):
 
     def __init__(self, query=None, repo:'Repo'=None):
         self.repo = repo
-        self.query_ = query
+        self.query_ = self.format_query(query)
         
     def first(self):
         "Return first item"
@@ -46,10 +48,6 @@ class BaseResult(ABC):
     def __iter__(self):
         return self.query()
 
-    def parse_item(self, item):
-        "Turn object from repo (row, doc, etc.) to item"
-        return self.repo.cls_item(**item)
-
     @abstractmethod
     def update(self, **kwargs):
         "Update the resulted items"
@@ -62,6 +60,17 @@ class BaseResult(ABC):
         "Count the resulted items"
         return len(list(self))
 
+
+    def format_query(self, query:dict) -> dict:
+        "Turn the query to a form that's understandable by the underlying database"
+        for field_name, oper_or_value in query.copy().items():
+            if isinstance(oper_or_value, Operation):
+                query[field_name] = self.format_operation(oper_or_value)
+        return query
+
+    def format_operation(self, oper:Operation):
+        result_format_method = oper._get_formatter(self)
+        return result_format_method(oper)
 
 class BaseRepo(ABC):
 
@@ -104,6 +113,7 @@ class BaseRepo(ABC):
     """
 
     default_id_field: str = "id"
+    id_field: str
     cls_item = dict
     cls_result: BaseResult
 
@@ -123,7 +133,7 @@ class BaseRepo(ABC):
     def __delitem__(self, id):
         "Delete item from the repository using ID"
         qry = {self.id_field: id}
-        rows = self.delete_by(**qry)
+        rows = self.filter_by(**qry).delete()
         if isinstance(rows, int):
             # Returned value is number of rows deleted
             if rows == 0:
@@ -132,7 +142,7 @@ class BaseRepo(ABC):
     def __setitem__(self, id, attrs:dict):
         "Update given item"
         qry = {self.id_field: id}
-        self.update_by(qry, attrs)
+        self.filter_by(**qry).update(**attrs)
 
 # Item based
     @abstractmethod
@@ -144,13 +154,14 @@ class BaseRepo(ABC):
         id_ = getattr(item, self.id_field)
         del self[id_]
 
-    @abstractmethod
     def update(self, item):
         "Update an item in the repository"
-        ...
+        qry = {self.id_field: getattr(item, self.id_field)}
+        values = self.item_to_dict(item)
+        self.filter_by(**qry).update(**values)
 
-    def format_item(self, item):
-        return self.cls_item(**item)
+    def item_to_dict(self, item) -> dict:
+        return item.dict()
 
 # Keyword arguments
     def filter_by(self, **kwargs) -> BaseResult:
@@ -161,3 +172,7 @@ class BaseRepo(ABC):
     def delete_by(self, **kwargs):
         "Delete items from the repository by filtering using keyword args"
         ...
+
+    def parse_item(self, data):
+        "Turn object from repo (row, doc, dict, etc.) to item"
+        return self.cls_item(**data)
