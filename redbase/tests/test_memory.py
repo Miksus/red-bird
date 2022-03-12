@@ -1,5 +1,5 @@
 import pytest
-from redrepo.ext.memory import ListRepo
+from redbase.ext.memory import ListRepo
 from pydantic import BaseModel
 
 

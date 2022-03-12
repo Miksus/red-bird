@@ -1,5 +1,5 @@
 import pytest
-from redrepo.ext.sqlalchemy import SQLAlchemyRepo
+from redbase.ext.sqlalchemy import SQLAlchemyRepo
 from pydantic import BaseModel
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, create_engine

@@ -13,8 +13,8 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.cursor import Cursor
 
-from redrepo.base import BaseResult, BaseRepo
-from redrepo.operation import Operation
+from redbase.base import BaseResult, BaseRepo
+from redbase.operation import Operation
 
 class MongoSession:
 

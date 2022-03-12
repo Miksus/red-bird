@@ -1,7 +1,7 @@
 
 from typing import List
-from redrepo import BaseRepo, BaseResult
-from redrepo.operation import Operation
+from redbase import BaseRepo, BaseResult
+from redbase.operation import Operation
 
 class ListResult(BaseResult):
 

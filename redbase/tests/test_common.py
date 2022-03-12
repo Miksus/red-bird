@@ -2,10 +2,10 @@
 import configparser
 
 import pytest
-from redrepo.ext.sqlalchemy import SQLAlchemyRepo
-from redrepo.ext.memory import ListRepo
-from redrepo.ext.mongo import MongoRepo
-from redrepo.operation import greater_than, less_than
+from redbase.ext.sqlalchemy import SQLAlchemyRepo
+from redbase.ext.memory import ListRepo
+from redbase.ext.mongo import MongoRepo
+from redbase.operation import greater_than, less_than
 
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.orm import declarative_base
@@ -48,7 +48,7 @@ class SQLItem(SQLBase):
 
 def get_mongo_uri():
     config = configparser.ConfigParser()
-    config.read("redrepo/tests/private.ini")
+    config.read("redbase/tests/private.ini")
     pytest.importorskip("pymongo")
     return config["connection"]["mongodb"]
 

@@ -43,8 +43,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = "v"
-    cfg.parentdir_prefix = "redrepo-"
-    cfg.versionfile_source = "redrepo/_version.py"
+    cfg.parentdir_prefix = "redbase-"
+    cfg.versionfile_source = "redbase/_version.py"
     cfg.verbose = False
     return cfg
 

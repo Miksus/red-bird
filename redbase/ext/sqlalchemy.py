@@ -1,11 +1,11 @@
 
 from typing import Type
 from pydantic import BaseModel
-from redrepo import BaseRepo, BaseResult
+from redbase import BaseRepo, BaseResult
 from sqlalchemy import Column, column, orm, true
 from sqlalchemy.sql import True_
 
-from redrepo.operation import Operation
+from redbase.operation import Operation
 
 class SQLAlchemyResult(BaseResult):
 
