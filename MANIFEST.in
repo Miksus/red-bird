@@ -1,0 +1,2 @@
+include versioneer.py
+include redrepo/_version.py
