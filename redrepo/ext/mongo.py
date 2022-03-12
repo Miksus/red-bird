@@ -52,6 +52,21 @@ class MongoResult(BaseResult):
             for item in col.find(self.query_).limit(n)
         ]
 
+    def update(self, **kwargs):
+        "Update the resulted rows"
+        col = self.repo._get_collection()
+        col.update_many(self.query_, {"$set": kwargs})
+
+    def delete(self):
+        "Delete found documents"
+        col = self.repo._get_collection()
+        col.delete_many(self.query_)
+
+    def count(self):
+        "Count found documents"
+        col = self.repo._get_collection()
+        return col.count_documents(self.query_)
+
 class MongoRepo(BaseRepo):
 
     cls_item: BaseModel = None

@@ -50,6 +50,19 @@ class BaseResult(ABC):
         "Turn object from repo (row, doc, etc.) to item"
         return self.repo.cls_item(**item)
 
+    @abstractmethod
+    def update(self, **kwargs):
+        "Update the resulted items"
+
+    @abstractmethod
+    def delete(self):
+        "Delete the resulted items"
+
+    def count(self):
+        "Count the resulted items"
+        return len(list(self))
+
+
 class BaseRepo(ABC):
 
     """Item Repo
@@ -116,6 +129,11 @@ class BaseRepo(ABC):
             if rows == 0:
                 raise KeyError(f"Index {id} not found.")
 
+    def __setitem__(self, id, attrs:dict):
+        "Update given item"
+        qry = {self.id_field: id}
+        self.update_by(qry, attrs)
+
 # Item based
     @abstractmethod
     def add(self, item):
@@ -139,7 +157,7 @@ class BaseRepo(ABC):
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)
 
-    #@abstractmethod
-    #def delete_by(self, **kwargs):
-    #    "Delete items from the repository by filtering using keyword args"
-    #    ...
+    @abstractmethod
+    def delete_by(self, **kwargs):
+        "Delete items from the repository by filtering using keyword args"
+        ...

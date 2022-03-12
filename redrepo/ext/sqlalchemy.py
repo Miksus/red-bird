@@ -14,6 +14,23 @@ class SQLAlchemyResult(BaseResult):
     def first(self):
         return self.query().first()
 
+    def update(self, **kwargs):
+        "Update the resulted rows"
+        model = self.repo.cls_item
+        session = self.repo.session
+
+        session.query(model).filter_by(**self.query_).update(kwargs)
+
+    def delete(self):
+        model = self.repo.cls_item
+        session = self.repo.session
+        session.query(model).filter_by(**self.query_).delete()
+
+    def count(self):
+        model = self.repo.cls_item
+        session = self.repo.session
+        return session.query(model).filter_by(**self.query_).count()
+
 class SQLAlchemyRepo(BaseRepo):
     """SQLAlchemy Repository
 

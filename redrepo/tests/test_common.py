@@ -105,22 +105,64 @@ def repo(request):
 )
 class TestPopulated:
 
-    def test_filter_by(self, populated_repo):
+    def test_filter_by_first(self, populated_repo):
         repo = populated_repo
         Item = repo.cls_item
-
         assert repo.filter_by(age=30).first() == Item(id="b", name="John", age=30)
+
+    def test_filter_by_last(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
         assert repo.filter_by(age=30).last() == Item(id="d", name="Johnny", age=30)
+
+
+    def test_filter_by_limit(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+        assert repo.filter_by(age=30).limit(2) == [
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+        ]
+
+    def test_filter_by_all(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
         assert repo.filter_by(age=30).all() == [
             Item(id="b", name="John", age=30),
             Item(id="c", name="James", age=30),
             Item(id="d", name="Johnny", age=30),
         ]
 
-        assert repo.filter_by(age=30).limit(2) == [
-            Item(id="b", name="John", age=30),
-            Item(id="c", name="James", age=30),
+    def test_filter_by_update(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+
+        repo.filter_by(age=30).update(name="Something")
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="b", name="Something", age=30),
+            Item(id="c", name="Something", age=30),
+            Item(id="d", name="Something", age=30),
+            Item(id="e", name="Jesse", age=40),
         ]
+
+    def test_filter_by_delete(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+
+        repo.filter_by(age=30).delete()
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            #Item(id="b", name="Something", age=30),
+            #Item(id="c", name="Something", age=30),
+            #Item(id="d", name="Something", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_filter_by_count(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+        assert repo.filter_by(age=30).count() == 3
 
     def test_getitem(self, populated_repo):
         repo = populated_repo
@@ -145,6 +187,21 @@ class TestPopulated:
         with pytest.raises(KeyError):
             del repo["not_found"]
 
+    def test_setitem(self, populated_repo):
+        repo = populated_repo
+        Item = repo.cls_item
+
+        repo["d"] = {"name": "Johnny boy"}
+
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            #Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny boy", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
+        with pytest.raises(KeyError):
+            repo["not_found"] = {"name": "something"}
 
 @pytest.mark.parametrize(
     'repo',

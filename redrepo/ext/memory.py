@@ -13,6 +13,19 @@ class ListResult(BaseResult):
             if self.repo._match_kwargs(item, self.query_):
                 yield item
 
+    def update(self, **kwargs):
+        for item in self.query():
+            for key, val in kwargs.items():
+                setattr(item, key, val)
+
+    def delete(self, **kwargs):
+        cont = self.repo.store
+        self.repo.store = [
+            item 
+            for item in cont 
+            if not self.repo._match_kwargs(item, self.query_)
+        ]
+
 class ListRepo(BaseRepo):
 
     cls_result = ListResult
