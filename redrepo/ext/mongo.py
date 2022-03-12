@@ -82,12 +82,12 @@ class MongoResult(BaseResult):
 
 class MongoRepo(BaseRepo):
 
-    cls_item: BaseModel = None
+    model: BaseModel = None
     cls_result = MongoResult
     default_id_field = "_id"
 
-    def __init__(self, cls_item, url, id_field=None):
-        self.cls_item = cls_item
+    def __init__(self, model, url, id_field=None):
+        self.model = model
         self.session = MongoSession(url=url)
         self.id_field = id_field or self.default_id_field
 
@@ -115,26 +115,26 @@ class MongoRepo(BaseRepo):
 
     def _get_collection(self) -> Collection:
         database = self._get_database()
-        return database[self.cls_item.__colname__]
+        return database[self.model.__colname__]
 
     def _get_database(self) -> Database:
         client = self._get_client()
         return client.get_default_database()
 
     def _get_client(self) -> MongoClient:
-        # bind = self.cls_item.__bind_key__
+        # bind = self.model.__bind_key__
         return self.session.client
 
     def _format_dict(self, item:dict) -> BaseModel:
         try:
-            return self.cls_item(**item)
+            return self.model(**item)
         except ValidationError as exc:
             raise ValidationError(f"Formatting for {item[self.id_field]} failed.") from exc
 
     def parse_item(self, json:dict):
         # Rename _id to whatever is as id_field
         json[self.id_field] = json.pop("_id")
-        return self.cls_item(**json)
+        return self.model(**json)
 
     def format_item(self, item):
         json = item.dict()

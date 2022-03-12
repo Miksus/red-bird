@@ -18,6 +18,14 @@ class PydanticItem(BaseModel):
     name: str
     age: int
 
+class PydanticItemORM(BaseModel):
+    __tablename__ = 'items'
+    id: str
+    name: str
+    age: int
+    class Config:
+        orm_mode = True
+
 class MongoItem(BaseModel):
     __colname__ = 'items'
     _id: str = Field(alias="id")
@@ -50,8 +58,13 @@ def get_repo(type_):
         return repo
     elif type_ == "sql":
         engine = create_engine('sqlite://')
-        repo = SQLAlchemyRepo(SQLItem, engine=engine)
+        repo = SQLAlchemyRepo(model_orm=SQLItem, engine=engine)
         repo.create()
+        return repo
+    elif type_ == "sql-pydantic":
+        engine = create_engine('sqlite://')
+        repo = SQLAlchemyRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
+        SQLItem.__table__.create(bind=repo.session.bind)
         return repo
     elif type_ == "mongo":
         repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
@@ -61,7 +74,7 @@ def get_repo(type_):
         from pymongo import MongoClient
 
         client = MongoClient(repo.session.url)
-        col_name = repo.cls_item.__colname__
+        col_name = repo.model.__colname__
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
@@ -79,10 +92,15 @@ def populated_repo(request):
     ]
     repo = get_repo(request.param)
     if request.param == "memory":
-        repo.store = [repo.cls_item(**item_attrs) for item_attrs in attrs]
+        repo.store = [repo.model(**item_attrs) for item_attrs in attrs]
     elif request.param == "sql":
         for item_attrs in attrs:
-            item = repo.cls_item(**item_attrs)
+            item = SQLItem(**item_attrs)
+            repo.session.add(item)
+        repo.session.commit()
+    elif request.param == "sql-pydantic":
+        for item_attrs in attrs:
+            item = SQLItem(**item_attrs)
             repo.session.add(item)
         repo.session.commit()
     elif request.param == "mongo":
@@ -90,7 +108,7 @@ def populated_repo(request):
         from pymongo import MongoClient
 
         client = MongoClient(repo.session.url)
-        col_name = repo.cls_item.__colname__
+        col_name = repo.model.__colname__
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
@@ -109,6 +127,7 @@ def repo(request):
     [
         pytest.param("memory"),
         pytest.param("sql"),
+        pytest.param("sql-pydantic"),
         pytest.param("mongo"),
     ],
     indirect=True
@@ -117,18 +136,18 @@ class TestPopulated:
 
     def test_filter_by_first(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=30).first() == Item(id="b", name="John", age=30)
 
     def test_filter_by_last(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=30).last() == Item(id="d", name="Johnny", age=30)
 
 
     def test_filter_by_limit(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=30).limit(2) == [
             Item(id="b", name="John", age=30),
             Item(id="c", name="James", age=30),
@@ -136,7 +155,7 @@ class TestPopulated:
 
     def test_filter_by_all(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=30).all() == [
             Item(id="b", name="John", age=30),
             Item(id="c", name="James", age=30),
@@ -145,7 +164,7 @@ class TestPopulated:
 
     def test_filter_by_update(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
 
         repo.filter_by(age=30).update(name="Something")
         assert repo.filter_by().all() == [
@@ -158,7 +177,7 @@ class TestPopulated:
 
     def test_filter_by_delete(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
 
         repo.filter_by(age=30).delete()
         assert repo.filter_by().all() == [
@@ -171,12 +190,12 @@ class TestPopulated:
 
     def test_filter_by_count(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=30).count() == 3
 
     def test_filter_by_greater_than(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=greater_than(20)).all() == [
             #Item(id="a", name="Jack", age=20),
             Item(id="b", name="John", age=30),
@@ -187,7 +206,7 @@ class TestPopulated:
 
     def test_filter_by_less_than(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
         assert repo.filter_by(age=less_than(40)).all() == [
             Item(id="a", name="Jack", age=20),
             Item(id="b", name="John", age=30),
@@ -198,7 +217,7 @@ class TestPopulated:
 
     def test_getitem(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
 
         assert repo["b"] == Item(id="b", name="John", age=30)
 
@@ -209,7 +228,7 @@ class TestPopulated:
 
     def test_delitem(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
 
         del repo["b"]
         assert repo.filter_by().all() == [
@@ -227,7 +246,7 @@ class TestPopulated:
 
     def test_setitem(self, populated_repo):
         repo = populated_repo
-        Item = repo.cls_item
+        Item = repo.model
 
         repo["d"] = {"name": "Johnny boy"}
 
@@ -256,7 +275,7 @@ class TestPopulated:
 class TestEmpty:
 
     def test_add(self, repo):
-        Item = repo.cls_item
+        Item = repo.model
         
         assert repo.filter_by().all() == []
 
@@ -270,7 +289,7 @@ class TestEmpty:
         ]
 
     def test_update(self, repo):
-        Item = repo.cls_item
+        Item = repo.model
 
         repo.add(Item(id="a", name="Jack", age=20))
         repo.add(Item(id="b", name="John", age=30))
@@ -282,14 +301,14 @@ class TestEmpty:
         ]
 
     def test_add_exist(self, repo):
-        Item = repo.cls_item
+        Item = repo.model
     
         repo.add(Item(id="a", name="Jack", age=20))
         with pytest.raises(Exception):
             repo.add(Item(id="a", name="John", age=30))
 
     def test_add_exist_ignore(self, repo):
-        Item = repo.cls_item
+        Item = repo.model
     
         repo.add(Item(id="a", name="Jack", age=20), if_exists="ignore")
         repo.add(Item(id="a", name="John", age=30), if_exists="ignore")
@@ -298,7 +317,7 @@ class TestEmpty:
         ]
 
     def test_add_exist_update(self, repo):
-        Item = repo.cls_item
+        Item = repo.model
     
         repo.add(Item(id="a", name="Jack", age=20), if_exists="update")
         assert repo.filter_by().all() == [

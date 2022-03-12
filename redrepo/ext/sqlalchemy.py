@@ -1,4 +1,6 @@
 
+from typing import Type
+from pydantic import BaseModel
 from redrepo import BaseRepo, BaseResult
 from sqlalchemy import Column, column, orm, true
 from sqlalchemy.sql import True_
@@ -10,29 +12,26 @@ class SQLAlchemyResult(BaseResult):
     repo: 'SQLAlchemyRepo'
 
     def query(self):
-        model = self.repo.cls_item
-        session = self.repo.session
-        return session.query(model).filter(self.query_)
+        for item in self._filter_orm():
+            yield self.repo.parse_item(item)
 
     def first(self):
-        return self.query().first()
+        item = self._filter_orm().first()
+        if item is not None:
+            return self.repo.parse_item(item)
 
     def update(self, **kwargs):
         "Update the resulted rows"
-        model = self.repo.cls_item
+        model = self.repo.model
         session = self.repo.session
 
-        session.query(model).filter(self.query_).update(kwargs)
+        self._filter_orm().update(kwargs)
 
     def delete(self):
-        model = self.repo.cls_item
-        session = self.repo.session
-        session.query(model).filter(self.query_).delete()
+        self._filter_orm().delete()
 
     def count(self):
-        model = self.repo.cls_item
-        session = self.repo.session
-        return session.query(model).filter(self.query_).count()
+        return self._filter_orm().count()
 
     def format_query(self, oper: dict):
         stmt = true()
@@ -51,8 +50,13 @@ class SQLAlchemyResult(BaseResult):
         return stmt
 
     def format_greater_than(self, oper:Operation):
-        model = self.repo.cls_item
+        model = self.repo.model
         return 
+
+    def _filter_orm(self):
+        session = self.repo.session
+        return session.query(self.repo.model_orm).filter(self.query_)
+
 
 class SQLAlchemyRepo(BaseRepo):
     """SQLAlchemy Repository
@@ -66,13 +70,17 @@ class SQLAlchemyRepo(BaseRepo):
     """
     cls_result = SQLAlchemyResult
 
-    def __init__(self, cls_item, engine, id_field=None):
-        self.cls_item = cls_item
+    
+    model: BaseModel
+
+    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine, id_field=None):
+        self.model_orm = model_orm
+        self.model = self.parse_model(model_orm) if model is None else model
         self.session = self.create_scoped_session(engine)
         self.id_field = id_field or self.default_id_field
 
     def delete_by(self, **kwargs):
-        model = self.cls_item
+        model = self.model
         session = self.session
         return session.query(model).filter_by(**kwargs).delete()
 
@@ -80,8 +88,21 @@ class SQLAlchemyRepo(BaseRepo):
         self.session.add(item)
         self.session.commit()
 
+    def parse_item(self, item_orm):
+        # Turn ORM item to Pydantic item
+        return self.model.from_orm(item_orm)
+
+    def format_item(self, item:BaseModel):
+        # Turn Pydantic item to ORM item
+        return self.model_orm(**item.dict())
+
+    def parse_model(self, model):
+        # Turn SQLAlchemy BaseModel to Pydantic BaseModel
+        from pydantic_sqlalchemy import sqlalchemy_to_pydantic
+        return sqlalchemy_to_pydantic(model)
+
     #def update(self, item):
-    #    self.session.query(self.cls_item).update()
+    #    self.session.query(self.model).update()
 
     def create_scoped_session(self, engine):
         Session = orm.sessionmaker(bind=engine)
@@ -93,4 +114,5 @@ class SQLAlchemyRepo(BaseRepo):
         return d
 
     def create(self):
-        self.cls_item.__table__.create(bind=self.session.bind)
+        #! TODO: create table from Pydantic
+        self.model_orm.__table__.create(bind=self.session.bind)

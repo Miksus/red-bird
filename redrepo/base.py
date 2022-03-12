@@ -114,7 +114,7 @@ class BaseRepo(ABC):
 
     default_id_field: str = "id"
     id_field: str
-    cls_item = dict
+    model = dict
     cls_result: BaseResult
 
 
@@ -175,4 +175,4 @@ class BaseRepo(ABC):
 
     def parse_item(self, data):
         "Turn object from repo (row, doc, dict, etc.) to item"
-        return self.cls_item(**data)
+        return self.model(**data)

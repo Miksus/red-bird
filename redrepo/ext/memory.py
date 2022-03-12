@@ -41,8 +41,8 @@ class ListRepo(BaseRepo):
     cls_result = ListResult
     store: List
 
-    def __init__(self, cls_item, store=None, id_field=None):
-        self.cls_item = cls_item
+    def __init__(self, model, store=None, id_field=None):
+        self.model = model
         self.store = [] if store is None else store
         self.id_field = id_field or self.default_id_field
 
