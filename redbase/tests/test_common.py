@@ -3,7 +3,7 @@ import configparser
 
 import pytest
 from redbase.ext.sqlalchemy import SQLAlchemyRepo
-from redbase.ext.memory import ListRepo
+from redbase.ext.memory import MemoryRepo
 from redbase.ext.mongo import MongoRepo
 from redbase.operation import greater_than, less_than
 
@@ -19,7 +19,6 @@ class PydanticItem(BaseModel):
     age: int
 
 class PydanticItemORM(BaseModel):
-    __tablename__ = 'items'
     id: str
     name: str
     age: int
@@ -54,7 +53,7 @@ def get_mongo_uri():
 
 def get_repo(type_):
     if type_ == "memory":
-        repo = ListRepo(PydanticItem)
+        repo = MemoryRepo(PydanticItem)
         return repo
     elif type_ == "sql":
         engine = create_engine('sqlite://')
@@ -92,7 +91,7 @@ def populated_repo(request):
     ]
     repo = get_repo(request.param)
     if request.param == "memory":
-        repo.store = [repo.model(**item_attrs) for item_attrs in attrs]
+        repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
     elif request.param == "sql":
         for item_attrs in attrs:
             item = SQLItem(**item_attrs)

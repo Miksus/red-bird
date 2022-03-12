@@ -1,5 +1,5 @@
 import pytest
-from redbase.ext.memory import ListRepo
+from redbase.ext.memory import MemoryRepo
 from pydantic import BaseModel
 
 
@@ -10,7 +10,7 @@ class MyItem(BaseModel):
 
 
 def test_add():
-    repo = ListRepo(MyItem)
+    repo = MemoryRepo(MyItem)
     assert repo.store == []
 
     repo.add(MyItem(id="a", name="Jack", age=20))
@@ -22,7 +22,7 @@ def test_add():
     ]
 
 def test_filter_by():
-    repo = ListRepo(MyItem, store=[
+    repo = MemoryRepo(MyItem, store=[
         MyItem(id="a", name="Jack", age=20),
         MyItem(id="b", name="John", age=30),
         MyItem(id="c", name="James", age=30),
@@ -44,7 +44,7 @@ def test_filter_by():
     ]
 
 def test_getitem():
-    repo = ListRepo(MyItem, store=[
+    repo = MemoryRepo(MyItem, store=[
         MyItem(id="a", name="Jack", age=20),
         MyItem(id="b", name="John", age=30),
         MyItem(id="c", name="James", age=30),

@@ -38,7 +38,6 @@ class MongoSession:
 class MongoResult(BaseResult):
 
     repo: 'MongoRepo'
-    collection: Collection
 
     def query(self):
         col = self.repo._get_collection()
@@ -81,14 +80,29 @@ class MongoResult(BaseResult):
         return {"$le": oper.value}
 
 class MongoRepo(BaseRepo):
+    """MongoDB Repository
 
+    Parameters
+    ----------
+    model : BaseModel
+        Class of a document
+    url : str
+        Connection string to the database
+    session : Session, Any
+        A MongoDB session object that should
+        have at least ``client`` attribute
+    id_field : str
+        Field/attribute that identifies a 
+        document from others. 
+    """
     model: BaseModel = None
     cls_result = MongoResult
     default_id_field = "_id"
+    cls_session = MongoSession
 
-    def __init__(self, model, url, id_field=None):
+    def __init__(self, model:BaseModel, url=None, session=None, id_field=None):
         self.model = model
-        self.session = MongoSession(url=url)
+        self.session = self.cls_session(url=url) if session is None else session
         self.id_field = id_field or self.default_id_field
 
     def add(self, item):
@@ -113,7 +127,7 @@ class MongoRepo(BaseRepo):
             kwargs["_id"] = kwargs.pop(self.id_field)
         return super().filter_by(**kwargs)
 
-    def _get_collection(self) -> Collection:
+    def _get_collection(self) -> 'Collection':
         database = self._get_database()
         return database[self.model.__colname__]
 
@@ -136,7 +150,7 @@ class MongoRepo(BaseRepo):
         json[self.id_field] = json.pop("_id")
         return self.model(**json)
 
-    def format_item(self, item):
+    def format_item(self, item:BaseModel):
         json = item.dict()
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)

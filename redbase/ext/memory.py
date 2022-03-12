@@ -1,15 +1,16 @@
 
-from typing import List
+from typing import Dict, List
+
+from pydantic import BaseModel
 from redbase import BaseRepo, BaseResult
 from redbase.operation import Operation
 
 class ListResult(BaseResult):
 
-    store: List
-    repo: 'ListRepo'
+    repo: 'MemoryRepo'
 
     def query(self):
-        l = self.repo.store
+        l = self.repo.collection
         for item in l:
             if self._match(item):
                 yield item
@@ -20,8 +21,8 @@ class ListResult(BaseResult):
                 setattr(item, key, val)
 
     def delete(self, **kwargs):
-        cont = self.repo.store
-        self.repo.store = [
+        cont = self.repo.collection
+        self.repo.collection = [
             item 
             for item in cont 
             if not self._match(item)
@@ -36,32 +37,40 @@ class ListResult(BaseResult):
             for key, val in self.query_.items()
         )
 
-class ListRepo(BaseRepo):
+class MemoryRepo(BaseRepo):
+    """Memory repository
 
+    This is a repository which operates in memory.
+    Useful for unit tests and prototyping.
+
+    Parameters
+    ----------
+    model : BaseModel
+        Class of an item in the repository.
+    collection : list
+        The collection.
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     cls_result = ListResult
-    store: List
+    collection: Dict[str, BaseModel]
 
-    def __init__(self, model, store=None, id_field=None):
+    def __init__(self, model:BaseModel, collection=None, id_field=None):
         self.model = model
-        self.store = [] if store is None else store
+        self.collection = [] if collection is None else collection
         self.id_field = id_field or self.default_id_field
 
     def delete_by(self, **kwargs):
-        old_count = len(self.store)
-        self.store = [item for item in self.store if not self._match_kwargs(item, kwargs)]
-        new_count = len(self.store)
+        old_count = len(self.collection)
+        self.collection = [item for item in self.collection if not self._match_kwargs(item, kwargs)]
+        new_count = len(self.collection)
         return old_count - new_count
 
     def add(self, item):
-        self.store.append(item)
-
-    #def update(self, item):
-    #    id = getattr(item, self.id_field)
-    #    for repo_item in self.store:
-    #        if self._match_kwargs(repo_item, {self.id_field: id}):
-    #            for key, val in vars(item):
-    #                setattr(repo_item, key, val)
-    #            return
+        self.collection.append(item)
 
     def _match_kwargs(self, item, kwargs):
         return all(
