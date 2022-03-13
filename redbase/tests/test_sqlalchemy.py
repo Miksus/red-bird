@@ -1,5 +1,5 @@
 import pytest
-from redbase.ext.sqlalchemy import SQLAlchemyRepo
+from redbase.ext.sqlalchemy import SQLRepo
 from pydantic import BaseModel
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, create_engine
@@ -20,7 +20,7 @@ class MyItem(Base):
 
 def test_add():
     engine = create_engine('sqlite://')
-    repo = SQLAlchemyRepo(MyItem, engine=engine)
+    repo = SQLRepo(MyItem, engine=engine)
     repo.create()
 
     repo.add(MyItem(id="a", name="Jack", age=20))
@@ -33,7 +33,7 @@ def test_add():
 
 def test_filter_by():
     engine = create_engine('sqlite://')
-    repo = SQLAlchemyRepo(MyItem, engine=engine)
+    repo = SQLRepo(MyItem, engine=engine)
     repo.create()
 
     items = [

@@ -2,10 +2,10 @@
 import configparser
 
 import pytest
-from redbase.ext.sqlalchemy import SQLAlchemyRepo
+from redbase.ext.sqlalchemy import SQLRepo
 from redbase.ext.memory import MemoryRepo
 from redbase.ext.mongo import MongoRepo
-from redbase.operation import greater_than, less_than
+from redbase.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.orm import declarative_base
@@ -57,12 +57,12 @@ def get_repo(type_):
         return repo
     elif type_ == "sql":
         engine = create_engine('sqlite://')
-        repo = SQLAlchemyRepo(model_orm=SQLItem, engine=engine)
+        repo = SQLRepo(model_orm=SQLItem, engine=engine)
         repo.create()
         return repo
     elif type_ == "sql-pydantic":
         engine = create_engine('sqlite://')
-        repo = SQLAlchemyRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
+        repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
         SQLItem.__table__.create(bind=repo.session.bind)
         return repo
     elif type_ == "mongo":
@@ -119,6 +119,43 @@ def populated_repo(request):
 @pytest.fixture
 def repo(request):
     return get_repo(request.param)
+
+
+@pytest.mark.parametrize(
+    'repo',
+    [
+        pytest.param("memory"),
+        pytest.param("sql"),
+        pytest.param("sql-pydantic"),
+        pytest.param("mongo"),
+    ],
+    indirect=True
+)
+class TestAPI:
+
+    def test_session(self, repo):
+        repo.session.remove()
+
+    def test_has_attributes(self, repo):
+        # Test given attrs are found
+        attrs = [
+            "session", "model",
+            "add", "insert", "update", "upsert", "delete",
+            "filter_by",
+        ]
+        for attr in attrs:
+            getattr(repo, attr)
+
+    def test_has_attributes_result(self, repo):
+        attrs = [
+            "query_", "repo", "query",
+            "first", "all", "limit", "last",
+            "update", "delete",
+            "count",
+        ]
+        filter = repo.filter_by()
+        for attr in attrs:
+            getattr(filter, attr)
 
 
 @pytest.mark.parametrize(
@@ -192,17 +229,6 @@ class TestPopulated:
         Item = repo.model
         assert repo.filter_by(age=30).count() == 3
 
-    def test_filter_by_greater_than(self, populated_repo):
-        repo = populated_repo
-        Item = repo.model
-        assert repo.filter_by(age=greater_than(20)).all() == [
-            #Item(id="a", name="Jack", age=20),
-            Item(id="b", name="John", age=30),
-            Item(id="c", name="James", age=30),
-            Item(id="d", name="Johnny", age=30),
-            Item(id="e", name="Jesse", age=40),
-        ]
-
     def test_filter_by_less_than(self, populated_repo):
         repo = populated_repo
         Item = repo.model
@@ -261,6 +287,74 @@ class TestPopulated:
         repo = populated_repo
         with pytest.raises(KeyError):
             repo["not_found"] = {"name": "something"}
+
+
+@pytest.mark.parametrize(
+    'populated_repo',
+    [
+        pytest.param("memory"),
+        pytest.param("sql"),
+        pytest.param("sql-pydantic"),
+        pytest.param("mongo"),
+    ],
+    indirect=True
+)
+class TestFilteringOperations:
+
+    def test_greater_than(self, populated_repo):
+        repo = populated_repo
+        Item = repo.model
+        assert repo.filter_by(age=greater_than(20)).all() == [
+            #Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_less_than(self, populated_repo):
+        repo = populated_repo
+        Item = repo.model
+        assert repo.filter_by(age=less_than(30)).all() == [
+            Item(id="a", name="Jack", age=20),
+            #Item(id="b", name="John", age=30),
+            #Item(id="c", name="James", age=30),
+            #Item(id="d", name="Johnny", age=30),
+            #Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_greater_equal(self, populated_repo):
+        repo = populated_repo
+        Item = repo.model
+        assert repo.filter_by(age=greater_equal(30)).all() == [
+            #Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_less_equal(self, populated_repo):
+        repo = populated_repo
+        Item = repo.model
+        assert repo.filter_by(age=less_equal(30)).all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            #Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_not_equal(self, populated_repo):
+        repo = populated_repo
+        Item = repo.model
+        assert repo.filter_by(age=not_equal(30)).all() == [
+            Item(id="a", name="Jack", age=20),
+            #Item(id="b", name="John", age=30),
+            #Item(id="c", name="James", age=30),
+            #Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+        ]
 
 @pytest.mark.parametrize(
     'repo',

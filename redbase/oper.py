@@ -1,14 +1,16 @@
 
 
 from abc import ABC
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
+if TYPE_CHECKING:
+    from redbase.base import BaseResult
 
 class Operation(ABC):
     """Field operation
     """
     __py_magic__: str
-
+    __formatter__ : str
     def __init__(self, value):
         self.value = value
 
@@ -33,14 +35,20 @@ class LessThan(Operation):
 class GreaterEqual(Operation):
     __py_magic__ = "__ge__"
     __formatter__ = "format_greater_equal"
-    def __lt__(self, value):
+    def __ge__(self, value):
         return value >= self.value
 
 class LessEqual(Operation):
     __py_magic__ = "__le__"
     __formatter__ = "format_less_equal"
-    def __lt__(self, value):
+    def __le__(self, value):
         return value <= self.value
+
+class NotEqual(Operation):
+    __py_magic__ = "__ne__"
+    __formatter__ = "format_not_equal"
+    def __ne__(self, value):
+        return value != self.value
 
 
 def greater_than(value):
@@ -54,3 +62,6 @@ def greater_equal(value):
     
 def less_equal(value):
     return LessEqual(value)
+
+def not_equal(value):
+    return NotEqual(value)

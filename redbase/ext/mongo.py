@@ -12,9 +12,11 @@ from pymongo import MongoClient, client_session
 from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.cursor import Cursor
+from pymongo.errors import DuplicateKeyError
 
 from redbase.base import BaseResult, BaseRepo
-from redbase.operation import Operation
+from redbase.exc import KeyFoundError
+from redbase.oper import Operation
 
 class MongoSession:
 
@@ -31,9 +33,21 @@ class MongoSession:
     def create_client(self):
         return MongoClient(self.url)
 
+    def close(self):
+        if self._client is not None:
+            self._client.close()
+
     def remove(self):
-        self._client.close()
-        self._client = None
+        """Remove the connection
+
+        Similar in some ways to SQLAlchemy's Session.remove.
+        This method will close the client and remove it.
+        Next time the client is accessed, a new client is 
+        created. Meant to be safe for multi-threaded apps.
+        """
+        if self._client is not None:
+            self._client.close()
+            self._client = None
 
 class MongoResult(BaseResult):
 
@@ -74,10 +88,13 @@ class MongoResult(BaseResult):
         return {"$lt": oper.value}
 
     def format_greater_equal(self, oper:Operation):
-        return {"$ge": oper.value}
+        return {"$gte": oper.value}
 
     def format_less_equal(self, oper:Operation):
-        return {"$le": oper.value}
+        return {"$lte": oper.value}
+
+    def format_not_equal(self, oper:Operation):
+        return {"$ne": oper.value}
 
 class MongoRepo(BaseRepo):
     """MongoDB Repository
@@ -105,9 +122,18 @@ class MongoRepo(BaseRepo):
         self.session = self.cls_session(url=url) if session is None else session
         self.id_field = id_field or self.default_id_field
 
-    def add(self, item):
+    def insert(self, item):
         col = self._get_collection()
-        col.insert_one(self.format_item(item))
+        doc = self.format_item(item)
+        try:
+            col.insert_one(doc)
+        except DuplicateKeyError as exc:
+            raise KeyFoundError(f"Document {getattr(item, self.id_field)} already exists.") from exc
+
+    def upsert(self, item):
+        col = self._get_collection()
+        doc = self.format_item(item)
+        col.update_one({"_id": getattr(item, self.id_field)}, {"$set": doc}, upsert=True)
 
     #def update(self, item):
     #    col = self._get_collection()

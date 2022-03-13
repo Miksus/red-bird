@@ -3,9 +3,24 @@ from typing import Dict, List
 
 from pydantic import BaseModel
 from redbase import BaseRepo, BaseResult
-from redbase.operation import Operation
+from redbase.exc import KeyFoundError
+from redbase.oper import Operation
 
-class ListResult(BaseResult):
+class DummySession:
+    """Dummy session
+
+    Imitates similar session objects as SQLAlchemy's
+    session in order to avoid code changes if
+    in-memory repository is used.
+    """
+
+    def close(self):
+        ...
+    
+    def remove(self):
+        ...
+
+class MemoryResult(BaseResult):
 
     repo: 'MemoryRepo'
 
@@ -55,13 +70,14 @@ class MemoryRepo(BaseRepo):
     _type_
         _description_
     """
-    cls_result = ListResult
+    cls_result = MemoryResult
     collection: Dict[str, BaseModel]
 
     def __init__(self, model:BaseModel, collection=None, id_field=None):
         self.model = model
         self.collection = [] if collection is None else collection
         self.id_field = id_field or self.default_id_field
+        self.session = DummySession()
 
     def delete_by(self, **kwargs):
         old_count = len(self.collection)
@@ -69,7 +85,10 @@ class MemoryRepo(BaseRepo):
         new_count = len(self.collection)
         return old_count - new_count
 
-    def add(self, item):
+    def insert(self, item):
+        id_ = getattr(item, self.id_field)
+        if id_ in [getattr(col_item, self.id_field) for col_item in self.collection]:
+            raise KeyFoundError(f"Item {id_} already in the collection.")
         self.collection.append(item)
 
     def _match_kwargs(self, item, kwargs):

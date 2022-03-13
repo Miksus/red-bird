@@ -4,12 +4,14 @@ from pydantic import BaseModel
 from redbase import BaseRepo, BaseResult
 from sqlalchemy import Column, column, orm, true
 from sqlalchemy.sql import True_
+from sqlalchemy.exc import IntegrityError
+from redbase.exc import KeyFoundError
 
-from redbase.operation import Operation
+from redbase.oper import Operation
 
 class SQLAlchemyResult(BaseResult):
 
-    repo: 'SQLAlchemyRepo'
+    repo: 'SQLRepo'
 
     def query(self):
         for item in self._filter_orm():
@@ -58,7 +60,7 @@ class SQLAlchemyResult(BaseResult):
         return session.query(self.repo.model_orm).filter(self.query_)
 
 
-class SQLAlchemyRepo(BaseRepo):
+class SQLRepo(BaseRepo):
     """SQLAlchemy Repository
 
     Examples
@@ -84,8 +86,20 @@ class SQLAlchemyRepo(BaseRepo):
         session = self.session
         return session.query(model).filter_by(**kwargs).delete()
 
-    def add(self, item):
-        self.session.add(item)
+    def insert(self, item):
+        row = self.format_item(item)
+
+        try:
+            self.session.add(row)
+            self.session.commit()
+        except IntegrityError as exc:
+            self.session.rollback()
+            raise KeyFoundError(f"Item {getattr(item, self.id_field)} is already in the table.") from exc
+
+    def upsert(self, item):
+        row = self.format_item(item)
+
+        self.session.merge(row)
         self.session.commit()
 
     def parse_item(self, item_orm):
@@ -110,7 +124,7 @@ class SQLAlchemyRepo(BaseRepo):
 
     def item_to_dict(self, item):
         d = vars(item)
-        d.pop("_sa_instance_state")
+        d.pop("_sa_instance_state", None)
         return d
 
     def create(self):

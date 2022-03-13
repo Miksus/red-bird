@@ -4,14 +4,28 @@ from ctypes import Union
 from typing import Any, Dict, Generator, List, Mapping, Tuple
 from dataclasses import dataclass
 
-from .operation import Operation
+from redbase.exc import KeyFoundError
+
+from .oper import Operation
+
+class DummySession:
+    ...
 
 class BaseResult(ABC):
-    """Result of a filter"""
+    """Abstract query result
 
-    cursor: Any
+    Result classes handle the querying to the
+    repository providing convenient way to 
+    stack operations and reuse queries.
+    
+    Subclass of BaseRepo should also have custom
+    subclass of BaseResult as cls_result attribute.
+    """
 
-    def __init__(self, query=None, repo:'Repo'=None):
+    query_: dict
+    repo: 'BaseRepo'
+
+    def __init__(self, query:dict=None, repo:'BaseRepo'=None):
         self.repo = repo
         self.query_ = self.format_query(query)
         
@@ -73,43 +87,10 @@ class BaseResult(ABC):
         return result_format_method(oper)
 
 class BaseRepo(ABC):
+    """Abstract Repository
 
-    """Item Repo
+    Base class for the repository pattern.
 
-    Examples
-    --------
-    Creating a repo:
-
-    .. code-block:: python
-
-        class Companies(Repo):
-            pass
-
-        comp_repo = Companies(session)
-
-    Getting items:
-
-    .. code-block:: python
-        # Get an item based on ID
-        comp_repo["123456-1"]
-    
-        # Get items
-        comp_repo.filter_by(exchange="XHEL")
-
-    Setting items:
-
-    .. code-block:: python
-
-        comp_repo.add({"id": "12345-2", "name": "Company Ltd"})
-
-    Deleting item:
-
-    .. code-block:: python
-
-        del comp_repo['12345-2']
-
-        # Or multiple
-        comp_repo.delete_by(exchange="XHEL")
     """
 
     default_id_field: str = "id"
@@ -145,10 +126,30 @@ class BaseRepo(ABC):
         self.filter_by(**qry).update(**attrs)
 
 # Item based
+    def add(self, item, if_exists="raise"):
+        "Add an item to the repository"
+        if if_exists == "raise":
+            self.insert(item)
+        elif if_exists == "update":
+            self.upsert(item)
+        elif if_exists == "ignore":
+            try:
+                self.insert(item)
+            except KeyFoundError:
+                pass
+        else:
+            raise ValueError(f"Invalid value: {if_exists}")
+
     @abstractmethod
-    def add(self, item):
+    def insert(self):
         "Add an item to the repository"
         ...
+
+    def upsert(self, item):
+        try:
+            self.insert(item)
+        except KeyFoundError:
+            self.update(item)
 
     def delete(self, item):
         id_ = getattr(item, self.id_field)
