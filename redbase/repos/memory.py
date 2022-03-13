@@ -64,14 +64,9 @@ class MemoryRepo(BaseRepo):
         Class of an item in the repository.
     collection : list
         The collection.
-
-    Returns
-    -------
-    _type_
-        _description_
     """
     cls_result = MemoryResult
-    collection: Dict[str, BaseModel]
+    collection: List[BaseModel]
 
     def __init__(self, model:BaseModel, collection=None, id_field=None):
         self.model = model

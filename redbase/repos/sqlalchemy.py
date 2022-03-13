@@ -1,13 +1,13 @@
 
-from typing import Type
+from typing import TYPE_CHECKING, Type
 from pydantic import BaseModel
 from redbase import BaseRepo, BaseResult
-from sqlalchemy import Column, column, orm, true
-from sqlalchemy.sql import True_
-from sqlalchemy.exc import IntegrityError
 from redbase.exc import KeyFoundError
 
 from redbase.oper import Operation
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Engine
 
 class SQLAlchemyResult(BaseResult):
 
@@ -36,6 +36,7 @@ class SQLAlchemyResult(BaseResult):
         return self._filter_orm().count()
 
     def format_query(self, oper: dict):
+        from sqlalchemy import column, orm, true
         stmt = true()
         for column_name, oper_or_value in oper.items():
             if isinstance(oper_or_value, Operation):
@@ -61,24 +62,31 @@ class SQLAlchemyResult(BaseResult):
 
 
 class SQLRepo(BaseRepo):
-    """SQLAlchemy Repository
+    """SQL Repository
 
-    Examples
-    --------
-        .. code-block: python
+    Parameters
+    ----------
+    model : Type of BaseModel, optional
+        Pydantic model class to be used as an item model.
+        If not provided, model_orm is converted to
+        be as such.
+    model_orm : Type of Base
+        Subclass of SQL Alchemy representation of the item.
+        This is the class that is operated behind the scenes.
+    engine : sqlalchemy.engine.Engine
+        SQL Alchemy engine.
+    session : sqlalchemy.session.Session
 
-            repo = Messages(model)
-            msg = repo["my_msg_id"]
     """
     cls_result = SQLAlchemyResult
 
     
-    model: BaseModel
+    model: Type[BaseModel]
 
-    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine, id_field=None):
+    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine:'Engine'=None, session=None, id_field=None):
         self.model_orm = model_orm
         self.model = self.parse_model(model_orm) if model is None else model
-        self.session = self.create_scoped_session(engine)
+        self.session = self.create_scoped_session(engine) if session is None else session
         self.id_field = id_field or self.default_id_field
 
     def delete_by(self, **kwargs):
@@ -87,6 +95,7 @@ class SQLRepo(BaseRepo):
         return session.query(model).filter_by(**kwargs).delete()
 
     def insert(self, item):
+        from sqlalchemy.exc import IntegrityError
         row = self.format_item(item)
 
         try:
@@ -115,12 +124,10 @@ class SQLRepo(BaseRepo):
         from pydantic_sqlalchemy import sqlalchemy_to_pydantic
         return sqlalchemy_to_pydantic(model)
 
-    #def update(self, item):
-    #    self.session.query(self.model).update()
-
     def create_scoped_session(self, engine):
-        Session = orm.sessionmaker(bind=engine)
-        return orm.scoped_session(Session)
+        from sqlalchemy.orm import sessionmaker, scoped_session
+        Session = sessionmaker(bind=engine)
+        return scoped_session(Session)
 
     def item_to_dict(self, item):
         d = vars(item)
@@ -128,5 +135,4 @@ class SQLRepo(BaseRepo):
         return d
 
     def create(self):
-        #! TODO: create table from Pydantic
         self.model_orm.__table__.create(bind=self.session.bind)

@@ -2,9 +2,9 @@
 import configparser
 
 import pytest
-from redbase.ext.sqlalchemy import SQLRepo
-from redbase.ext.memory import MemoryRepo
-from redbase.ext.mongo import MongoRepo
+from redbase.repos.sqlalchemy import SQLRepo
+from redbase.repos.memory import MemoryRepo
+from redbase.repos.mongo import MongoRepo
 from redbase.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
 from sqlalchemy import Column, String, Integer, create_engine

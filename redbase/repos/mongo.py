@@ -1,22 +1,17 @@
 
-
-from abc import abstractmethod, ABC
-from ctypes import Union
-from typing import Any, Generator, List
-from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 
 from pydantic import BaseModel, ValidationError
 
-from pymongo import MongoClient, client_session
-from pymongo.collection import Collection
-from pymongo.database import Database
-from pymongo.cursor import Cursor
-from pymongo.errors import DuplicateKeyError
-
 from redbase.base import BaseResult, BaseRepo
 from redbase.exc import KeyFoundError
 from redbase.oper import Operation
+
+if TYPE_CHECKING:
+    from pymongo import MongoClient
+    from pymongo.database import Database
+    from pymongo.collection import Collection    
 
 class MongoSession:
 
@@ -31,6 +26,7 @@ class MongoSession:
         return self._client
 
     def create_client(self):
+        from pymongo import MongoClient
         return MongoClient(self.url)
 
     def close(self):
@@ -123,6 +119,7 @@ class MongoRepo(BaseRepo):
         self.id_field = id_field or self.default_id_field
 
     def insert(self, item):
+        from pymongo.errors import DuplicateKeyError
         col = self._get_collection()
         doc = self.format_item(item)
         try:
@@ -157,12 +154,11 @@ class MongoRepo(BaseRepo):
         database = self._get_database()
         return database[self.model.__colname__]
 
-    def _get_database(self) -> Database:
+    def _get_database(self) -> 'Database':
         client = self._get_client()
         return client.get_default_database()
 
-    def _get_client(self) -> MongoClient:
-        # bind = self.model.__bind_key__
+    def _get_client(self) -> 'MongoClient':
         return self.session.client
 
     def _format_dict(self, item:dict) -> BaseModel:
