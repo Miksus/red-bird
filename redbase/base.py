@@ -169,11 +169,6 @@ class BaseRepo(ABC):
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)
 
-    @abstractmethod
-    def delete_by(self, **kwargs):
-        "Delete items from the repository by filtering using keyword args"
-        ...
-
     def parse_item(self, data):
         "Turn object from repo (row, doc, dict, etc.) to item"
         return self.model(**data)

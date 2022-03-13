@@ -89,11 +89,6 @@ class SQLRepo(BaseRepo):
         self.session = self.create_scoped_session(engine) if session is None else session
         self.id_field = id_field or self.default_id_field
 
-    def delete_by(self, **kwargs):
-        model = self.model
-        session = self.session
-        return session.query(model).filter_by(**kwargs).delete()
-
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
         row = self.format_item(item)

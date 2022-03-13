@@ -132,18 +132,6 @@ class MongoRepo(BaseRepo):
         doc = self.format_item(item)
         col.update_one({"_id": getattr(item, self.id_field)}, {"$set": doc}, upsert=True)
 
-    #def update(self, item):
-    #    col = self._get_collection()
-    #    d = self.parse_item(item)
-    #    col.update_one(
-    #        {self.id_field: d[self.id_field]},
-    #        d
-    #    )
-
-    def delete_by(self, **kwargs):
-        col = self._get_collection()
-        return col.delete_many(kwargs).deleted_count
-    
     def filter_by(self, **kwargs) -> BaseResult:
         # Rename id_field --> "_id"
         if self.id_field in kwargs:

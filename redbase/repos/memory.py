@@ -74,20 +74,8 @@ class MemoryRepo(BaseRepo):
         self.id_field = id_field or self.default_id_field
         self.session = DummySession()
 
-    def delete_by(self, **kwargs):
-        old_count = len(self.collection)
-        self.collection = [item for item in self.collection if not self._match_kwargs(item, kwargs)]
-        new_count = len(self.collection)
-        return old_count - new_count
-
     def insert(self, item):
         id_ = getattr(item, self.id_field)
         if id_ in [getattr(col_item, self.id_field) for col_item in self.collection]:
             raise KeyFoundError(f"Item {id_} already in the collection.")
         self.collection.append(item)
-
-    def _match_kwargs(self, item, kwargs):
-        return all(
-            getattr(item, key) == val
-            for key, val in kwargs.items()
-        )
