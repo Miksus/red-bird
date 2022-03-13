@@ -5,20 +5,7 @@ from pydantic import BaseModel
 from redbase import BaseRepo, BaseResult
 from redbase.exc import KeyFoundError
 from redbase.oper import Operation
-
-class DummySession:
-    """Dummy session
-
-    Imitates similar session objects as SQLAlchemy's
-    session in order to avoid code changes if
-    in-memory repository is used.
-    """
-
-    def close(self):
-        ...
-    
-    def remove(self):
-        ...
+from redbase.dummy import DummySession
 
 class MemoryResult(BaseResult):
 
