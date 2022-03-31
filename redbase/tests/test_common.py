@@ -54,17 +54,29 @@ def get_mongo_uri():
 def get_repo(type_):
     if type_ == "memory":
         repo = MemoryRepo(PydanticItem)
-        return repo
+
     elif type_ == "sql":
         engine = create_engine('sqlite://')
         repo = SQLRepo(model_orm=SQLItem, engine=engine)
         repo.create()
-        return repo
+
     elif type_ == "sql-pydantic":
         engine = create_engine('sqlite://')
         repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
         SQLItem.__table__.create(bind=repo.session.bind)
-        return repo
+
+    elif type_ == "mongo":
+        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
+
+        # Empty the collection
+        pytest.importorskip("pymongo")
+        from pymongo import MongoClient
+
+        client = MongoClient(repo.session.url)
+        col_name = repo.model.__colname__
+        db = client.get_default_database()
+        col = db[col_name]
+        col.delete_many({})
     elif type_ == "mongo":
         repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
 
@@ -78,7 +90,7 @@ def get_repo(type_):
         col = db[col_name]
         col.delete_many({})
 
-        return repo
+    return repo
 
 @pytest.fixture
 def populated_repo(request):
