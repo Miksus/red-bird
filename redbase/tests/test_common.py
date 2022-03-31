@@ -387,9 +387,24 @@ class TestEmpty:
         repo.add(Item(id="a", name="Jack", age=20))
         repo.add(Item(id="b", name="John", age=30))
 
-        repo.update(Item(id="a", name="Max", age=50))
-        assert repo.filter_by().all() == [
-            Item(id="a", name="Max", age=50),
+        repo.update(Item(id="a", name="Max"))
+        items = repo.filter_by().all()
+        assert items == [
+            Item(id="a", name="Max", age=20),
+            Item(id="b", name="John", age=30),
+        ]
+
+    def test_replace(self, repo):
+        Item = repo.model
+
+        repo.add(Item(id="a", name="Jack", age=20))
+        repo.add(Item(id="b", name="John", age=30))
+
+        repo.replace(Item(id="a", name="Max"))
+
+        items = sorted(repo.filter_by().all(), key=lambda x: x.id)
+        assert items == [
+            Item(id="a", name="Max", age=None),
             Item(id="b", name="John", age=30),
         ]
 
