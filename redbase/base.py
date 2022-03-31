@@ -161,6 +161,11 @@ class BaseRepo(ABC):
         values = self.item_to_dict(item)
         self.filter_by(**qry).update(**values)
 
+    def replace(self, item):
+        "Update an item in the repository"
+        self.delete(item)
+        self.add(item)
+
     def item_to_dict(self, item) -> dict:
         return item.dict()
 
