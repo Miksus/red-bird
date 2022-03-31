@@ -1,5 +1,6 @@
 
 import configparser
+from typing import Optional
 
 import pytest
 from redbase.repos.sqlalchemy import SQLRepo
@@ -16,7 +17,7 @@ class PydanticItem(BaseModel):
     __colname__ = 'items'
     id: str
     name: str
-    age: int
+    age: Optional[int]
 
 class PydanticItemORM(BaseModel):
     id: str
