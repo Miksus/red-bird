@@ -112,7 +112,7 @@ class SQLRepo(BaseRepo):
 
     def format_item(self, item:BaseModel):
         # Turn Pydantic item to ORM item
-        return self.model_orm(**item.dict())
+        return self.model_orm(**item.dict(exclude_unset=True))
 
     def parse_model(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
@@ -125,9 +125,13 @@ class SQLRepo(BaseRepo):
         return scoped_session(Session)
 
     def item_to_dict(self, item):
-        d = vars(item)
-        d.pop("_sa_instance_state", None)
-        return d
+        if hasattr(item, "dict"):
+            # Is pydantic
+            return item.dict(exclude_unset=True)
+        else:
+            d = vars(item)
+            d.pop("_sa_instance_state", None)
+            return d
 
     def create(self):
         self.model_orm.__table__.create(bind=self.session.bind)

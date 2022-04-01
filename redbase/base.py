@@ -167,7 +167,7 @@ class BaseRepo(ABC):
         self.add(item)
 
     def item_to_dict(self, item) -> dict:
-        return item.dict()
+        return item.dict(exclude_unset=True)
 
 # Keyword arguments
     def filter_by(self, **kwargs) -> BaseResult:
