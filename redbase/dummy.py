@@ -14,9 +14,15 @@ class DummySession:
     """
 
     def close(self):
+        "Close the connection(s)/client(s)/engine(s)"
         ...
     
     def remove(self):
+        "Close the connection(s)/client(s)/engine(s) so that they can be recreated"
+        ...
+
+    def get_bind(self, bind_key=None):
+        "Get connection/client/engine for given key"
         ...
 
 class DummyData:
