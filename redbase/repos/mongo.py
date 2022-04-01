@@ -88,13 +88,13 @@ class MongoResult(BaseResult):
     repo: 'MongoRepo'
 
     def query(self):
-        col = self.repo._get_collection()
+        col = self.repo.get_collection()
         for item in col.find(self.query_):
             yield self.repo.parse_item(item)
 
     def limit(self, n:int):
         "Get n first items"
-        col = self.repo._get_collection()
+        col = self.repo.get_collection()
         return [
             self.repo.parse_item(item)
             for item in col.find(self.query_).limit(n)
@@ -102,17 +102,17 @@ class MongoResult(BaseResult):
 
     def update(self, **kwargs):
         "Update the resulted rows"
-        col = self.repo._get_collection()
+        col = self.repo.get_collection()
         col.update_many(self.query_, {"$set": kwargs})
 
     def delete(self):
         "Delete found documents"
-        col = self.repo._get_collection()
+        col = self.repo.get_collection()
         col.delete_many(self.query_)
 
     def count(self):
         "Count found documents"
-        col = self.repo._get_collection()
+        col = self.repo.get_collection()
         return col.count_documents(self.query_)
 
     def format_greater_than(self, oper:Operation):
@@ -151,14 +151,16 @@ class MongoRepo(BaseRepo):
     default_id_field = "_id"
     cls_session = MongoSession
 
-    def __init__(self, model:BaseModel, url=None, session=None, id_field=None):
+    def __init__(self, model:BaseModel, url=None, database:str=None, collection=None, session=None, id_field=None):
         self.model = model
         self.session = self.cls_session(url=url) if session is None else session
+        self.database = database
+        self.collection = collection
         self.id_field = id_field or self.default_id_field
 
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError
-        col = self._get_collection()
+        col = self.get_collection()
         doc = self.format_item(item)
         try:
             col.insert_one(doc)
@@ -166,7 +168,7 @@ class MongoRepo(BaseRepo):
             raise KeyFoundError(f"Document {getattr(item, self.id_field)} already exists.") from exc
 
     def upsert(self, item):
-        col = self._get_collection()
+        col = self.get_collection()
         doc = self.format_item(item)
         col.update_one({"_id": getattr(item, self.id_field)}, {"$set": doc}, upsert=True)
 
@@ -176,16 +178,21 @@ class MongoRepo(BaseRepo):
             kwargs["_id"] = kwargs.pop(self.id_field)
         return super().filter_by(**kwargs)
 
-    def _get_collection(self) -> 'Collection':
-        database = self._get_database()
-        return database[self.model.__colname__]
+    def get_collection(self) -> 'Collection':
+        "Get the MongoDB collection object"
+        col_name = self.model.__colname__ if hasattr(self.model, "__colname__") else self.collection
+        database = self.get_database()
+        return database[col_name]
 
-    def _get_database(self) -> 'Database':
-        client = self._get_client()
-        return client.get_default_database()
+    def get_database(self) -> 'Database':
+        "Get the MongoDB database object"
+        client = self.get_client()
+        return client[self.database] if self.database is not None else client.get_default_database()
 
-    def _get_client(self) -> 'MongoClient':
-        return self.session.client
+    def get_client(self) -> 'MongoClient':
+        "Get the MongoDB client"
+        #! TODO: Support __bind_key__
+        return self.session.get_bind(self.model)
 
     def _format_dict(self, item:dict) -> BaseModel:
         try:
@@ -199,7 +206,7 @@ class MongoRepo(BaseRepo):
         return self.model(**json)
 
     def format_item(self, item:BaseModel):
-        json = item.dict()
+        json = item.dict(exclude_unset=True)
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)
         return json
