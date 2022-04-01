@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Union
 
 
 from pydantic import BaseModel, ValidationError
@@ -15,35 +15,73 @@ if TYPE_CHECKING:
 
 class MongoSession:
 
-    def __init__(self, url):
+    """MongoDB session
+
+    Similar as SQLAlchemy Session but works slightly 
+    different due to technical details
+
+    MongoClient is analogous to sqlalchemy.engine.Engine but 
+    MongoClient is not fork safe: https://pymongo.readthedocs.io/en/stable/faq.html#is-pymongo-fork-safe
+    SQLAlchemy Engine is fork safe if no connections are made.
+
+    This object is fork safe if no clients are open (call remove to close all of them).
+    """
+
+    url: str
+    binds: Dict[str, str]
+
+    _bind: 'MongoClient'
+    _binds: Dict[str, 'MongoClient']
+
+    def __init__(self, url, binds:Dict[str, str]=None):
         self.url = url
-        self._client = None
+        self.binds = binds if binds is not None else {}
+
+        self._binds = {}
+        self._bind = None
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = self.create_client()
-        return self._client
+        if self._bind is None:
+            self._bind = self.create_client()
+        return self._bind
 
-    def create_client(self):
+    def create_client(self, url=None):
         from pymongo import MongoClient
-        return MongoClient(self.url)
+        url = self.url if url is None else url
+        return MongoClient(url)
 
     def close(self):
-        if self._client is not None:
-            self._client.close()
+        "Close client and all binds"
+        if self._bind is not None:
+            self._bind.close()
+        for client in self._binds.values():
+            client.close()
 
     def remove(self):
         """Remove the connection
 
         Similar in some ways to SQLAlchemy's Session.remove.
-        This method will close the client and remove it.
+        This method will close the clients and remove them.
         Next time the client is accessed, a new client is 
         created. Meant to be safe for multi-threaded apps.
         """
-        if self._client is not None:
-            self._client.close()
-            self._client = None
+        self.close()
+
+        self._bind = None
+        self._binds = {}
+
+    def get_bind(self, bind_key=None) -> 'MongoClient':
+        "Get client associated with the mapper"
+        if bind_key is None:
+            # return default connection
+            return self.client
+        else:
+            bind_key = getattr(bind_key, "__bind_key__", bind_key)
+            url = self.binds.get(bind_key, self.url)
+            if url not in self._binds:
+                self._binds[url] = self.create_client(url)
+            return self._binds[url]
 
 class MongoResult(BaseResult):
 
