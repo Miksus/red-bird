@@ -19,7 +19,7 @@ def get_node_id(request):
 @pytest.fixture(scope="function")
 def mongo_uri():
     config = configparser.ConfigParser()
-    config.read("private.ini")
+    config.read("redbase/tests/private.ini")
     pytest.importorskip("pymongo")
     return config["connection"]["mongodb"]
 

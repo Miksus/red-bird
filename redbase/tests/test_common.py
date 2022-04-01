@@ -22,7 +22,7 @@ class PydanticItem(BaseModel):
 class PydanticItemORM(BaseModel):
     id: str
     name: str
-    age: int
+    age: Optional[int]
     class Config:
         orm_mode = True
 
@@ -133,15 +133,16 @@ def populated_repo(request):
 def repo(request):
     return get_repo(request.param)
 
+TEST_CASES = [
+    pytest.param("memory"),
+    pytest.param("sql"),
+    pytest.param("sql-pydantic"),
+    pytest.param("mongo"),
+]
 
 @pytest.mark.parametrize(
     'repo',
-    [
-        pytest.param("memory"),
-        pytest.param("sql"),
-        pytest.param("sql-pydantic"),
-        pytest.param("mongo"),
-    ],
+    TEST_CASES,
     indirect=True
 )
 class TestAPI:
@@ -173,12 +174,7 @@ class TestAPI:
 
 @pytest.mark.parametrize(
     'populated_repo',
-    [
-        pytest.param("memory"),
-        pytest.param("sql"),
-        pytest.param("sql-pydantic"),
-        pytest.param("mongo"),
-    ],
+    TEST_CASES,
     indirect=True
 )
 class TestPopulated:
@@ -304,12 +300,7 @@ class TestPopulated:
 
 @pytest.mark.parametrize(
     'populated_repo',
-    [
-        pytest.param("memory"),
-        pytest.param("sql"),
-        pytest.param("sql-pydantic"),
-        pytest.param("mongo"),
-    ],
+    TEST_CASES,
     indirect=True
 )
 class TestFilteringOperations:
@@ -371,11 +362,7 @@ class TestFilteringOperations:
 
 @pytest.mark.parametrize(
     'repo',
-    [
-        pytest.param("memory"),
-        pytest.param("sql"),
-        pytest.param("mongo"),
-    ],
+    TEST_CASES,
     indirect=True
 )
 class TestEmpty:
