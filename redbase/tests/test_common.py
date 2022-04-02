@@ -1,8 +1,13 @@
 
 import configparser
 from typing import Optional
+import re
+import json
 
 import pytest
+import responses
+import requests
+from redbase.repos.rest import RESTRepo
 from redbase.repos.sqlalchemy import SQLRepo
 from redbase.repos.memory import MemoryRepo
 from redbase.repos.mongo import MongoRepo
@@ -12,6 +17,10 @@ from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.orm import declarative_base
 
 from pydantic import BaseModel, Field
+
+# ------------------------
+# TEST ITEMS
+# ------------------------
 
 class PydanticItem(BaseModel):
     __colname__ = 'items'
@@ -46,11 +55,125 @@ class SQLItem(SQLBase):
             return False
         return other.id == self.id and other.name == self.name and other.age == self.age
 
+# ------------------------
+# MOCK
+# ------------------------
+
 def get_mongo_uri():
     config = configparser.ConfigParser()
     config.read("redbase/tests/private.ini")
     pytest.importorskip("pymongo")
     return config["connection"]["mongodb"]
+
+class RESTMock:
+
+    def __init__(self):
+        self.repo = MemoryRepo(PydanticItem)
+    
+    def post(self, request):
+        data = json.loads(request.body)
+        self.repo.add(data)
+        return (200, {}, b"")
+
+    def patch(self, request):
+        data = json.loads(request.body)
+        params = self.get_params(request)
+        self.repo.filter_by(**params).update(**data)
+        return (200, {}, b"")
+
+    def patch_one(self, request):
+        id = self.get_id(request)
+        data = json.loads(request.body)
+        assert "id" not in data
+
+        data["id"] = id
+        item = self.repo.model(**data)
+        self.repo.update(item)
+        return (200, {}, b"")
+
+    def put(self, request):
+        data = json.loads(request.body)
+        item = self.repo.model(**data)
+        self.repo.replace(item)
+        return (200, {}, b"")
+
+    def delete(self, request):
+        params = self.get_params(request)
+        self.repo.filter_by(**params).delete()
+        return (200, {}, b"")
+
+    def delete_one(self, request):
+        id = self.get_id(request)
+        del self.repo[id]
+        return (200, {}, b"")
+
+    def get(self, request):
+        params = self.get_params(request)
+        data = self.repo.filter_by(**params).all()
+        data = [item.dict() for item in data]
+        return (200, {"Content-Type": "application/json"}, json.dumps(data))
+
+    def get_one(self, request):
+        id = self.get_id(request)
+        data = self.repo[id].dict()
+        return (200, {"Content-Type": "application/json"}, json.dumps(data))
+
+    def get_params(self, req):
+        return {
+            key: int(val) if val.isdigit() else val 
+            for key, val in req.params.items()
+        }
+
+    def get_id(self, req):
+        parts = req.url.rsplit("api/items/", 1)
+        return parts[-1] if len(parts) > 1 else None
+
+    def add_routes(self, rsps):
+        rsps.add_callback(
+            responses.POST, 
+            'http://localhost:5000/api/items',
+            callback=self.post,
+            content_type='application/json',
+        )
+        rsps.add_callback(
+            responses.PATCH, 
+            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
+            callback=self.patch_one,
+        )
+        rsps.add_callback(
+            responses.PATCH, 
+            re.compile('http://localhost:5000/api/items?[a-zA-Z=_]+'),
+            callback=self.patch,
+        )
+
+        rsps.add_callback(
+            responses.PUT, 
+            re.compile('http://localhost:5000/api/items'),
+            callback=self.put,
+        )
+
+        rsps.add_callback(
+            responses.DELETE, 
+            'http://localhost:5000/api/items',
+            callback=self.delete,
+        )
+        rsps.add_callback(
+            responses.DELETE, 
+            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
+            callback=self.delete_one,
+        )
+
+        rsps.add_callback(
+            responses.GET, 
+            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
+            callback=self.get_one,
+        )
+        rsps.add_callback(
+            responses.GET, 
+            re.compile('http://localhost:5000/api/items'),
+            callback=self.get,
+        )
+
 
 def get_repo(type_):
     if type_ == "memory":
@@ -78,20 +201,14 @@ def get_repo(type_):
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
-    elif type_ == "mongo":
-        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
-
-        # Empty the collection
-        pytest.importorskip("pymongo")
-        from pymongo import MongoClient
-
-        client = MongoClient(repo.session.url)
-        col_name = repo.model.__colname__
-        db = client.get_default_database()
-        col = db[col_name]
-        col.delete_many({})
+    elif type_ == "http-rest":
+        repo = RESTRepo(PydanticItem, url="http://localhost:5000/api/items", id_field="id")
 
     return repo
+
+# ------------------------
+# FIXTURES
+# ------------------------
 
 @pytest.fixture
 def populated_repo(request):
@@ -105,16 +222,19 @@ def populated_repo(request):
     repo = get_repo(request.param)
     if request.param == "memory":
         repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
+        yield repo
     elif request.param == "sql":
         for item_attrs in attrs:
             item = SQLItem(**item_attrs)
             repo.session.add(item)
         repo.session.commit()
+        yield repo
     elif request.param == "sql-pydantic":
         for item_attrs in attrs:
             item = SQLItem(**item_attrs)
             repo.session.add(item)
         repo.session.commit()
+        yield repo
     elif request.param == "mongo":
         pytest.importorskip("pymongo")
         from pymongo import MongoClient
@@ -127,18 +247,38 @@ def populated_repo(request):
         for item in attrs:
             item["_id"] = item.pop("id")
         col.insert_many(attrs)
-    return repo
+        yield repo
+    elif request.param == "http-rest":
+        api = RESTMock()
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            api.add_routes(rsps)
+            api.repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
+            yield repo
 
 @pytest.fixture
 def repo(request):
-    return get_repo(request.param)
+    repo = get_repo(request.param)
+    if request.param == "http-rest":
+        api = RESTMock()
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            api.add_routes(rsps)
+            yield repo
+    else:
+        yield repo
 
 TEST_CASES = [
     pytest.param("memory"),
     pytest.param("sql"),
     pytest.param("sql-pydantic"),
     pytest.param("mongo"),
+    pytest.param("http-rest"),
 ]
+
+
+# ------------------------
+# ACTUAL TESTS
+# ------------------------
+
 
 @pytest.mark.parametrize(
     'repo',
