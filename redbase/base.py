@@ -159,6 +159,8 @@ class BaseRepo(ABC):
         "Update an item in the repository"
         qry = {self.id_field: getattr(item, self.id_field)}
         values = self.item_to_dict(item)
+        # We don't update the ID
+        values.pop(self.id_field)
         self.filter_by(**qry).update(**values)
 
     def replace(self, item):
