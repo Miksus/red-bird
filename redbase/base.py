@@ -128,6 +128,7 @@ class BaseRepo(ABC):
 # Item based
     def add(self, item, if_exists="raise"):
         "Add an item to the repository"
+        item = self.to_item(item)
         if if_exists == "raise":
             self.insert(item)
         elif if_exists == "update":
@@ -179,3 +180,14 @@ class BaseRepo(ABC):
     def parse_item(self, data):
         "Turn object from repo (row, doc, dict, etc.) to item"
         return self.model(**data)
+
+    def to_item(self, obj):
+        "Turn an object to item"
+        if isinstance(obj, self.model):
+            return obj
+        elif isinstance(obj, dict):
+            return self.model(**obj)
+        elif isinstance(obj, (list, tuple, set)):
+            return self.model(*obj)
+        else:
+            raise TypeError(f"Cannot cast {type(obj)} to {self.model}")
