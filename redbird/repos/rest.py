@@ -9,6 +9,14 @@ from redbird.base import BaseResult, BaseRepo
 
 import requests
 
+class Session(requests.Session):
+    """Subclassed requests.Session for more
+    unified methods.
+    """
+
+    def remove(self):
+        self.close()
+
 class RESTResult(BaseResult):
 
     repo: 'RESTRepo'
@@ -73,7 +81,7 @@ class RESTRepo(BaseRepo):
     def __init__(self, *args, url, headers:dict=None, url_params:dict=None, result=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.url = url
-        self.session = requests.Session()
+        self.session = Session()
 
         self.headers = headers
         self.url_params = {} if url_params is None else url_params
@@ -102,7 +110,7 @@ class RESTRepo(BaseRepo):
         url_params = self.url_params.copy()
         if query is not None:
             url_params.update(query)
-        id = query.pop(self.id_field) if query is not None and self.id_field in query else None
+        id = url_params.pop(self.id_field) if query is not None and self.id_field in query else None
 
         url_base = self.url
         url_params = urlparse.urlencode(url_params) # Turn {"param": "value"} --> "param=value"
