@@ -113,7 +113,7 @@ class BaseRepo(ABC):
 
     def __iter__(self):
         "Iterate over the repository"
-        return self.filter_by().all()
+        return iter(self.filter_by().all())
 
     def __getitem__(self, id):
         "Get item from the repository using ID"
