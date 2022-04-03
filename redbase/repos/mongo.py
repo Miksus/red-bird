@@ -205,7 +205,7 @@ class MongoRepo(BaseRepo):
         return self.model(**json)
 
     def item_to_data(self, item:BaseModel):
-        json = item.dict(exclude_unset=True)
+        json = self.item_to_dict(item)
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)
         return json
