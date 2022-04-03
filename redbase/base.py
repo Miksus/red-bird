@@ -98,6 +98,10 @@ class BaseRepo(ABC):
     model = dict
     cls_result: BaseResult
 
+    def __init__(self, model, id_field=None):
+        self.model = model
+        self.id_field = id_field or self.default_id_field
+
 
     def __iter__(self):
         "Iterate over the repository"

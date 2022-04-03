@@ -151,12 +151,11 @@ class MongoRepo(BaseRepo):
     default_id_field = "_id"
     cls_session = MongoSession
 
-    def __init__(self, model:BaseModel, url=None, database:str=None, collection=None, session=None, id_field=None):
-        self.model = model
+    def __init__(self, *args, url=None, database:str=None, collection=None, session=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.session = self.cls_session(url=url) if session is None else session
         self.database = database
         self.collection = collection
-        self.id_field = id_field or self.default_id_field
 
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError

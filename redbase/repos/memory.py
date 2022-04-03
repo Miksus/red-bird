@@ -55,10 +55,9 @@ class MemoryRepo(BaseRepo):
     cls_result = MemoryResult
     collection: List[BaseModel]
 
-    def __init__(self, model:BaseModel, collection=None, id_field=None):
-        self.model = model
+    def __init__(self, *args, collection=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.collection = [] if collection is None else collection
-        self.id_field = id_field or self.default_id_field
         self.session = DummySession()
 
     def insert(self, item):

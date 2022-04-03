@@ -1,6 +1,6 @@
 
 import urllib.parse as urlparse
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from pydantic import BaseModel
 
@@ -11,15 +11,27 @@ import requests
 
 class RESTResult(BaseResult):
 
+    repo: 'RESTRepo'
     def query(self):
         url = self.repo.get_url(self.query_)
         page = self.repo._request("GET", url)
         output = page.json()
-        if isinstance(output, (list, tuple, set)):
-            for item in output:
+
+        result_loc = self.repo.result
+        if result_loc is None:
+            items = output
+        elif isinstance(result_loc, str):
+            items = output[result_loc]
+        elif isinstance(result_loc, callable):
+            items = result_loc(output)
+        else:
+            raise TypeError(f"Could not locate results from {result_loc}")
+
+        if isinstance(items, (list, tuple, set)):
+            for item in items:
                 yield self.repo.data_to_item(item)
         else:
-            yield self.repo.data_to_item(output)
+            yield self.repo.data_to_item(items)
 
     def delete(self):
         url = self.repo.get_url(self.query_)
@@ -36,16 +48,36 @@ class RESTResult(BaseResult):
 
 class RESTRepo(BaseRepo):
 
-    cls_result = RESTResult
+    """REST API Repository
 
-    def __init__(self, model:BaseModel, url, id_field=None, headers:dict=None, url_params:dict=None):
-        self.model = model
+    Parameters
+    ----------
+    url : str
+        Base URL for the API. Should not contain
+        query parameters or the item ID. The full
+        URL will be "{url}/{id}" if a single item
+        is searched, "{url}?{param}={value}" if 
+        the endpoint is queried.
+    headers : dict
+        HTTP Headers (for example authentication)
+    url_params : dict
+        Additional query parameters passed to every 
+        request.
+    result : str, callable
+        Where the list of items is found from the output.
+    """
+
+    cls_result = RESTResult
+    result: Optional[Union[str, callable]]
+
+    def __init__(self, *args, url, headers:dict=None, url_params:dict=None, result=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.url = url
-        self.id_field = id_field
         self.session = requests.Session()
 
         self.headers = headers
         self.url_params = {} if url_params is None else url_params
+        self.result = result
 
     def insert(self, item):
         json = self.item_to_dict(item)

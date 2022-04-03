@@ -83,11 +83,11 @@ class SQLRepo(BaseRepo):
     
     model: Type[BaseModel]
 
-    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine:'Engine'=None, session=None, id_field=None):
+    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine:'Engine'=None, session=None, **kwargs):
+        super().__init__(model, **kwargs)
         self.model_orm = model_orm
         self.model = self.parse_model(model_orm) if model is None else model
         self.session = self.create_scoped_session(engine) if session is None else session
-        self.id_field = id_field or self.default_id_field
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
