@@ -84,9 +84,9 @@ class SQLRepo(BaseRepo):
     model: Type[BaseModel]
 
     def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine:'Engine'=None, session=None, **kwargs):
+        model = self.parse_model(model_orm) if model is None else model
         super().__init__(model, **kwargs)
         self.model_orm = model_orm
-        self.model = self.parse_model(model_orm) if model is None else model
         self.session = self.create_scoped_session(engine) if session is None else session
 
     def insert(self, item):
@@ -98,7 +98,7 @@ class SQLRepo(BaseRepo):
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()
-            raise KeyFoundError(f"Item {getattr(item, self.id_field)} is already in the table.") from exc
+            raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
 
     def upsert(self, item):
         row = self.item_to_data(item)

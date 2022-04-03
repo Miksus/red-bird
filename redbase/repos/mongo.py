@@ -164,12 +164,12 @@ class MongoRepo(BaseRepo):
         try:
             col.insert_one(doc)
         except DuplicateKeyError as exc:
-            raise KeyFoundError(f"Document {getattr(item, self.id_field)} already exists.") from exc
+            raise KeyFoundError(f"Document {self.get_field_value(item, self.id_field)} already exists.") from exc
 
     def upsert(self, item):
         col = self.get_collection()
         doc = self.item_to_data(item)
-        col.update_one({"_id": getattr(item, self.id_field)}, {"$set": doc}, upsert=True)
+        col.update_one({"_id": self.get_field_value(item, self.id_field)}, {"$set": doc}, upsert=True)
 
     def filter_by(self, **kwargs) -> BaseResult:
         # Rename id_field --> "_id"

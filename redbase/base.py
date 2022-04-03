@@ -1,8 +1,11 @@
 
 from abc import abstractmethod, ABC
 from ctypes import Union
+from operator import getitem, setitem
 from typing import Any, Dict, Generator, List, Mapping, Tuple
 from dataclasses import dataclass
+
+from pydantic import BaseModel
 
 from redbase.exc import KeyFoundError
 
@@ -98,10 +101,15 @@ class BaseRepo(ABC):
     model = dict
     cls_result: BaseResult
 
-    def __init__(self, model, id_field=None):
-        self.model = model
+    def __init__(self, model=None, id_field=None, field_access:str=None):
+        self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
-
+        
+        if field_access is None:
+            field_access = "item" if self.model == dict else "attr"
+        if field_access not in ("item", "attr"):
+            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
+        self.field_access = field_access
 
     def __iter__(self):
         "Iterate over the repository"
@@ -157,12 +165,12 @@ class BaseRepo(ABC):
             self.update(item)
 
     def delete(self, item):
-        id_ = getattr(item, self.id_field)
+        id_ = self.get_field_value(item, self.id_field)
         del self[id_]
 
     def update(self, item):
         "Update an item in the repository"
-        qry = {self.id_field: getattr(item, self.id_field)}
+        qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
         # We don't update the ID
         values.pop(self.id_field)
@@ -174,14 +182,20 @@ class BaseRepo(ABC):
         self.add(item)
 
     def item_to_dict(self, item) -> dict:
-        return item.dict(exclude_unset=True)
+        if isinstance(item, dict):
+            return item
+        elif isinstance(item, BaseModel):
+            # Pydantic model
+            return item.dict(exclude_unset=True)
+        else:
+            return dict(**item)
 
 # Keyword arguments
     def filter_by(self, **kwargs) -> BaseResult:
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)
 
-    def data_to_item(self, data):
+    def data_to_item(self, data:Mapping):
         "Turn object from repo (row, doc, dict, etc.) to item"
         return self.model(**data)
 
@@ -195,3 +209,31 @@ class BaseRepo(ABC):
             return self.model(*obj)
         else:
             raise TypeError(f"Cannot cast {type(obj)} to {self.model}")
+
+    def get_field_value(self, item, key):
+        """Utility method to get key's value from an item
+        
+        If item's fields are accessed via attribute,
+        getattr is used. If fields are accessed via 
+        items, getitem is used.
+        """
+        func = {
+            "attr": getattr,
+            "item": getitem,
+        }[self.field_access]
+        
+        return func(item, key)
+
+    def set_field_value(self, item, key, value):
+        """Utility method to set field's value in an item
+        
+        If item's fields are accessed via attribute,
+        setattr is used. If fields are accessed via 
+        items, setitem is used.
+        """
+        func = {
+            "attr": setattr,
+            "item": setitem,
+        }[self.field_access]
+        
+        func(item, key, value)

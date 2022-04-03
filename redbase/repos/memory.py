@@ -1,4 +1,5 @@
 
+from operator import getitem
 from typing import Dict, List
 
 from pydantic import BaseModel
@@ -20,7 +21,7 @@ class MemoryResult(BaseResult):
     def update(self, **kwargs):
         for item in self.query():
             for key, val in kwargs.items():
-                setattr(item, key, val)
+                self.repo.set_field_value(item, key, val)
 
     def delete(self, **kwargs):
         cont = self.repo.collection
@@ -34,8 +35,10 @@ class MemoryResult(BaseResult):
         return query
 
     def _match(self, item):
+        "Match whether item fulfills the query"
+        get_value = self.repo.get_field_value
         return all(
-            val.evaluate(getattr(item, key)) if isinstance(val, Operation) else getattr(item, key) == val
+            val.evaluate(get_value(item, key)) if isinstance(val, Operation) else get_value(item, key) == val
             for key, val in self.query_.items()
         )
 
@@ -61,7 +64,7 @@ class MemoryRepo(BaseRepo):
         self.session = DummySession()
 
     def insert(self, item):
-        id_ = getattr(item, self.id_field)
-        if id_ in [getattr(col_item, self.id_field) for col_item in self.collection]:
+        id_ = self.get_field_value(item, self.id_field)
+        if id_ in [self.get_field_value(col_item, self.id_field) for col_item in self.collection]:
             raise KeyFoundError(f"Item {id_} already in the collection.")
         self.collection.append(item)

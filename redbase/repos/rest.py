@@ -88,7 +88,7 @@ class RESTRepo(BaseRepo):
         )
 
     def replace(self, item):
-        qry = {self.id_field: getattr(item, self.id_field)}
+        qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
         self.filter_by(**qry).replace(**values)
 
