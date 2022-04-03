@@ -3,3 +3,4 @@
 pydantic
 sqlalchemy
 pymongo
+pydantic-sqlalchemy
