@@ -179,6 +179,9 @@ def get_repo(type_):
     if type_ == "memory":
         repo = MemoryRepo(PydanticItem)
 
+    elif type_ == "memory-dict":
+        repo = MemoryRepo(dict)
+
     elif type_ == "sql":
         engine = create_engine('sqlite://')
         repo = SQLRepo(model_orm=SQLItem, engine=engine)
@@ -222,6 +225,9 @@ def populated_repo(request):
     repo = get_repo(request.param)
     if request.param == "memory":
         repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
+        yield repo
+    elif request.param == "memory-dict":
+        repo.collection = [item_attrs for item_attrs in attrs]
         yield repo
     elif request.param == "sql":
         for item_attrs in attrs:
@@ -268,6 +274,7 @@ def repo(request):
 
 TEST_CASES = [
     pytest.param("memory"),
+    pytest.param("memory-dict"),
     pytest.param("sql"),
     pytest.param("sql-pydantic"),
     pytest.param("mongo"),
@@ -542,9 +549,9 @@ class TestEmpty:
 
         repo.replace(Item(id="a", name="Max"))
 
-        items = sorted(repo.filter_by().all(), key=lambda x: x.id)
+        items = sorted(repo.filter_by().all(), key=lambda x: repo.get_field_value(x, "id"))
         assert items == [
-            Item(id="a", name="Max", age=None),
+            Item(id="a", name="Max"),
             Item(id="b", name="John", age=30),
         ]
 
