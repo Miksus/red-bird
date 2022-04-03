@@ -1,7 +1,7 @@
 
 from typing import Optional
 
-from redbase.repos import MongoRepo
+from redbird.repos import MongoRepo
 
 import pytest
 from pydantic import BaseModel

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from redbase.exc import KeyFoundError
+from redbird.exc import KeyFoundError
 
 from .oper import Operation
 

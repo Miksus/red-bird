@@ -7,11 +7,11 @@ import json
 import pytest
 import responses
 import requests
-from redbase.repos.rest import RESTRepo
-from redbase.repos.sqlalchemy import SQLRepo
-from redbase.repos.memory import MemoryRepo
-from redbase.repos.mongo import MongoRepo
-from redbase.oper import greater_equal, greater_than, less_equal, less_than, not_equal
+from redbird.repos.rest import RESTRepo
+from redbird.repos.sqlalchemy import SQLRepo
+from redbird.repos.memory import MemoryRepo
+from redbird.repos.mongo import MongoRepo
+from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.orm import declarative_base
@@ -61,7 +61,7 @@ class SQLItem(SQLBase):
 
 def get_mongo_uri():
     config = configparser.ConfigParser()
-    config.read("redbase/tests/private.ini")
+    config.read("redbird/tests/private.ini")
     pytest.importorskip("pymongo")
     return config["connection"]["mongodb"]
 

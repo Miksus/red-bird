@@ -1,5 +1,5 @@
 
-from redbase.repos import SQLRepo
+from redbird.repos import SQLRepo
 
 from pydantic import BaseModel
 

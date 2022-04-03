@@ -54,7 +54,7 @@ Person(id="33-33-33", name="John", age=33, language="English")
  Person(id="22-22-22", name="John", age=33, language="English")]
 
 >>> # Use operations
->>> from redbase.operations import greater_than
+>>> from redbird.operations import greater_than
 >>> repo.filter_by(age=greater_than(35)).all()
 [Person(id="33-33-33", name="James", age=36, language="English"),
  Person(id="44-44-44", name="Jaakko", age=40, language="Finnish")]

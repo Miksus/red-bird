@@ -3,10 +3,10 @@ from operator import getitem
 from typing import Dict, List
 
 from pydantic import BaseModel
-from redbase import BaseRepo, BaseResult
-from redbase.exc import KeyFoundError
-from redbase.oper import Operation
-from redbase.dummy import DummySession
+from redbird import BaseRepo, BaseResult
+from redbird.exc import KeyFoundError
+from redbird.oper import Operation
+from redbird.dummy import DummySession
 
 class MemoryResult(BaseResult):
 

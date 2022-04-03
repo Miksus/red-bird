@@ -20,7 +20,7 @@ Initiate a repository:
 
 .. code-block:: python
 
-    from redbase.ext import MemoryRepo
+    from redbird.ext import MemoryRepo
 
     repo = MemoryRepo(Person)
 

@@ -13,4 +13,4 @@ Install the package:
 
 .. code-block:: console
 
-    pip install redbase
+    pip install redbird

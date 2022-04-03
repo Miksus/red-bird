@@ -10,8 +10,8 @@ data_file = cov_data/.coverage
 [report]
 
 omit = 
-    redbase/test/*
-    redbase/_version.py
+    redbird/test/*
+    redbird/_version.py
 
 # Regexes for lines to exclude from consideration
 exclude_lines =

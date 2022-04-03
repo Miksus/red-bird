@@ -1,2 +1,2 @@
 include versioneer.py
-include redbase/_version.py
+include redbird/_version.py

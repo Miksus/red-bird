@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from sqlalchemy import Table, MetaData, Column
 from sqlalchemy.orm import mapper
 from sqlalchemy.ext.automap import automap_base
-from redbase import BaseRepo, BaseResult
-from redbase.exc import KeyFoundError
+from redbird import BaseRepo, BaseResult
+from redbird.exc import KeyFoundError
 
-from redbase.oper import Operation
+from redbird.oper import Operation
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine

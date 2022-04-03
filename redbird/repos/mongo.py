@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Dict, Union
 
 from pydantic import BaseModel, ValidationError
 
-from redbase.base import BaseResult, BaseRepo
-from redbase.exc import KeyFoundError
-from redbase.oper import Operation
+from redbird.base import BaseResult, BaseRepo
+from redbird.exc import KeyFoundError
+from redbird.oper import Operation
 
 if TYPE_CHECKING:
     from pymongo import MongoClient

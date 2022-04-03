@@ -20,7 +20,7 @@ Initiate a repository:
 
 .. code-block:: python
 
-    from redbase.ext import SQLRepo
+    from redbird.ext import SQLRepo
     from sqlalchemy import create_engine
 
     repo = SQLRepo(model_orm=PersonORM, engine=create_engine('sqlite://'))
@@ -48,7 +48,7 @@ Initiate a repository:
 
 .. code-block:: python
 
-    from redbase.ext import SQLRepo
+    from redbird.ext import SQLRepo
     from sqlalchemy import create_engine
 
     repo = SQLRepo(Person, model_orm=PersonORM, engine=create_engine('sqlite://'))

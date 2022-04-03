@@ -4,7 +4,7 @@ from abc import ABC
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from redbase.base import BaseResult
+    from redbird.base import BaseResult
 
 class Operation(ABC):
     """Field operation

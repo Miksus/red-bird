@@ -13,7 +13,7 @@ purpose, Red Base provide operations.
 
 .. code-block:: python
 
-    from redbase.oper import greater_than, less_than, not_equal
+    from redbird.oper import greater_than, less_than, not_equal
 
     repo.filter_by(age=greater_than(30))
 

@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Iterable, List, Union
 
-from redbase.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from .base import BaseResult, BaseRepo
 
 class DummySession:

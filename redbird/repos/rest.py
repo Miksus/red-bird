@@ -4,8 +4,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 from pydantic import BaseModel
 
-from redbase.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
-from redbase.base import BaseResult, BaseRepo
+from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.base import BaseResult, BaseRepo
 
 import requests
 

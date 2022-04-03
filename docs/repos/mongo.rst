@@ -17,7 +17,7 @@ Initiate a repository:
 
 .. code-block:: python
 
-    from redbase.ext import MongoRepo
+    from redbird.ext import MongoRepo
 
     repo = MongoRepo(Person, url="mongodb://localhost:27017/my_database")
 

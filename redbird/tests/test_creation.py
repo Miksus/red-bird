@@ -1,6 +1,6 @@
 
 import pytest
-from redbase import BaseRepo, BaseResult
+from redbird import BaseRepo, BaseResult
 
 def test_result_incomplete():
     with pytest.raises(TypeError) as excinfo:
