@@ -184,6 +184,15 @@ def get_repo(type_):
 
     elif type_ == "sql":
         engine = create_engine('sqlite://')
+        engine.execute("""CREATE TABLE pytest (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            age INTEGER
+        )""")
+        repo = SQLRepo(engine=engine, table="pytest")
+
+    elif type_ == "sql-orm":
+        engine = create_engine('sqlite://')
         repo = SQLRepo(model_orm=SQLItem, engine=engine)
         repo.create()
 
@@ -204,6 +213,7 @@ def get_repo(type_):
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
+
     elif type_ == "http-rest":
         repo = RESTRepo(PydanticItem, url="http://localhost:5000/api/items", id_field="id")
 
@@ -230,6 +240,12 @@ def populated_repo(request):
         repo.collection = [item_attrs for item_attrs in attrs]
         yield repo
     elif request.param == "sql":
+        for item_attrs in attrs:
+            item = repo.model_orm(**item_attrs)
+            repo.session.add(item)
+        repo.session.commit()
+        yield repo
+    elif request.param == "sql-orm":
         for item_attrs in attrs:
             item = SQLItem(**item_attrs)
             repo.session.add(item)
@@ -276,6 +292,7 @@ TEST_CASES = [
     pytest.param("memory"),
     pytest.param("memory-dict"),
     pytest.param("sql"),
+    pytest.param("sql-orm"),
     pytest.param("sql-pydantic"),
     pytest.param("mongo"),
     pytest.param("http-rest"),
