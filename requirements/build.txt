@@ -1,0 +1,6 @@
+
+# Soft dep
+pydantic
+sqlalchemy
+pymongo
+pydantic-sqlalchemy
