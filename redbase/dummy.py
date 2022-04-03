@@ -144,12 +144,12 @@ class DummyRepo(BaseRepo):
         # Optional
         ...
 
-    def parse_item(self, data: DummyData) -> DummyModel:
+    def data_to_item(self, data: DummyData) -> DummyModel:
         "Transform a database object to item object"
         # Optional
         ...
 
-    def format_item(self, item: DummyModel) -> DummyData:
+    def item_to_data(self, item: DummyModel) -> DummyData:
         "Transform an item object to a database object"
         # Optional
         ...

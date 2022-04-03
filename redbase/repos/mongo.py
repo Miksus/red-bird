@@ -90,13 +90,13 @@ class MongoResult(BaseResult):
     def query(self):
         col = self.repo.get_collection()
         for item in col.find(self.query_):
-            yield self.repo.parse_item(item)
+            yield self.repo.data_to_item(item)
 
     def limit(self, n:int):
         "Get n first items"
         col = self.repo.get_collection()
         return [
-            self.repo.parse_item(item)
+            self.repo.data_to_item(item)
             for item in col.find(self.query_).limit(n)
         ]
 
@@ -161,7 +161,7 @@ class MongoRepo(BaseRepo):
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError
         col = self.get_collection()
-        doc = self.format_item(item)
+        doc = self.item_to_data(item)
         try:
             col.insert_one(doc)
         except DuplicateKeyError as exc:
@@ -169,7 +169,7 @@ class MongoRepo(BaseRepo):
 
     def upsert(self, item):
         col = self.get_collection()
-        doc = self.format_item(item)
+        doc = self.item_to_data(item)
         col.update_one({"_id": getattr(item, self.id_field)}, {"$set": doc}, upsert=True)
 
     def filter_by(self, **kwargs) -> BaseResult:
@@ -200,12 +200,12 @@ class MongoRepo(BaseRepo):
         except ValidationError as exc:
             raise ValidationError(f"Formatting for {item[self.id_field]} failed.") from exc
 
-    def parse_item(self, json:dict):
+    def data_to_item(self, json:dict):
         # Rename _id to whatever is as id_field
         json[self.id_field] = json.pop("_id")
         return self.model(**json)
 
-    def format_item(self, item:BaseModel):
+    def item_to_data(self, item:BaseModel):
         json = item.dict(exclude_unset=True)
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)

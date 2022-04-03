@@ -17,9 +17,9 @@ class RESTResult(BaseResult):
         output = page.json()
         if isinstance(output, (list, tuple, set)):
             for item in output:
-                yield self.repo.parse_item(item)
+                yield self.repo.data_to_item(item)
         else:
-            yield self.repo.parse_item(output)
+            yield self.repo.data_to_item(output)
 
     def delete(self):
         url = self.repo.get_url(self.query_)

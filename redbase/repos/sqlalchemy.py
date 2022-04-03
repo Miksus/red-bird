@@ -15,12 +15,12 @@ class SQLAlchemyResult(BaseResult):
 
     def query(self):
         for item in self._filter_orm():
-            yield self.repo.parse_item(item)
+            yield self.repo.data_to_item(item)
 
     def first(self):
         item = self._filter_orm().first()
         if item is not None:
-            return self.repo.parse_item(item)
+            return self.repo.data_to_item(item)
 
     def update(self, **kwargs):
         "Update the resulted rows"
@@ -91,7 +91,7 @@ class SQLRepo(BaseRepo):
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
-        row = self.format_item(item)
+        row = self.item_to_data(item)
 
         try:
             self.session.add(row)
@@ -101,16 +101,16 @@ class SQLRepo(BaseRepo):
             raise KeyFoundError(f"Item {getattr(item, self.id_field)} is already in the table.") from exc
 
     def upsert(self, item):
-        row = self.format_item(item)
+        row = self.item_to_data(item)
 
         self.session.merge(row)
         self.session.commit()
 
-    def parse_item(self, item_orm):
+    def data_to_item(self, item_orm):
         # Turn ORM item to Pydantic item
         return self.model.from_orm(item_orm)
 
-    def format_item(self, item:BaseModel):
+    def item_to_data(self, item:BaseModel):
         # Turn Pydantic item to ORM item
         return self.model_orm(**item.dict(exclude_unset=True))
 
