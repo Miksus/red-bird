@@ -1,6 +1,9 @@
 
 from typing import TYPE_CHECKING, Type
 from pydantic import BaseModel
+from sqlalchemy import Table, MetaData, Column
+from sqlalchemy.orm import mapper
+from sqlalchemy.ext.automap import automap_base
 from redbase import BaseRepo, BaseResult
 from redbase.exc import KeyFoundError
 
@@ -8,6 +11,12 @@ from redbase.oper import Operation
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
+
+class TableRecord:
+    """Represent simple database model"""
+    def __init__(self, **kwargs):
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 class SQLAlchemyResult(BaseResult):
 
@@ -70,11 +79,14 @@ class SQLRepo(BaseRepo):
         Pydantic model class to be used as an item model.
         If not provided, model_orm is converted to
         be as such.
-    model_orm : Type of Base
+    model_orm : Type of Base, optional
         Subclass of SQL Alchemy representation of the item.
         This is the class that is operated behind the scenes.
+    table : str, optional
+        Table name where the items lies. Should only be given
+        if no model_orm specified.
     engine : sqlalchemy.engine.Engine
-        SQL Alchemy engine.
+        SQLAlchemy engine.
     session : sqlalchemy.session.Session
 
     """
@@ -83,11 +95,13 @@ class SQLRepo(BaseRepo):
     
     model: Type[BaseModel]
 
-    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, engine:'Engine'=None, session=None, **kwargs):
-        model = self.parse_model(model_orm) if model is None else model
-        super().__init__(model, **kwargs)
-        self.model_orm = model_orm
+    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, table:str=None, engine:'Engine'=None, session=None, **kwargs):
         self.session = self.create_scoped_session(engine) if session is None else session
+        self._table = table
+        self.model_orm = model_orm
+
+        model = self.parse_model(self.model_orm) if model is None else model
+        super().__init__(model, **kwargs)    
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
@@ -108,11 +122,18 @@ class SQLRepo(BaseRepo):
 
     def data_to_item(self, item_orm):
         # Turn ORM item to Pydantic item
-        return self.model.from_orm(item_orm)
+        if hasattr(self.model, "from_orm") and self.model.Config.orm_mode:
+            # Use Pydantic methods
+             return self.model.from_orm(item_orm)
+        else:
+            # Turn ORM to model using mapping
+            d = vars(item_orm)
+            d.pop("_sa_instance_state", None)
+            return self.model(**d)
 
     def item_to_data(self, item:BaseModel):
         # Turn Pydantic item to ORM item
-        return self.model_orm(**item.dict(exclude_unset=True))
+        return self.model_orm(**self.item_to_dict(item))
 
     def parse_model(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
@@ -125,7 +146,9 @@ class SQLRepo(BaseRepo):
         return scoped_session(Session)
 
     def item_to_dict(self, item):
-        if hasattr(item, "dict"):
+        if isinstance(item, dict):
+            return item
+        elif hasattr(item, "dict"):
             # Is pydantic
             return item.dict(exclude_unset=True)
         else:
@@ -135,3 +158,16 @@ class SQLRepo(BaseRepo):
 
     def create(self):
         self.model_orm.__table__.create(bind=self.session.bind)
+
+    @property
+    def model_orm(self):
+        if self._model_orm is not None:
+            return self._model_orm
+        self._Base = automap_base()
+        self._Base.prepare(self.session.get_bind(), reflect=True)
+        self._model_orm = getattr(self._Base.classes, self._table)
+        return self._model_orm
+
+    @model_orm.setter
+    def model_orm(self, value):
+        self._model_orm = value
