@@ -43,7 +43,7 @@ jobs:
      
     - name: Run test suite
       run: |
-        python -m pytest --pyargs redmail
+        python -m pytest --pyargs redbird
     
     # Seems there is a possible problem with pytest-cov parallelization
     #- name: Run test suite
