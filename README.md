@@ -1,5 +1,5 @@
 
-# Red Base: Repository Patterns for Python
+# Red Bird: Repository Patterns for Python
 > Generic database implemetation for SQL, MongoDB and in-memory lists
 
 NOTE: Experimential.
