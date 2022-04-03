@@ -3,7 +3,7 @@
 CRUD: Create, Read, Update, Delete 
 ==================================
 
-The idea of Red Base is to have unified syntax 
+The idea of Red Bird is to have unified syntax 
 regardless of the data store. This section
 contains repository methods that work indentically
 regardless of the repository. However, there may

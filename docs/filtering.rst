@@ -9,7 +9,7 @@ Operations
 Sometimes more sophisticated filtering operations
 are needed such as getting items that are greater
 than, less than etc. by specific field. For such
-purpose, Red Base provide operations.
+purpose, Red Bird provide operations.
 
 .. code-block:: python
 

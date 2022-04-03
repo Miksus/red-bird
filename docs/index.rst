@@ -1,6 +1,6 @@
 
 .. meta::
-   :description: Red Base is a repository pattern library for Python.
+   :description: Red Bird is a repository pattern library for Python.
    :keywords: repository, pattern, Python, database
 
 Red-Base: Repository Patterns for Python
@@ -30,7 +30,7 @@ or complex communication.
 Terminology
 -----------
 
-In Red Base, the term *repository* is used to describe a 
+In Red Bird, the term *repository* is used to describe a 
 data store and *item* is used to describe a record or 
 a document. The definition of these terms between varios
 data stores are illustrated below:

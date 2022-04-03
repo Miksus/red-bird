@@ -4,7 +4,7 @@ Tutorial
 ========
 
 This section covers basic tutorials of 
-Red Base.
+Red Bird.
 
 Installation
 ------------
