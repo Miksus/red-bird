@@ -70,7 +70,7 @@ class RESTRepo(BaseRepo):
         url_params = self.url_params.copy()
         if query is not None:
             url_params.update(query)
-        id = query.pop(self.id_field) if self.id_field in query else None
+        id = query.pop(self.id_field) if query is not None and self.id_field in query else None
 
         url_base = self.url
         url_params = urlparse.urlencode(url_params) # Turn {"param": "value"} --> "param=value"
