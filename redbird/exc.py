@@ -6,3 +6,9 @@ class KeyFoundError(Exception):
     is found when it was not expected.
     
     """
+
+class ItemToDataError(Exception):
+    "Raise when converting item to data failed"
+
+class DataToItemError(Exception):
+    "Raise when converting data to item failed"

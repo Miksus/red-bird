@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from redbird.exc import KeyFoundError
+from redbird.exc import DataToItemError, KeyFoundError, ItemToDataError
 
 from .oper import Operation
 
@@ -197,7 +197,13 @@ class BaseRepo(ABC):
 
     def data_to_item(self, data:Mapping):
         "Turn object from repo (row, doc, dict, etc.) to item"
-        return self.model(**data)
+        if not isinstance(data, Mapping):
+            # data is namespace-like
+            data = vars(data)
+        try:
+            return self.model(**data)
+        except Exception as exc:
+            raise DataToItemError(f"Could not transform {data}") from exc
 
     def to_item(self, obj):
         "Turn an object to item"
