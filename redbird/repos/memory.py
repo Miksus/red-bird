@@ -13,15 +13,17 @@ class MemoryResult(BaseResult):
     repo: 'MemoryRepo'
 
     def query(self):
-        l = self.repo.collection
-        for item in l:
+        col = self.repo.collection
+        for item in col:
             if self._match(item):
-                yield item
+                yield self.repo.data_to_item(item)
 
     def update(self, **kwargs):
-        for item in self.query():
-            for key, val in kwargs.items():
-                self.repo.set_field_value(item, key, val)
+        col = self.repo.collection
+        for item in col:
+            if self._match(item):
+                for key, val in kwargs.items():
+                    self.repo.set_field_value(item, key, val)
 
     def delete(self, **kwargs):
         cont = self.repo.collection
@@ -67,4 +69,8 @@ class MemoryRepo(BaseRepo):
         id_ = self.get_field_value(item, self.id_field)
         if id_ in [self.get_field_value(col_item, self.id_field) for col_item in self.collection]:
             raise KeyFoundError(f"Item {id_} already in the collection.")
-        self.collection.append(item)
+        data = self.item_to_data(item)
+        self.collection.append(data)
+
+    def item_to_data(self, item):
+        return item
