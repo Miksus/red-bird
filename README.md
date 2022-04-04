@@ -2,84 +2,101 @@
 # Red Bird: Repository Patterns for Python
 > Generic database implemetation for SQL, MongoDB and in-memory lists
 
-NOTE: Experimential.
+---
+
+[![Pypi version](https://badgen.net/pypi/v/redbird)](https://pypi.org/project/redbird/)
+[![build](https://github.com/Miksus/red-bird/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/Miksus/red-bird/actions/workflows/main.yml)
+[![Documentation Status](https://readthedocs.org/projects/red-bird/badge/?version=latest)](https://red-bird.readthedocs.io)
+[![PyPI pyversions](https://badgen.net/pypi/python/redbird)](https://pypi.org/project/redbird/)
+
+Repository Pattern is a technique in which database layer is separated
+from the application code. In other words, repository pattern provide
+generic ways to communicate with the database that are genericnot database 
+specific or even data store specific. Ultimately all data stores are just
+for retrieving, updating, setting and deleting data.
+
+In practice, repository pattern is an abstraction that provide same syntax 
+regardless of the data store is SQL database, MongoDB database or even
+just a Python list in RAM. 
+
+Pros in repository pattern:
+- More readable code
+    - Every database connection follow the same pattern.
+- More maintainable code
+    - Database migrations are easy.
+    - Unit testing requires no separate database for testing.
+- More rapid development
+    - Use Python lists until you get your database set up.
+
+Cons in repository pattern:
+- Poor at optimization
+- Hides the actual operations
+
 
 ## Examples
 
+First, we create a simple repo:
+
 ```python
-
-class Person(BaseModel):
-    id: str
-    name: str
-    age: int
-
+from redbird.repos import MemoryRepo
+repo = MemoryRepo()
 ```
 
-### Creating
+Adding/creating items:
 
 ```python
->>> repo = Repository()
-
-# Add some items
->>> repo.add(Person(id="11-11-11", name="Jack", age=30, language="English"))
->>> repo.add(Person(id="22-22-22", name="John", age=33, language="English"))
->>> repo.add(Person(id="33-33-33", name="James", age=36, language="English"))
->>> repo.add(Person(id="44-44-44", name="Jaakko", age=40, language="Finnish"))
+repo.add({"name": "Anna", "nationality": "British"})
 ```
 
-### Reading
+Reading items:
 
 ```python
-# Get an item
->>> repo["11-11-11"]
-Person(id="11-11-11", name="Jack", age=30, language="English")
-
->>> # Filter items
->>> repo.filter_by(language="English").all()
-[Person(id="11-11-11", name="Jack", age=30, language="English"),
- Person(id="22-22-22", name="John", age=33, language="English"),
- Person(id="33-33-33", name="James", age=36, language="English")]
-
->>> # Get first
->>> repo.filter_by(language="English").first()
-Person(id="11-11-11", name="Jack", age=30, language="English")
-
->>> # Get last
->>> repo.filter_by(language="English").last()
-Person(id="33-33-33", name="John", age=33, language="English")
-
->>> # Get first 2
->>> repo.filter_by(language="English").limit(2)
-[Person(id="11-11-11", name="Jack", age=30, language="English"),
- Person(id="22-22-22", name="John", age=33, language="English")]
-
->>> # Use operations
->>> from redbird.operations import greater_than
->>> repo.filter_by(age=greater_than(35)).all()
-[Person(id="33-33-33", name="James", age=36, language="English"),
- Person(id="44-44-44", name="Jaakko", age=40, language="Finnish")]
+repo.filter_by(name="Anna").all()
 ```
 
-### Updating
+Updating items:
+
 ```python
-
->>> # Update single item
->>> person = repo["44-44-44"]
->>> person.age = 50
->>> repo.update(person)
-
->>> # Update multiple items
->>> repo.filter_by(language="English").update(age=35)
+repo.filter_by(name="Anna").update(nationality="Finnish")
 ```
 
-### Deleting
+Deleting items:
+
 ```python
+repo.filter_by(name="Anna").delete()
+```
 
->>> # Delete single item
->>> del repo["44-44-44"]
+## Creating Repository
 
->>> # Delete multiple items
->>> repo.filter_by(language="English").delete()
+In-memory repository:
+
+```python
+from redbird.repos import MemoryRepo
+repo = MemoryRepo()
+```
+
+SQL repository:
+
+```python
+from sqlalchemy import create_engine
+from redbird.repos import SQLRepo
+repo = SQLRepo(table="mytable", engine=create_engine("sqlite://"))
+```
+
+or using ORM:
+
+```python
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, String, Integer
+
+Base = declarative_base()
+class SQLModel(SQLBase):
+    __tablename__ = 'pytest'
+    id = Column(String, primary_key=True)
+    name = Column(String)
+    age = Column(Integer)
+
+repo = SQLRepo(model_orm=SQLModel, engine=create_engine("sqlite://"))
 ```
 
 ## Author
