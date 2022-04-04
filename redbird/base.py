@@ -1,15 +1,20 @@
 
 from abc import abstractmethod, ABC
-from ctypes import Union
 from operator import getitem, setitem
-from typing import Any, Dict, Generator, List, Mapping, Tuple
+from typing import Any, Dict, Generator, List, Mapping, Tuple, Union
 from dataclasses import dataclass
 
 from pydantic import BaseModel
 
 from redbird.exc import DataToItemError, KeyFoundError, ItemToDataError
+from redbird.utils.case import to_case
 
 from .oper import Operation
+
+class QueryConfig:
+
+    def __init__(self, case=None):
+        self.field_case = case
 
 class DummySession:
     ...
@@ -80,14 +85,28 @@ class BaseResult(ABC):
 
     def format_query(self, query:dict) -> dict:
         "Turn the query to a form that's understandable by the underlying database"
-        for field_name, oper_or_value in query.copy().items():
-            if isinstance(oper_or_value, Operation):
-                query[field_name] = self.format_operation(oper_or_value)
-        return query
+        store_query = {}
+        for key, oper_or_value in query.copy().items():
+            field_name = self.format_query_field(key, oper_or_value)
+            store_query[field_name] = self.format_query_value(oper_or_value)
+        return store_query
 
-    def format_operation(self, oper:Operation):
-        result_format_method = oper._get_formatter(self)
-        return result_format_method(oper)
+    def format_query_value(self, oper_or_value:Union[Operation, Any]):
+        "Turn an operation to string/object understandable by the underlying database"
+        if isinstance(oper_or_value, Operation):
+            oper = oper_or_value
+            result_format_method = oper._get_formatter(self)
+            value = result_format_method(oper)
+        else:
+            value = oper_or_value
+        return value
+
+    def format_query_field(self, key:str, value:Union[Operation, Any]) -> str:
+        "Turn a query key to a field understandable by the underlying database"
+        conf = self.repo.query_conf
+        if conf.field_case is not None:
+            key = to_case(key, case=conf.field_case)
+        return key
 
 class BaseRepo(ABC):
     """Abstract Repository
@@ -101,7 +120,7 @@ class BaseRepo(ABC):
     model = dict
     cls_result: BaseResult
 
-    def __init__(self, model=None, id_field=None, field_access:str=None):
+    def __init__(self, model=None, id_field=None, field_access:str=None, query=None):
         self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
         
@@ -110,6 +129,7 @@ class BaseRepo(ABC):
         if field_access not in ("item", "attr"):
             raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
         self.field_access = field_access
+        self.query_conf = QueryConfig() if query is None else query
 
     def __iter__(self):
         "Iterate over the repository"
