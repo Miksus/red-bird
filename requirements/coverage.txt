@@ -1,6 +1,7 @@
 pytest
 pytest-cov
 responses
+python-dotenv
 
 # Soft dep
 pydantic

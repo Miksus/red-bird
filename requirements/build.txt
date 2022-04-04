@@ -1,5 +1,6 @@
 pytest
 responses
+python-dotenv
 
 # Soft dep
 pydantic

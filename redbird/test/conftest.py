@@ -1,7 +1,8 @@
 
 import pytest
 from pathlib import Path
-import configparser
+import os
+from dotenv import load_dotenv
 
 def get_node_id(request):
     components = request.node.nodeid.split("::")
@@ -18,10 +19,11 @@ def get_node_id(request):
 
 @pytest.fixture(scope="function")
 def mongo_uri():
-    config = configparser.ConfigParser()
-    config.read("redbird/tests/private.ini")
+    load_dotenv()
     pytest.importorskip("pymongo")
-    return config["connection"]["mongodb"]
+    if "MONGO_CONN" not in os.environ:
+        pytest.skip()
+    return os.environ["MONGO_CONN"]
 
 @pytest.fixture(scope="function")
 def collection(request, mongo_client):

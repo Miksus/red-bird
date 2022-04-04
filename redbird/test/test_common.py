@@ -1,8 +1,9 @@
 
 import configparser
 from typing import Optional
-import re
+import re, os
 import json
+from dotenv import load_dotenv
 
 import pytest
 import responses
@@ -60,10 +61,11 @@ class SQLItem(SQLBase):
 # ------------------------
 
 def get_mongo_uri():
-    config = configparser.ConfigParser()
-    config.read("redbird/tests/private.ini")
+    load_dotenv()
     pytest.importorskip("pymongo")
-    return config["connection"]["mongodb"]
+    if "MONGO_CONN" not in os.environ:
+        pytest.skip()
+    return os.environ["MONGO_CONN"]
 
 class RESTMock:
 
