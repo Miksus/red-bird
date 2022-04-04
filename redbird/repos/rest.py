@@ -77,6 +77,7 @@ class RESTRepo(BaseRepo):
 
     cls_result = RESTResult
     result: Optional[Union[str, callable]]
+    query_parser = 
 
     def __init__(self, *args, url, headers:dict=None, url_params:dict=None, result=None, **kwargs):
         super().__init__(*args, **kwargs)

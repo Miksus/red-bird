@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from redbird.exc import DataToItemError, KeyFoundError, ItemToDataError
+from redbird.query import QueryParser
 
 from .oper import Operation
 
@@ -30,7 +31,7 @@ class BaseResult(ABC):
 
     def __init__(self, query:dict=None, repo:'BaseRepo'=None):
         self.repo = repo
-        self.query_ = self.format_query(query)
+        self.query_ = self.repo.query_parser.format_query(query)
         
     def first(self):
         "Return first item"
@@ -77,18 +78,6 @@ class BaseResult(ABC):
         "Count the resulted items"
         return len(list(self))
 
-
-    def format_query(self, query:dict) -> dict:
-        "Turn the query to a form that's understandable by the underlying database"
-        for field_name, oper_or_value in query.copy().items():
-            if isinstance(oper_or_value, Operation):
-                query[field_name] = self.format_operation(oper_or_value)
-        return query
-
-    def format_operation(self, oper:Operation):
-        result_format_method = oper._get_formatter(self)
-        return result_format_method(oper)
-
 class BaseRepo(ABC):
     """Abstract Repository
 
@@ -100,6 +89,7 @@ class BaseRepo(ABC):
     id_field: str
     model = dict
     cls_result: BaseResult
+    query_parser: QueryParser
 
     def __init__(self, model=None, id_field=None, field_access:str=None):
         self.model = dict if model is None else model

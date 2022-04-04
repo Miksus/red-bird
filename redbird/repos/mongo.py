@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
 from redbird.oper import Operation
+from redbird.query import MongoQuery
 
 if TYPE_CHECKING:
     from pymongo import MongoClient
@@ -115,21 +116,6 @@ class MongoResult(BaseResult):
         col = self.repo.get_collection()
         return col.count_documents(self.query_)
 
-    def format_greater_than(self, oper:Operation):
-        return {"$gt": oper.value}
-
-    def format_less_than(self, oper:Operation):
-        return {"$lt": oper.value}
-
-    def format_greater_equal(self, oper:Operation):
-        return {"$gte": oper.value}
-
-    def format_less_equal(self, oper:Operation):
-        return {"$lte": oper.value}
-
-    def format_not_equal(self, oper:Operation):
-        return {"$ne": oper.value}
-
 class MongoRepo(BaseRepo):
     """MongoDB Repository
 
@@ -148,6 +134,7 @@ class MongoRepo(BaseRepo):
     """
     model: BaseModel = None
     cls_result = MongoResult
+    query_parser = MongoQuery()
     default_id_field = "_id"
     cls_session = MongoSession
 

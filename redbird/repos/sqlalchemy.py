@@ -8,6 +8,7 @@ from redbird import BaseRepo, BaseResult
 from redbird.exc import KeyFoundError
 
 from redbird.oper import Operation
+from redbird.query import SQLAlchemyQuery
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -44,27 +45,6 @@ class SQLAlchemyResult(BaseResult):
     def count(self):
         return self._filter_orm().count()
 
-    def format_query(self, oper: dict):
-        from sqlalchemy import column, orm, true
-        stmt = true()
-        for column_name, oper_or_value in oper.items():
-            if isinstance(oper_or_value, Operation):
-                oper = oper_or_value
-                magic = oper.__py_magic__
-                oper_method = getattr(column(column_name), magic)
-
-                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
-                sql_oper = oper_method(oper.value)
-            else:
-                value = oper_or_value
-                sql_oper = column(column_name) == value
-            stmt &= sql_oper
-        return stmt
-
-    def format_greater_than(self, oper:Operation):
-        model = self.repo.model
-        return 
-
     def _filter_orm(self):
         session = self.repo.session
         return session.query(self.repo.model_orm).filter(self.query_)
@@ -91,6 +71,7 @@ class SQLRepo(BaseRepo):
 
     """
     cls_result = SQLAlchemyResult
+    query_parser = SQLAlchemyQuery()
 
     
     model: Type[BaseModel]

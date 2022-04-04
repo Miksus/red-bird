@@ -7,6 +7,7 @@ from redbird import BaseRepo, BaseResult
 from redbird.exc import KeyFoundError
 from redbird.oper import Operation
 from redbird.dummy import DummySession
+from redbird.query import PythonQuery
 
 class MemoryResult(BaseResult):
 
@@ -33,9 +34,6 @@ class MemoryResult(BaseResult):
             if not self._match(item)
         ]
 
-    def format_query(self, query:dict):
-        return query
-
     def _match(self, item):
         "Match whether item fulfills the query"
         get_value = self.repo.get_field_value
@@ -58,6 +56,7 @@ class MemoryRepo(BaseRepo):
         The collection.
     """
     cls_result = MemoryResult
+    query_parser = PythonQuery()
     collection: List[BaseModel]
 
     def __init__(self, *args, collection=None, **kwargs):
