@@ -13,8 +13,8 @@ from .oper import Operation
 
 class QueryConfig:
 
-    def __init__(self, case=None):
-        self.field_case = case
+class BasicQuery(BaseModel, extra="allow"):
+    ...
 
 class DummySession:
     ...
@@ -85,11 +85,8 @@ class BaseResult(ABC):
 
     def format_query(self, query:dict) -> dict:
         "Turn the query to a form that's understandable by the underlying database"
-        store_query = {}
-        for key, oper_or_value in query.copy().items():
-            field_name = self.format_query_field(key, oper_or_value)
-            store_query[field_name] = self.format_query_value(oper_or_value)
-        return store_query
+        qry = self.repo.query_format(**query)
+        return qry.format(self.repo) if hasattr(qry, "format") else qry.dict()
 
     def format_query_value(self, oper_or_value:Union[Operation, Any]):
         "Turn an operation to string/object understandable by the underlying database"
@@ -103,9 +100,10 @@ class BaseResult(ABC):
 
     def format_query_field(self, key:str, value:Union[Operation, Any]) -> str:
         "Turn a query key to a field understandable by the underlying database"
-        conf = self.repo.query_conf
-        if conf.field_case is not None:
-            key = to_case(key, case=conf.field_case)
+        conf = self.repo.query_format
+        field_case = getattr(conf, "__case__", None)
+        if field_case is not None:
+            key = to_case(key, case=field_case)
         return key
 
 class BaseRepo(ABC):
@@ -118,9 +116,9 @@ class BaseRepo(ABC):
     default_id_field: str = "id"
     id_field: str
     model = dict
-    cls_result: BaseResult
+    default_query_format: Type[BaseModel] = BasicQuery
 
-    def __init__(self, model=None, id_field=None, field_access:str=None, query=None):
+    def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None):
         self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
         
@@ -129,7 +127,7 @@ class BaseRepo(ABC):
         if field_access not in ("item", "attr"):
             raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
         self.field_access = field_access
-        self.query_conf = QueryConfig() if query is None else query
+        self.query_format = self.default_query_format if query is None else query
 
     def __iter__(self):
         "Iterate over the repository"
