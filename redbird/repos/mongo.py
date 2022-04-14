@@ -94,10 +94,10 @@ class MongoResult(BaseResult):
         NotEqual: "$ne",
     }
 
-    def query(self):
+    def query_data(self):
         col = self.repo.get_collection()
-        for item in col.find(self.query_):
-            yield self.repo.data_to_item(item)
+        for data in col.find(self.query_):
+            yield data
 
     def limit(self, n:int):
         "Get n first items"

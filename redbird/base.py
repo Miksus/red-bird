@@ -62,8 +62,13 @@ class BaseResult(ABC):
             items.append(item)
         return items
         
+    def query(self) -> Iterator:
+        "Get actual result"
+        for data in self.query_data():
+            yield self.repo.data_to_item(data)
+
     @abstractmethod
-    def query(self) -> Generator:
+    def query_data(self) -> Iterator:
         "Get actual result"
         ...
 

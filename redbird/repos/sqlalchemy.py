@@ -22,9 +22,9 @@ class SQLAlchemyResult(BaseResult):
 
     repo: 'SQLRepo'
 
-    def query(self):
-        for item in self._filter_orm():
-            yield self.repo.data_to_item(item)
+    def query_data(self):
+        for data in self._filter_orm():
+            yield data
 
     def first(self):
         item = self._filter_orm().first()

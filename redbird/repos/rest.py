@@ -20,7 +20,7 @@ class Session(requests.Session):
 class RESTResult(BaseResult):
 
     repo: 'RESTRepo'
-    def query(self):
+    def query_data(self):
         url = self.query_
         page = self.repo._request("GET", url)
         output = page.json()
@@ -36,10 +36,10 @@ class RESTResult(BaseResult):
             raise TypeError(f"Could not locate results from {result_loc}")
 
         if isinstance(items, (list, tuple, set)):
-            for item in items:
-                yield self.repo.data_to_item(item)
+            for data in items:
+                yield data
         else:
-            yield self.repo.data_to_item(items)
+            yield items
 
     def delete(self):
         url = self.query_
