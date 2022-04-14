@@ -1,7 +1,7 @@
 
 from abc import abstractmethod, ABC
 from operator import getitem, setitem
-from typing import Any, Dict, Generator, List, Mapping, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Mapping, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 
 from pydantic import BaseModel
@@ -11,7 +11,8 @@ from redbird.utils.case import to_case
 
 from .oper import Operation
 
-class QueryConfig:
+Item = TypeVar("Item")
+Data = TypeVar("Data")
 
 class BasicQuery(BaseModel, extra="allow"):
     ...
@@ -62,17 +63,17 @@ class BaseResult(ABC):
             items.append(item)
         return items
         
-    def query(self) -> Iterator:
+    def query(self) -> Iterator[Item]:
         "Get actual result"
         for data in self.query_data():
             yield self.repo.data_to_item(data)
 
     @abstractmethod
-    def query_data(self) -> Iterator:
+    def query_data(self) -> Iterator[Data]:
         "Get actual result"
         ...
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Item]:
         return self.query()
 
     @abstractmethod
@@ -83,7 +84,7 @@ class BaseResult(ABC):
     def delete(self):
         "Delete the resulted items"
 
-    def count(self):
+    def count(self) -> int:
         "Count the resulted items"
         return len(list(self))
 
@@ -121,6 +122,8 @@ class BaseRepo(ABC):
     default_id_field: str = "id"
     id_field: str
     model = dict
+    cls_result: Type[BaseResult]
+    query_format: Type[BaseModel]
     default_query_format: Type[BaseModel] = BasicQuery
 
     def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None):
@@ -134,11 +137,11 @@ class BaseRepo(ABC):
         self.field_access = field_access
         self.query_format = self.default_query_format if query is None else query
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
         return iter(self.filter_by().all())
 
-    def __getitem__(self, id):
+    def __getitem__(self, id) -> Item:
         "Get item from the repository using ID"
         qry = {self.id_field: id}
         item = self.filter_by(**qry).first()
@@ -161,7 +164,7 @@ class BaseRepo(ABC):
         self.filter_by(**qry).update(**attrs)
 
 # Item based
-    def add(self, item, if_exists="raise"):
+    def add(self, item: Item, if_exists="raise"):
         "Add an item to the repository"
         item = self.to_item(item)
         if if_exists == "raise":
@@ -181,17 +184,17 @@ class BaseRepo(ABC):
         "Add an item to the repository"
         ...
 
-    def upsert(self, item):
+    def upsert(self, item: Item):
         try:
             self.insert(item)
         except KeyFoundError:
             self.update(item)
 
-    def delete(self, item):
+    def delete(self, item: Item):
         id_ = self.get_field_value(item, self.id_field)
         del self[id_]
 
-    def update(self, item):
+    def update(self, item: Item):
         "Update an item in the repository"
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
@@ -199,12 +202,12 @@ class BaseRepo(ABC):
         values.pop(self.id_field)
         self.filter_by(**qry).update(**values)
 
-    def replace(self, item):
+    def replace(self, item: Item):
         "Update an item in the repository"
         self.delete(item)
         self.add(item)
 
-    def item_to_dict(self, item) -> dict:
+    def item_to_dict(self, item: Item) -> dict:
         if isinstance(item, dict):
             return item
         elif isinstance(item, BaseModel):
@@ -218,7 +221,7 @@ class BaseRepo(ABC):
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)
 
-    def data_to_item(self, data:Mapping):
+    def data_to_item(self, data:Data) -> Item:
         "Turn object from repo (row, doc, dict, etc.) to item"
         if not isinstance(data, Mapping):
             # data is namespace-like
@@ -228,7 +231,7 @@ class BaseRepo(ABC):
         except Exception as exc:
             raise DataToItemError(f"Could not transform {data}") from exc
 
-    def to_item(self, obj):
+    def to_item(self, obj) -> Item:
         "Turn an object to item"
         if isinstance(obj, self.model):
             return obj
@@ -239,7 +242,7 @@ class BaseRepo(ABC):
         else:
             raise TypeError(f"Cannot cast {type(obj)} to {self.model}")
 
-    def get_field_value(self, item, key):
+    def get_field_value(self, item: Item, key):
         """Utility method to get key's value from an item
         
         If item's fields are accessed via attribute,
@@ -253,7 +256,7 @@ class BaseRepo(ABC):
         
         return func(item, key)
 
-    def set_field_value(self, item, key, value):
+    def set_field_value(self, item: Item, key, value):
         """Utility method to set field's value in an item
         
         If item's fields are accessed via attribute,
