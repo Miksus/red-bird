@@ -55,29 +55,31 @@ class RESTResult(BaseResult):
 
     def format_query(self, query:dict) -> str:
         "Turn the query to a form that's understandable by the underlying API"
-        store_query = super().format_query(query)
+        query = super().format_query(query)
         repo = self.repo
-        
-        url_params = repo.url_params.copy()
-        if query is not None:
-            url_params.update(store_query)
-        id = url_params.pop(repo.id_field) if query is not None and repo.id_field in query else None
+        id = query.pop(repo.id_field) if query is not None and repo.id_field in query else None
 
         url_base = repo.url
-        url_params = urlparse.urlencode(url_params) # Turn {"param": "value"} --> "param=value"
-
-        if id is None:
-            id = ""
-        elif not id.startswith("/"):
-            id = "/" + id
-        if url_params:
-            url_params = "?" + url_params
+        url_params = self._get_url_params(query)
 
         # URL should look like "www.example.com/api/items/{id}?{param}={value}"
         # or "www.example.com/api/items/{id}"
         # or "www.example.com/api/items?{param}={value}"
         # or "www.example.com/api/items"
-        return f"{url_base}{id}{url_params}"
+        if id and url_params:
+            return f"{url_base}/{id}?{url_params}"
+        elif id:
+            return f"{url_base}/{id}"
+        elif url_params:
+            return f"{url_base}?{url_params}"
+        else:
+            return url_base
+
+    def _get_url_params(self, query:dict) -> str:
+        query = {} if query is None else query
+        url_params = self.repo.url_params.copy()
+        url_params.update(query)
+        return urlparse.urlencode(url_params)
 
 class RESTRepo(BaseRepo):
 
