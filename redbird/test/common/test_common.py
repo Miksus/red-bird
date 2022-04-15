@@ -19,276 +19,6 @@ from sqlalchemy.orm import declarative_base
 
 from pydantic import BaseModel, Field
 
-# ------------------------
-# TEST ITEMS
-# ------------------------
-
-class PydanticItem(BaseModel):
-    __colname__ = 'items'
-    id: str
-    name: str
-    age: Optional[int]
-
-class PydanticItemORM(BaseModel):
-    id: str
-    name: str
-    age: Optional[int]
-    class Config:
-        orm_mode = True
-
-class MongoItem(BaseModel):
-    __colname__ = 'items'
-    _id: str = Field(alias="id")
-    id: str
-    name: str
-    age: int
-
-SQLBase = declarative_base()
-
-class SQLItem(SQLBase):
-    __tablename__ = 'items'
-    id = Column(String, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
-
-    def __eq__(self, other):
-        if not isinstance(other, SQLItem):
-            return False
-        return other.id == self.id and other.name == self.name and other.age == self.age
-
-# ------------------------
-# MOCK
-# ------------------------
-
-def get_mongo_uri():
-    load_dotenv()
-    pytest.importorskip("pymongo")
-    if "MONGO_CONN" not in os.environ:
-        pytest.skip()
-    return os.environ["MONGO_CONN"]
-
-class RESTMock:
-
-    def __init__(self):
-        self.repo = MemoryRepo(PydanticItem)
-    
-    def post(self, request):
-        data = json.loads(request.body)
-        self.repo.add(data)
-        return (200, {}, b"")
-
-    def patch(self, request):
-        data = json.loads(request.body)
-        params = self.get_params(request)
-        self.repo.filter_by(**params).update(**data)
-        return (200, {}, b"")
-
-    def patch_one(self, request):
-        id = self.get_id(request)
-        data = json.loads(request.body)
-        assert "id" not in data
-
-        data["id"] = id
-        item = self.repo.model(**data)
-        self.repo.update(item)
-        return (200, {}, b"")
-
-    def put(self, request):
-        data = json.loads(request.body)
-        item = self.repo.model(**data)
-        self.repo.replace(item)
-        return (200, {}, b"")
-
-    def delete(self, request):
-        params = self.get_params(request)
-        self.repo.filter_by(**params).delete()
-        return (200, {}, b"")
-
-    def delete_one(self, request):
-        id = self.get_id(request)
-        del self.repo[id]
-        return (200, {}, b"")
-
-    def get(self, request):
-        params = self.get_params(request)
-        data = self.repo.filter_by(**params).all()
-        data = [item.dict() for item in data]
-        return (200, {"Content-Type": "application/json"}, json.dumps(data))
-
-    def get_one(self, request):
-        id = self.get_id(request)
-        data = self.repo[id].dict()
-        return (200, {"Content-Type": "application/json"}, json.dumps(data))
-
-    def get_params(self, req):
-        return {
-            key: int(val) if val.isdigit() else val 
-            for key, val in req.params.items()
-        }
-
-    def get_id(self, req):
-        parts = req.url.rsplit("api/items/", 1)
-        return parts[-1] if len(parts) > 1 else None
-
-    def add_routes(self, rsps):
-        rsps.add_callback(
-            responses.POST, 
-            'http://localhost:5000/api/items',
-            callback=self.post,
-            content_type='application/json',
-        )
-        rsps.add_callback(
-            responses.PATCH, 
-            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
-            callback=self.patch_one,
-        )
-        rsps.add_callback(
-            responses.PATCH, 
-            re.compile('http://localhost:5000/api/items?[a-zA-Z=_]+'),
-            callback=self.patch,
-        )
-
-        rsps.add_callback(
-            responses.PUT, 
-            re.compile('http://localhost:5000/api/items'),
-            callback=self.put,
-        )
-
-        rsps.add_callback(
-            responses.DELETE, 
-            'http://localhost:5000/api/items',
-            callback=self.delete,
-        )
-        rsps.add_callback(
-            responses.DELETE, 
-            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
-            callback=self.delete_one,
-        )
-
-        rsps.add_callback(
-            responses.GET, 
-            re.compile('http://localhost:5000/api/items/[a-zA-Z]+'),
-            callback=self.get_one,
-        )
-        rsps.add_callback(
-            responses.GET, 
-            re.compile('http://localhost:5000/api/items'),
-            callback=self.get,
-        )
-
-
-def get_repo(type_):
-    if type_ == "memory":
-        repo = MemoryRepo(PydanticItem)
-
-    elif type_ == "memory-dict":
-        repo = MemoryRepo(dict)
-
-    elif type_ == "sql":
-        engine = create_engine('sqlite://')
-        engine.execute("""CREATE TABLE pytest (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            age INTEGER
-        )""")
-        repo = SQLRepo(engine=engine, table="pytest")
-
-    elif type_ == "sql-orm":
-        engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=SQLItem, engine=engine)
-        repo.create()
-
-    elif type_ == "sql-pydantic":
-        engine = create_engine('sqlite://')
-        repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
-        SQLItem.__table__.create(bind=repo.session.bind)
-
-    elif type_ == "mongo":
-        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
-
-        # Empty the collection
-        pytest.importorskip("pymongo")
-        from pymongo import MongoClient
-
-        client = MongoClient(repo.session.url)
-        col_name = repo.model.__colname__
-        db = client.get_default_database()
-        col = db[col_name]
-        col.delete_many({})
-
-    elif type_ == "http-rest":
-        repo = RESTRepo(PydanticItem, url="http://localhost:5000/api/items", id_field="id")
-
-    return repo
-
-# ------------------------
-# FIXTURES
-# ------------------------
-
-@pytest.fixture
-def populated_repo(request):
-    attrs = [
-        dict(id="a", name="Jack", age=20),
-        dict(id="b", name="John", age=30),
-        dict(id="c", name="James", age=30),
-        dict(id="d", name="Johnny", age=30),
-        dict(id="e", name="Jesse", age=40),
-    ]
-    repo = get_repo(request.param)
-    if request.param == "memory":
-        repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
-        yield repo
-    elif request.param == "memory-dict":
-        repo.collection = [item_attrs for item_attrs in attrs]
-        yield repo
-    elif request.param == "sql":
-        for item_attrs in attrs:
-            item = repo.model_orm(**item_attrs)
-            repo.session.add(item)
-        repo.session.commit()
-        yield repo
-    elif request.param == "sql-orm":
-        for item_attrs in attrs:
-            item = SQLItem(**item_attrs)
-            repo.session.add(item)
-        repo.session.commit()
-        yield repo
-    elif request.param == "sql-pydantic":
-        for item_attrs in attrs:
-            item = SQLItem(**item_attrs)
-            repo.session.add(item)
-        repo.session.commit()
-        yield repo
-    elif request.param == "mongo":
-        pytest.importorskip("pymongo")
-        from pymongo import MongoClient
-
-        client = MongoClient(repo.session.url)
-        col_name = repo.model.__colname__
-        db = client.get_default_database()
-        col = db[col_name]
-        col.delete_many({})
-        for item in attrs:
-            item["_id"] = item.pop("id")
-        col.insert_many(attrs)
-        yield repo
-    elif request.param == "http-rest":
-        api = RESTMock()
-        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-            api.add_routes(rsps)
-            api.repo.collection = [repo.model(**item_attrs) for item_attrs in attrs]
-            yield repo
-
-@pytest.fixture
-def repo(request):
-    repo = get_repo(request.param)
-    if request.param == "http-rest":
-        api = RESTMock()
-        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-            api.add_routes(rsps)
-            yield repo
-    else:
-        yield repo
 
 TEST_CASES = [
     pytest.param("memory"),
@@ -305,6 +35,20 @@ TEST_CASES = [
 # ACTUAL TESTS
 # ------------------------
 
+class RepoTests:
+
+    def populate(self, repo, items=None):
+        if items is None:
+            items = [
+                dict(id="a", name="Jack", age=20),
+                dict(id="b", name="John", age=30),
+                dict(id="c", name="James", age=30),
+                dict(id="d", name="Johnny", age=30),
+                dict(id="e", name="Jesse", age=40),
+            ]
+        for d in items:
+            item = repo.to_item(d)
+            repo.add(item)
 
 @pytest.mark.parametrize(
     'repo',
@@ -339,33 +83,45 @@ class TestAPI:
 
 
 @pytest.mark.parametrize(
-    'populated_repo',
+    'repo',
     TEST_CASES,
     indirect=True
 )
-class TestPopulated:
+class TestPopulated(RepoTests):
 
-    def test_filter_by_first(self, populated_repo):
-        repo = populated_repo
+    def populate(self, repo, items=None):
+        if items is None:
+            items = [
+                dict(id="a", name="Jack", age=20),
+                dict(id="b", name="John", age=30),
+                dict(id="c", name="James", age=30),
+                dict(id="d", name="Johnny", age=30),
+                dict(id="e", name="Jesse", age=40),
+            ]
+        for d in items:
+            item = repo.to_item(d)
+            repo.add(item)
+
+    def test_filter_by_first(self, repo):
+        self.populate(repo)
         Item = repo.model
         assert repo.filter_by(age=30).first() == Item(id="b", name="John", age=30)
 
-    def test_filter_by_last(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_last(self, repo):
+        self.populate(repo)
         Item = repo.model
         assert repo.filter_by(age=30).last() == Item(id="d", name="Johnny", age=30)
 
-
-    def test_filter_by_limit(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_limit(self, repo):
+        self.populate(repo)
         Item = repo.model
         assert repo.filter_by(age=30).limit(2) == [
             Item(id="b", name="John", age=30),
             Item(id="c", name="James", age=30),
         ]
 
-    def test_filter_by_all(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_all(self, repo):
+        self.populate(repo)
         Item = repo.model
         assert repo.filter_by(age=30).all() == [
             Item(id="b", name="John", age=30),
@@ -373,8 +129,8 @@ class TestPopulated:
             Item(id="d", name="Johnny", age=30),
         ]
 
-    def test_filter_by_update(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_update(self, repo):
+        self.populate(repo)
         Item = repo.model
 
         repo.filter_by(age=30).update(name="Something")
@@ -386,8 +142,8 @@ class TestPopulated:
             Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_filter_by_delete(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_delete(self, repo):
+        self.populate(repo)
         Item = repo.model
 
         repo.filter_by(age=30).delete()
@@ -399,13 +155,13 @@ class TestPopulated:
             Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_filter_by_count(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_count(self, repo):
+        self.populate(repo)
         Item = repo.model
         assert repo.filter_by(age=30).count() == 3
 
-    def test_filter_by_less_than(self, populated_repo):
-        repo = populated_repo
+    def test_filter_by_less_than(self, repo):
+        self.populate(repo)
 
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
@@ -419,19 +175,19 @@ class TestPopulated:
             #Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_getitem(self, populated_repo):
-        repo = populated_repo
+    def test_getitem(self, repo):
+        self.populate(repo)
         Item = repo.model
 
         assert repo["b"] == Item(id="b", name="John", age=30)
 
-    def test_getitem_missing(self, populated_repo):
-        repo = populated_repo
+    def test_getitem_missing(self, repo):
+        self.populate(repo)
         with pytest.raises(KeyError):
             repo["not_found"]
 
-    def test_delitem(self, populated_repo):
-        repo = populated_repo
+    def test_delitem(self, repo):
+        self.populate(repo)
         Item = repo.model
 
         del repo["b"]
@@ -444,13 +200,13 @@ class TestPopulated:
         ]
 
     @pytest.mark.skip(reason="This is a minor issue")
-    def test_delitem_missing(self, populated_repo):
-        repo = populated_repo
+    def test_delitem_missing(self, repo):
+        self.populate(repo)
         with pytest.raises(KeyError):
             del repo["not_found"]
 
-    def test_setitem(self, populated_repo):
-        repo = populated_repo
+    def test_setitem(self, repo):
+        self.populate(repo)
         Item = repo.model
 
         repo["d"] = {"name": "Johnny boy"}
@@ -464,20 +220,20 @@ class TestPopulated:
         ]
 
     @pytest.mark.skip(reason="This is a minor issue")
-    def test_setitem_missing(self, populated_repo):
-        repo = populated_repo
+    def test_setitem_missing(self, repo):
+        self.populate(repo)
         with pytest.raises(KeyError):
             repo["not_found"] = {"name": "something"}
 
 @pytest.mark.parametrize(
-    'populated_repo',
+    'repo',
     TEST_CASES,
     indirect=True
 )
-class TestFilteringOperations:
+class TestFilteringOperations(RepoTests):
 
-    def test_greater_than(self, populated_repo):
-        repo = populated_repo
+    def test_greater_than(self, repo):
+        self.populate(repo)
 
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
@@ -491,8 +247,8 @@ class TestFilteringOperations:
             Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_less_than(self, populated_repo):
-        repo = populated_repo
+    def test_less_than(self, repo):
+        self.populate(repo)
 
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
@@ -506,8 +262,8 @@ class TestFilteringOperations:
             #Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_greater_equal(self, populated_repo):
-        repo = populated_repo
+    def test_greater_equal(self, repo):
+        self.populate(repo)
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
         Item = repo.model
@@ -519,8 +275,8 @@ class TestFilteringOperations:
             Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_less_equal(self, populated_repo):
-        repo = populated_repo
+    def test_less_equal(self, repo):
+        self.populate(repo)
 
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
@@ -534,8 +290,8 @@ class TestFilteringOperations:
             #Item(id="e", name="Jesse", age=40),
         ]
 
-    def test_not_equal(self, populated_repo):
-        repo = populated_repo
+    def test_not_equal(self, repo):
+        self.populate(repo)
 
         if isinstance(repo, RESTRepo):
             pytest.xfail("RESTRepo does not support operations (yet)")
