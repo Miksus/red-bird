@@ -469,7 +469,6 @@ class TestPopulated:
         with pytest.raises(KeyError):
             repo["not_found"] = {"name": "something"}
 
-
 @pytest.mark.parametrize(
     'populated_repo',
     TEST_CASES,
