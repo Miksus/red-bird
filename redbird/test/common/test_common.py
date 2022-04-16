@@ -23,9 +23,10 @@ from pydantic import BaseModel, Field
 TEST_CASES = [
     pytest.param("memory"),
     pytest.param("memory-dict"),
-    pytest.param("sql"),
-    pytest.param("sql-orm"),
+    pytest.param("sql-dict"),
     pytest.param("sql-pydantic"),
+    pytest.param("sql-orm"),
+    pytest.param("sql-pydantic-orm"),
     pytest.param("mongo"),
     pytest.param("http-rest"),
 ]

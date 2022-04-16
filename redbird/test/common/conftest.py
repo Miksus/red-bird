@@ -184,7 +184,7 @@ def get_repo(type_):
     elif type_ == "memory-dict":
         repo = MemoryRepo(dict)
 
-    elif type_ == "sql":
+    elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
         engine.execute("""CREATE TABLE pytest (
             id TEXT PRIMARY KEY,
@@ -193,18 +193,28 @@ def get_repo(type_):
         )""")
         repo = SQLRepo(engine=engine, table="pytest")
 
+    elif type_ == "sql-pydantic":
+        engine = create_engine('sqlite://')
+        engine.execute("""CREATE TABLE pytest (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            age INTEGER
+        )""")
+        repo = SQLRepo(PydanticItem, engine=engine, table="pytest")
+        #SQLItem.__table__.create(bind=repo.session.bind)
+
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=SQLItem, engine=engine)
+        repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items")
         repo.create()
 
-    elif type_ == "sql-pydantic":
+    elif type_ == "sql-pydantic-orm":
         engine = create_engine('sqlite://')
         repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
         SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "mongo":
-        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), id_field="id")
+        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), database="pytest", collection="items", id_field="id")
 
         # Empty the collection
         pytest.importorskip("pymongo")
