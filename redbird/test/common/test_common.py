@@ -382,3 +382,36 @@ class TestEmpty:
         assert repo.filter_by().all() == [
             Item(id="a", name="John", age=30),
         ]
+
+
+@pytest.mark.parametrize(
+    'repo',
+    TEST_CASES,
+    indirect=True
+)
+class TestValidate(RepoTests):
+
+    def test_validate_success(self, repo):
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 30},
+            {"id": "c", "name": "James", "age": 40},
+        ])
+        repo.filter_by().validate()
+
+    def test_validate_fail(self, repo):
+
+        class MalformedItem(BaseModel):
+            id: str
+            name: int
+            age: int
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 30},
+            {"id": "c", "name": "James", "age": 40},
+        ])
+        repo.model = MalformedItem
+        with pytest.raises(ValueError):
+            repo.filter_by().validate()
