@@ -1,6 +1,7 @@
 
 from abc import abstractmethod, ABC
 from operator import getitem, setitem
+from textwrap import dedent, indent, shorten
 from typing import Any, Dict, Generator, Iterator, List, Literal, Mapping, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 
@@ -72,6 +73,41 @@ class BaseResult(ABC):
     def query_data(self) -> Iterator[Data]:
         "Get actual result"
         ...
+
+    def validate(self, max_shown=10):
+        tmpl = dedent("""
+            Validation Errors
+            =================
+            Model: {model}
+            Errors: {n_errors}
+
+            Details
+            =================
+            {details}
+            """)[1:]
+        errors = []
+        for data in self.query_data():
+            try:
+                self.repo.data_to_item(data)
+            except ValueError as exc:
+                errors.append((data, exc))
+        if errors:
+            msg_details = ""
+            for data, exc in errors[:max_shown]:
+                item = shorten(str(data), width=100)
+                msg_details = msg_details + dedent("""
+                    Item
+                    -----------------
+                    {item}
+
+                    {exc}
+                    """).format(item=item, exc=indent(str(exc), " " * 2))
+            if len(errors) > max_shown:
+                msg_details = msg_details + "\n[...]"
+
+            msg_details = indent(msg_details, " " * 2)
+
+            raise ValueError(tmpl.format(n_errors=len(errors), details=msg_details, model=self.repo.model))
 
     def __iter__(self) -> Iterator[Item]:
         return self.query()
