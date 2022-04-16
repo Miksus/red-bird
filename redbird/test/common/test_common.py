@@ -415,3 +415,19 @@ class TestValidate(RepoTests):
         repo.model = MalformedItem
         with pytest.raises(ValueError):
             repo.filter_by().validate()
+
+    def test_validate_fail_max_shown(self, repo):
+
+        class MalformedItem(BaseModel):
+            id: str
+            name: int
+            age: int
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 30},
+            {"id": "c", "name": "James", "age": 40},
+        ])
+        repo.model = MalformedItem
+        with pytest.raises(ValueError):
+            repo.filter_by().validate(max_shown=1)
