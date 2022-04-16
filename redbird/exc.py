@@ -7,8 +7,8 @@ class KeyFoundError(Exception):
     
     """
 
-class ItemToDataError(Exception):
+class ItemToDataError(ValueError):
     "Raise when converting item to data failed"
 
-class DataToItemError(Exception):
+class DataToItemError(ValueError):
     "Raise when converting data to item failed"
