@@ -1,7 +1,7 @@
 
 from abc import abstractmethod, ABC
 from operator import getitem, setitem
-from typing import Any, Dict, Generator, Iterator, List, Mapping, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, Generator, Iterator, List, Literal, Mapping, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 
 from pydantic import BaseModel
