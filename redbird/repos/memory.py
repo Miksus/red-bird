@@ -12,11 +12,11 @@ class MemoryResult(BaseResult):
 
     repo: 'MemoryRepo'
 
-    def query(self):
+    def query_data(self):
         col = self.repo.collection
-        for item in col:
-            if self._match(item):
-                yield self.repo.data_to_item(item)
+        for data in col:
+            if self._match(data):
+                yield data
 
     def update(self, **kwargs):
         col = self.repo.collection

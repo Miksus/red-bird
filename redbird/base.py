@@ -1,15 +1,22 @@
 
 from abc import abstractmethod, ABC
-from ctypes import Union
 from operator import getitem, setitem
-from typing import Any, Dict, Generator, List, Mapping, Tuple
+from textwrap import dedent, indent, shorten
+from typing import Any, Dict, Generator, Iterator, List, Literal, Mapping, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 
 from pydantic import BaseModel
 
 from redbird.exc import DataToItemError, KeyFoundError, ItemToDataError
+from redbird.utils.case import to_case
 
 from .oper import Operation
+
+Item = TypeVar("Item")
+Data = TypeVar("Data")
+
+class BasicQuery(BaseModel, extra="allow"):
+    ...
 
 class DummySession:
     ...
@@ -57,12 +64,52 @@ class BaseResult(ABC):
             items.append(item)
         return items
         
+    def query(self) -> Iterator[Item]:
+        "Get actual result"
+        for data in self.query_data():
+            yield self.repo.data_to_item(data)
+
     @abstractmethod
-    def query(self) -> Generator:
+    def query_data(self) -> Iterator[Data]:
         "Get actual result"
         ...
 
-    def __iter__(self):
+    def validate(self, max_shown=10):
+        tmpl = dedent("""
+            Validation Errors
+            =================
+            Model: {model}
+            Errors: {n_errors}
+
+            Details
+            =================
+            {details}
+            """)[1:]
+        errors = []
+        for data in self.query_data():
+            try:
+                self.repo.data_to_item(data)
+            except ValueError as exc:
+                errors.append((data, exc))
+        if errors:
+            msg_details = ""
+            for data, exc in errors[:max_shown]:
+                item = shorten(str(data), width=100)
+                msg_details = msg_details + dedent("""
+                    Item
+                    -----------------
+                    {item}
+
+                    {exc}
+                    """).format(item=item, exc=indent(str(exc), " " * 2))
+            if len(errors) > max_shown:
+                msg_details = msg_details + "\n[...]"
+
+            msg_details = indent(msg_details, " " * 2)
+
+            raise ValueError(tmpl.format(n_errors=len(errors), details=msg_details, model=self.repo.model))
+
+    def __iter__(self) -> Iterator[Item]:
         return self.query()
 
     @abstractmethod
@@ -73,21 +120,33 @@ class BaseResult(ABC):
     def delete(self):
         "Delete the resulted items"
 
-    def count(self):
+    def count(self) -> int:
         "Count the resulted items"
         return len(list(self))
 
 
     def format_query(self, query:dict) -> dict:
         "Turn the query to a form that's understandable by the underlying database"
-        for field_name, oper_or_value in query.copy().items():
-            if isinstance(oper_or_value, Operation):
-                query[field_name] = self.format_operation(oper_or_value)
-        return query
+        qry = self.repo.query_format(**query)
+        return qry.format(self.repo) if hasattr(qry, "format") else qry.dict()
 
-    def format_operation(self, oper:Operation):
-        result_format_method = oper._get_formatter(self)
-        return result_format_method(oper)
+    def format_query_value(self, oper_or_value:Union[Operation, Any]):
+        "Turn an operation to string/object understandable by the underlying database"
+        if isinstance(oper_or_value, Operation):
+            oper = oper_or_value
+            result_format_method = oper._get_formatter(self)
+            value = result_format_method(oper)
+        else:
+            value = oper_or_value
+        return value
+
+    def format_query_field(self, key:str, value:Union[Operation, Any]) -> str:
+        "Turn a query key to a field understandable by the underlying database"
+        conf = self.repo.query_format
+        field_case = getattr(conf, "__case__", None)
+        if field_case is not None:
+            key = to_case(key, case=field_case)
+        return key
 
 class BaseRepo(ABC):
     """Abstract Repository
@@ -99,23 +158,22 @@ class BaseRepo(ABC):
     default_id_field: str = "id"
     id_field: str
     model = dict
-    cls_result: BaseResult
+    cls_result: Type[BaseResult]
+    query_format: Type[BaseModel]
+    default_query_format: Type[BaseModel] = BasicQuery
 
-    def __init__(self, model=None, id_field=None, field_access:str=None):
+    def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None):
         self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
         
-        if field_access is None:
-            field_access = "item" if self.model == dict else "attr"
-        if field_access not in ("item", "attr"):
-            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
         self.field_access = field_access
+        self.query_format = self.default_query_format if query is None else query
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
         return iter(self.filter_by().all())
 
-    def __getitem__(self, id):
+    def __getitem__(self, id) -> Item:
         "Get item from the repository using ID"
         qry = {self.id_field: id}
         item = self.filter_by(**qry).first()
@@ -138,7 +196,7 @@ class BaseRepo(ABC):
         self.filter_by(**qry).update(**attrs)
 
 # Item based
-    def add(self, item, if_exists="raise"):
+    def add(self, item: Item, if_exists="raise"):
         "Add an item to the repository"
         item = self.to_item(item)
         if if_exists == "raise":
@@ -158,17 +216,17 @@ class BaseRepo(ABC):
         "Add an item to the repository"
         ...
 
-    def upsert(self, item):
+    def upsert(self, item: Item):
         try:
             self.insert(item)
         except KeyFoundError:
             self.update(item)
 
-    def delete(self, item):
+    def delete(self, item: Item):
         id_ = self.get_field_value(item, self.id_field)
         del self[id_]
 
-    def update(self, item):
+    def update(self, item: Item):
         "Update an item in the repository"
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
@@ -176,12 +234,12 @@ class BaseRepo(ABC):
         values.pop(self.id_field)
         self.filter_by(**qry).update(**values)
 
-    def replace(self, item):
+    def replace(self, item: Item):
         "Update an item in the repository"
         self.delete(item)
         self.add(item)
 
-    def item_to_dict(self, item) -> dict:
+    def item_to_dict(self, item: Item) -> dict:
         if isinstance(item, dict):
             return item
         elif isinstance(item, BaseModel):
@@ -195,7 +253,7 @@ class BaseRepo(ABC):
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)
 
-    def data_to_item(self, data:Mapping):
+    def data_to_item(self, data:Data) -> Item:
         "Turn object from repo (row, doc, dict, etc.) to item"
         if not isinstance(data, Mapping):
             # data is namespace-like
@@ -205,7 +263,7 @@ class BaseRepo(ABC):
         except Exception as exc:
             raise DataToItemError(f"Could not transform {data}") from exc
 
-    def to_item(self, obj):
+    def to_item(self, obj) -> Item:
         "Turn an object to item"
         if isinstance(obj, self.model):
             return obj
@@ -216,7 +274,7 @@ class BaseRepo(ABC):
         else:
             raise TypeError(f"Cannot cast {type(obj)} to {self.model}")
 
-    def get_field_value(self, item, key):
+    def get_field_value(self, item: Item, key):
         """Utility method to get key's value from an item
         
         If item's fields are accessed via attribute,
@@ -230,7 +288,7 @@ class BaseRepo(ABC):
         
         return func(item, key)
 
-    def set_field_value(self, item, key, value):
+    def set_field_value(self, item: Item, key, value):
         """Utility method to set field's value in an item
         
         If item's fields are accessed via attribute,
@@ -243,3 +301,15 @@ class BaseRepo(ABC):
         }[self.field_access]
         
         func(item, key, value)
+
+    @property
+    def field_access(self) -> Literal['item', 'attr']:
+        return self._field_access
+    
+    @field_access.setter
+    def field_access(self, value: Literal['item', 'attr', None]):
+        if value is None:
+            value = 'item' if self.model == dict else 'attr'
+        if value not in ('item', 'attr'):
+            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
+        self._field_access = value

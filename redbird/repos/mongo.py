@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
-from redbird.oper import Operation
+from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 
 if TYPE_CHECKING:
     from pymongo import MongoClient
@@ -86,11 +86,18 @@ class MongoSession:
 class MongoResult(BaseResult):
 
     repo: 'MongoRepo'
+    __operators__ = {
+        GreaterThan: "$gt",
+        LessThan: "$lt",
+        GreaterEqual: "$gte",
+        LessEqual: "$lte",
+        NotEqual: "$ne",
+    }
 
-    def query(self):
+    def query_data(self):
         col = self.repo.get_collection()
-        for item in col.find(self.query_):
-            yield self.repo.data_to_item(item)
+        for data in col.find(self.query_):
+            yield data
 
     def limit(self, n:int):
         "Get n first items"
@@ -115,20 +122,18 @@ class MongoResult(BaseResult):
         col = self.repo.get_collection()
         return col.count_documents(self.query_)
 
-    def format_greater_than(self, oper:Operation):
-        return {"$gt": oper.value}
-
-    def format_less_than(self, oper:Operation):
-        return {"$lt": oper.value}
-
-    def format_greater_equal(self, oper:Operation):
-        return {"$gte": oper.value}
-
-    def format_less_equal(self, oper:Operation):
-        return {"$lte": oper.value}
-
-    def format_not_equal(self, oper:Operation):
-        return {"$ne": oper.value}
+    def format_query(self, query):
+        query = super().format_query(query)
+        return {
+            key: self._get_query_value(val)
+            for key, val in query.items()
+        }
+    
+    def _get_query_value(self, value):
+        if isinstance(value, Operation):
+            return {self.__operators__[type(value)]: value.value}
+        else:
+            return value
 
 class MongoRepo(BaseRepo):
     """MongoDB Repository

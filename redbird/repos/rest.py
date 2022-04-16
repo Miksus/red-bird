@@ -20,8 +20,8 @@ class Session(requests.Session):
 class RESTResult(BaseResult):
 
     repo: 'RESTRepo'
-    def query(self):
-        url = self.repo.get_url(self.query_)
+    def query_data(self):
+        url = self.query_
         page = self.repo._request("GET", url)
         output = page.json()
 
@@ -36,23 +36,50 @@ class RESTResult(BaseResult):
             raise TypeError(f"Could not locate results from {result_loc}")
 
         if isinstance(items, (list, tuple, set)):
-            for item in items:
-                yield self.repo.data_to_item(item)
+            for data in items:
+                yield data
         else:
-            yield self.repo.data_to_item(items)
+            yield items
 
     def delete(self):
-        url = self.repo.get_url(self.query_)
+        url = self.query_
         self.repo._request("DELETE", url)
 
     def update(self, **kwargs):
-        url = self.repo.get_url(self.query_)
+        url = self.query_
         self.repo._request("PATCH", url, json=kwargs)
 
     def replace(self, **kwargs):
-        url = self.repo.get_url(self.query_)
+        url = self.query_
         self.repo._request("PUT", url, json=kwargs)
 
+    def format_query(self, query:dict) -> str:
+        "Turn the query to a form that's understandable by the underlying API"
+        query = super().format_query(query)
+        repo = self.repo
+        id = query.pop(repo.id_field) if query is not None and repo.id_field in query else None
+
+        url_base = repo.url
+        url_params = self._get_url_params(query)
+
+        # URL should look like "www.example.com/api/items/{id}?{param}={value}"
+        # or "www.example.com/api/items/{id}"
+        # or "www.example.com/api/items?{param}={value}"
+        # or "www.example.com/api/items"
+        if id and url_params:
+            return f"{url_base}/{id}?{url_params}"
+        elif id:
+            return f"{url_base}/{id}"
+        elif url_params:
+            return f"{url_base}?{url_params}"
+        else:
+            return url_base
+
+    def _get_url_params(self, query:dict) -> str:
+        query = {} if query is None else query
+        url_params = self.repo.url_params.copy()
+        url_params.update(query)
+        return urlparse.urlencode(url_params)
 
 class RESTRepo(BaseRepo):
 
@@ -91,7 +118,7 @@ class RESTRepo(BaseRepo):
         json = self.item_to_dict(item)
         self._request(
             "POST",
-            self.get_url(),
+            self.url,
             json=json
         )
 
@@ -105,25 +132,3 @@ class RESTRepo(BaseRepo):
             *args, **kwargs, headers=self.headers
         )
         return page
-
-    def get_url(self, query=None):
-        url_params = self.url_params.copy()
-        if query is not None:
-            url_params.update(query)
-        id = url_params.pop(self.id_field) if query is not None and self.id_field in query else None
-
-        url_base = self.url
-        url_params = urlparse.urlencode(url_params) # Turn {"param": "value"} --> "param=value"
-
-        if id is None:
-            id = ""
-        elif not id.startswith("/"):
-            id = "/" + id
-        if url_params:
-            url_params = "?" + url_params
-
-        # URL should look like "www.example.com/api/items/{id}?{param}={value}"
-        # or "www.example.com/api/items/{id}"
-        # or "www.example.com/api/items?{param}={value}"
-        # or "www.example.com/api/items"
-        return f"{url_base}{id}{url_params}"

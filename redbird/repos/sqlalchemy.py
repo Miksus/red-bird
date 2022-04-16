@@ -22,9 +22,9 @@ class SQLAlchemyResult(BaseResult):
 
     repo: 'SQLRepo'
 
-    def query(self):
-        for item in self._filter_orm():
-            yield self.repo.data_to_item(item)
+    def query_data(self):
+        for data in self._filter_orm():
+            yield data
 
     def first(self):
         item = self._filter_orm().first()
@@ -100,7 +100,7 @@ class SQLRepo(BaseRepo):
         self._table = table
         self.model_orm = model_orm
 
-        model = self.parse_model(self.model_orm) if model is None else model
+        model = self.orm_model_to_pydantic(self.model_orm) if model is None else model
         super().__init__(model, **kwargs)    
 
     def insert(self, item):
@@ -135,7 +135,7 @@ class SQLRepo(BaseRepo):
         # Turn Pydantic item to ORM item
         return self.model_orm(**self.item_to_dict(item))
 
-    def parse_model(self, model):
+    def orm_model_to_pydantic(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
         from pydantic_sqlalchemy import sqlalchemy_to_pydantic
         return sqlalchemy_to_pydantic(model)
