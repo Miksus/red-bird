@@ -12,3 +12,7 @@ class ItemToDataError(ValueError):
 
 class DataToItemError(ValueError):
     "Raise when converting data to item failed"
+
+
+class ConversionWarning(UserWarning):
+    "Converting data to item or item to data failed non-fatally"
