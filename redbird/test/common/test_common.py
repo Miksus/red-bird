@@ -389,7 +389,70 @@ class TestEmpty:
     TEST_CASES,
     indirect=True
 )
-class TestValidate(RepoTests):
+class TestMalformedData(RepoTests):
+
+    def test_filter_raise(self, repo):
+
+        class MalformedItem(BaseModel):
+            id: str
+            name: int
+            age: int
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 20},
+            {"id": "c", "name": "James", "age": 30},
+            {"id": "d", "name": 2, "age": 30},
+            {"id": "e", "name": 3, "age": 30},
+        ])
+        repo.model = MalformedItem
+
+        with pytest.raises(ValueError):
+            repo.filter_by().all()
+
+    def test_filter_warn(self, repo):
+
+        class MalformedItem(BaseModel):
+            id: str
+            name: int
+            age: int
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 20},
+            {"id": "c", "name": "James", "age": 30},
+            {"id": "d", "name": 2, "age": 30},
+            {"id": "e", "name": 3, "age": 30},
+        ])
+        repo.model = MalformedItem
+        repo.errors_query = "warn"
+
+        with pytest.warns(UserWarning):
+            repo.filter_by().all()
+
+    def test_filter_discard(self, repo):
+
+        class MalformedItem(BaseModel):
+            id: str
+            name: int
+            age: int
+
+        self.populate(repo, [
+            {"id": "a", "name": 1, "age": 20},
+            {"id": "b", "name": "Jack", "age": 20},
+            {"id": "c", "name": "James", "age": 30},
+            {"id": "d", "name": 2, "age": 30},
+            {"id": "e", "name": 3, "age": 30},
+        ])
+        repo.model = MalformedItem
+        repo.errors_query = "discard"
+
+        Item = MalformedItem
+        assert repo.filter_by().all() == [
+            Item(id="a", name=1, age=20),
+            Item(id="d", name=2, age=30),
+            Item(id="e", name=3, age=30),
+        ]
 
     def test_validate_success(self, repo):
 

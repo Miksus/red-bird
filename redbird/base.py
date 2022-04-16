@@ -4,10 +4,11 @@ from operator import getitem, setitem
 from textwrap import dedent, indent, shorten
 from typing import Any, Dict, Generator, Iterator, List, Literal, Mapping, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
+import warnings
 
 from pydantic import BaseModel
 
-from redbird.exc import DataToItemError, KeyFoundError, ItemToDataError
+from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError
 from redbird.utils.case import to_case
 
 from .oper import Operation
@@ -67,7 +68,13 @@ class BaseResult(ABC):
     def query(self) -> Iterator[Item]:
         "Get actual result"
         for data in self.query_data():
-            yield self.repo.data_to_item(data)
+            try:
+                yield self.repo.data_to_item(data)
+            except ValueError:
+                if self.repo.errors_query == "raise":
+                    raise
+                elif self.repo.errors_query == "warn":
+                    warnings.warn(f'Converting data to item failed: \n{data}', ConversionWarning)
 
     @abstractmethod
     def query_data(self) -> Iterator[Data]:
@@ -162,12 +169,16 @@ class BaseRepo(ABC):
     query_format: Type[BaseModel]
     default_query_format: Type[BaseModel] = BasicQuery
 
-    def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None):
+    errors_query: Literal['raise', 'warn', 'discard']
+
+    def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None, errors_query="raise"):
         self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
         
         self.field_access = field_access
         self.query_format = self.default_query_format if query is None else query
+
+        self.errors_query = errors_query
 
     def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
