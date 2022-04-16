@@ -130,10 +130,6 @@ class BaseRepo(ABC):
         self.model = dict if model is None else model
         self.id_field = id_field or self.default_id_field
         
-        if field_access is None:
-            field_access = "item" if self.model == dict else "attr"
-        if field_access not in ("item", "attr"):
-            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
         self.field_access = field_access
         self.query_format = self.default_query_format if query is None else query
 
@@ -269,3 +265,15 @@ class BaseRepo(ABC):
         }[self.field_access]
         
         func(item, key, value)
+
+    @property
+    def field_access(self) -> Literal['item', 'attr']:
+        return self._field_access
+    
+    @field_access.setter
+    def field_access(self, value: Literal['item', 'attr', None]):
+        if value is None:
+            value = 'item' if self.model == dict else 'attr'
+        if value not in ('item', 'attr'):
+            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
+        self._field_access = value
