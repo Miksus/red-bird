@@ -7,3 +7,4 @@ pydantic
 sqlalchemy
 pymongo
 pydantic-sqlalchemy
+mongomock

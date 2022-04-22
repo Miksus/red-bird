@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import pytest
 import responses
 import requests
+import mongomock
 from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
@@ -38,8 +39,7 @@ class PydanticItemORM(BaseModel):
 
 class MongoItem(BaseModel):
     __colname__ = 'items'
-    _id: str = Field(alias="id")
-    id: str
+    id: str  = Field(alias="_id")
     name: str
     age: int
 
@@ -213,14 +213,17 @@ def get_repo(type_):
         repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
         SQLItem.__table__.create(bind=repo.session.bind)
 
+    elif type_ == "mongo-mock":
+        repo = MongoRepo(PydanticItem, url="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
+ 
     elif type_ == "mongo":
         repo = MongoRepo(PydanticItem, url=get_mongo_uri(), database="pytest", collection="items", id_field="id")
 
         # Empty the collection
         pytest.importorskip("pymongo")
-        from pymongo import MongoClient
+        import pymongo
 
-        client = MongoClient(repo.session.url)
+        client = pymongo.MongoClient(repo.session.url)
         col_name = repo.model.__colname__
         db = client.get_default_database()
         col = db[col_name]
@@ -242,6 +245,9 @@ def repo(request):
         api = RESTMock()
         with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
             api.add_routes(rsps)
+            yield repo
+    elif request.param == "mongo-mock":
+        with mongomock.patch(servers=(('localhost', 27017),)):
             yield repo
     else:
         yield repo
