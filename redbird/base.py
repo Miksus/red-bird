@@ -127,6 +127,15 @@ class BaseResult(ABC):
     def delete(self):
         "Delete the resulted items"
 
+    def replace(self, __values:dict=None, **kwargs):
+        "Replace the existing item(s) with given"
+        if __values is not None:
+            kwargs.update(__values)
+        if self.count() > 1:
+            raise KeyError("You may only replace one item.")
+        self.delete()
+        self.repo.add(kwargs)
+
     def count(self) -> int:
         "Count the resulted items"
         return len(list(self))
