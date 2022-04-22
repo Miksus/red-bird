@@ -260,8 +260,10 @@ class BaseRepo(ABC):
             return dict(**item)
 
 # Keyword arguments
-    def filter_by(self, **kwargs) -> BaseResult:
+    def filter_by(self, __query:dict=None, **kwargs) -> BaseResult:
         "Get items from the repository by filtering using keyword args"
+        if __query is not None:
+            kwargs.update(__query)
         return self.cls_result(query=kwargs, repo=self)
 
     def data_to_item(self, data:Data) -> Item:

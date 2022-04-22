@@ -45,11 +45,15 @@ class RESTResult(BaseResult):
         url = self.query_
         self.repo._request("DELETE", url)
 
-    def update(self, **kwargs):
+    def update(self, __values:dict=None, **kwargs):
+        if __values is not None:
+            kwargs.update(__values)
         url = self.query_
         self.repo._request("PATCH", url, json=kwargs)
 
-    def replace(self, **kwargs):
+    def replace(self, __values:dict=None, **kwargs):
+        if __values is not None:
+            kwargs.update(__values)
         url = self.query_
         self.repo._request("PUT", url, json=kwargs)
 

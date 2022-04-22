@@ -31,8 +31,10 @@ class SQLAlchemyResult(BaseResult):
         if item is not None:
             return self.repo.data_to_item(item)
 
-    def update(self, **kwargs):
+    def update(self, __values:dict=None, **kwargs):
         "Update the resulted rows"
+        if __values is not None:
+            kwargs.update(__values)
         model = self.repo.model
         session = self.repo.session
 
