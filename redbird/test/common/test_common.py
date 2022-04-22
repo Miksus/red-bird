@@ -144,6 +144,32 @@ class TestPopulated(RepoTests):
             Item(id="e", name="Jesse", age=40),
         ]
 
+    def test_filter_by_replace(self, repo):
+        self.populate(repo)
+        Item = repo.model
+
+        repo.filter_by(id="b").replace(id="b", name="Something")
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            Item(id="b", name="Something"),
+        ]
+
+    def test_filter_by_replace_dict(self, repo):
+        self.populate(repo)
+        Item = repo.model
+
+        repo.filter_by(id="b").replace({"id": "b", "name": "Something"})
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            Item(id="b", name="Something"),
+        ]
+
     def test_filter_by_delete(self, repo):
         self.populate(repo)
         Item = repo.model
