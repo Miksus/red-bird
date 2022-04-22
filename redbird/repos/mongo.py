@@ -107,8 +107,11 @@ class MongoResult(BaseResult):
             for item in col.find(self.query_).limit(n)
         ]
 
-    def update(self, **kwargs):
+    def update(self, __values:dict=None, **kwargs):
         "Update the resulted rows"
+        if __values is not None:
+            kwargs.update(__values)
+        # TODO: If self.repo.id_field in kwargs?
         col = self.repo.get_collection()
         col.update_many(self.query_, {"$set": kwargs})
 
@@ -176,11 +179,11 @@ class MongoRepo(BaseRepo):
         doc = self.item_to_data(item)
         col.update_one({"_id": self.get_field_value(item, self.id_field)}, {"$set": doc}, upsert=True)
 
-    def filter_by(self, **kwargs) -> BaseResult:
+    def filter_by(self, *args, **kwargs) -> BaseResult:
         # Rename id_field --> "_id"
         if self.id_field in kwargs:
             kwargs["_id"] = kwargs.pop(self.id_field)
-        return super().filter_by(**kwargs)
+        return super().filter_by(*args, **kwargs)
 
     def get_collection(self) -> 'Collection':
         "Get the MongoDB collection object"

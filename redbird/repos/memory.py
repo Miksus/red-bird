@@ -18,7 +18,9 @@ class MemoryResult(BaseResult):
             if self._match(data):
                 yield data
 
-    def update(self, **kwargs):
+    def update(self, __values:dict=None, **kwargs):
+        if __values is not None:
+            kwargs.update(__values)
         col = self.repo.collection
         for item in col:
             if self._match(item):

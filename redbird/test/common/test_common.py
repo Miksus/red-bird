@@ -131,6 +131,15 @@ class TestPopulated(RepoTests):
             Item(id="d", name="Johnny", age=30),
         ]
 
+    def test_filter_by_all_dict(self, repo):
+        self.populate(repo)
+        Item = repo.model
+        assert repo.filter_by({"age": 30}).all() == [
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+        ]
+
     def test_filter_by_update(self, repo):
         self.populate(repo)
         Item = repo.model
@@ -143,6 +152,18 @@ class TestPopulated(RepoTests):
             Item(id="d", name="Something", age=30),
             Item(id="e", name="Jesse", age=40),
         ]
+
+    def test_filter_by_update_dict(self, repo):
+        self.populate(repo)
+        Item = repo.model
+
+        repo.filter_by(age=30).update({"name": "Something"})
+        assert repo.filter_by().all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="b", name="Something", age=30),
+            Item(id="c", name="Something", age=30),
+            Item(id="d", name="Something", age=30),
+            Item(id="e", name="Jesse", age=40),
 
     def test_filter_by_replace(self, repo):
         self.populate(repo)
