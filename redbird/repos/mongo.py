@@ -47,9 +47,9 @@ class MongoSession:
         return self._bind
 
     def create_client(self, url=None):
-        from pymongo import MongoClient
+        import pymongo
         url = self.url if url is None else url
-        return MongoClient(url)
+        return pymongo.MongoClient(url)
 
     def close(self):
         "Close client and all binds"

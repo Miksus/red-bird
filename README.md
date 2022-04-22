@@ -6,6 +6,7 @@
 
 [![Pypi version](https://badgen.net/pypi/v/redbird)](https://pypi.org/project/redbird/)
 [![build](https://github.com/Miksus/red-bird/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/Miksus/red-bird/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/Miksus/red-bird/branch/master/graph/badge.svg?token=GVBWCKHL1N)](https://codecov.io/gh/Miksus/red-bird)
 [![Documentation Status](https://readthedocs.org/projects/red-bird/badge/?version=latest)](https://red-bird.readthedocs.io)
 [![PyPI pyversions](https://badgen.net/pypi/python/redbird)](https://pypi.org/project/redbird/)
 
