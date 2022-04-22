@@ -260,6 +260,12 @@ class BaseRepo(ABC):
             return dict(**item)
 
 # Keyword arguments
+    
+    def get_by(self, id):
+        "Get item based on ID but returns result for further operations"
+        qry = {self.id_field: id}
+        return self.filter_by(**qry)
+
     def filter_by(self, **kwargs) -> BaseResult:
         "Get items from the repository by filtering using keyword args"
         return self.cls_result(query=kwargs, repo=self)

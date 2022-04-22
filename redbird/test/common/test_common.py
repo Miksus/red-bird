@@ -383,6 +383,26 @@ class TestEmpty:
             Item(id="a", name="John", age=30),
         ]
 
+    def test_get_by(self, repo):
+        Item = repo.model
+
+        repo.add(Item(id="a", name="Max", age=20))
+        repo.add(Item(id="b", name="John", age=30))
+        assert list(repo) == [
+            Item(id="a", name="Max", age=20),
+            Item(id="b", name="John", age=30),
+        ]
+
+        repo.get_by("a").update(age=40)
+        assert list(repo) == [
+            Item(id="a", name="Max", age=40),
+            Item(id="b", name="John", age=30),
+        ]
+
+        repo.get_by("b").delete()
+        assert list(repo) == [
+            Item(id="a", name="Max", age=40),
+        ]
 
 @pytest.mark.parametrize(
     'repo',
