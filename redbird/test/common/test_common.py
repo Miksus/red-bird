@@ -28,6 +28,7 @@ TEST_CASES = [
     pytest.param("sql-orm"),
     pytest.param("sql-pydantic-orm"),
     pytest.param("mongo"),
+    pytest.param("mongo-mock"),
     pytest.param("http-rest"),
 ]
 
