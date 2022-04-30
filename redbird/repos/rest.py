@@ -9,6 +9,8 @@ from redbird.base import BaseResult, BaseRepo
 
 import requests
 
+from redbird.templates import TemplateRepo
+
 class Session(requests.Session):
     """Subclassed requests.Session for more
     unified methods.
@@ -17,75 +19,8 @@ class Session(requests.Session):
     def remove(self):
         self.close()
 
-class RESTResult(BaseResult):
 
-    """Filter object of RESTRepo"""
-
-    repo: 'RESTRepo'
-    def query_data(self):
-        url = self.query_
-        page = self.repo._request("GET", url)
-        output = page.json()
-
-        result_loc = self.repo.result
-        if result_loc is None:
-            items = output
-        elif isinstance(result_loc, str):
-            items = output[result_loc]
-        elif isinstance(result_loc, callable):
-            items = result_loc(output)
-        else:
-            raise TypeError(f"Could not locate results from {result_loc}")
-
-        if isinstance(items, (list, tuple, set)):
-            for data in items:
-                yield data
-        else:
-            yield items
-
-    def delete(self):
-        url = self.query_
-        self.repo._request("DELETE", url)
-
-    def update(self, **kwargs):
-        url = self.query_
-        self.repo._request("PATCH", url, json=kwargs)
-
-    def replace(self, __values:dict=None, **kwargs):
-        if __values is not None:
-            kwargs.update(__values)
-        url = self.query_
-        self.repo._request("PUT", url, json=kwargs)
-
-    def format_query(self, query:dict) -> str:
-        "Turn the query to a form that's understandable by the underlying API"
-        query = super().format_query(query)
-        repo = self.repo
-        id = query.pop(repo.id_field) if query is not None and repo.id_field in query else None
-
-        url_base = repo.url
-        url_params = self._get_url_params(query)
-
-        # URL should look like "www.example.com/api/items/{id}?{param}={value}"
-        # or "www.example.com/api/items/{id}"
-        # or "www.example.com/api/items?{param}={value}"
-        # or "www.example.com/api/items"
-        if id and url_params:
-            return f"{url_base}/{id}?{url_params}"
-        elif id:
-            return f"{url_base}/{id}"
-        elif url_params:
-            return f"{url_base}?{url_params}"
-        else:
-            return url_base
-
-    def _get_url_params(self, query:dict) -> str:
-        query = {} if query is None else query
-        url_params = self.repo.url_params.copy()
-        url_params.update(query)
-        return urlparse.urlencode(url_params)
-
-class RESTRepo(BaseRepo):
+class RESTRepo(TemplateRepo):
 
     """REST API Repository
 
@@ -136,3 +71,63 @@ class RESTRepo(BaseRepo):
             *args, **kwargs, headers=self.headers
         )
         return page
+
+    def query_read(self, query):
+        url = query
+        page = self._request("GET", url)
+        output = page.json()
+
+        result_loc = self.result
+        if result_loc is None:
+            items = output
+        elif isinstance(result_loc, str):
+            items = output[result_loc]
+        elif isinstance(result_loc, callable):
+            items = result_loc(output)
+        else:
+            raise TypeError(f"Could not locate results from {result_loc}")
+
+        if isinstance(items, (list, tuple, set)):
+            for data in items:
+                yield data
+        else:
+            yield items
+
+    def query_delete(self, query):
+        url = query
+        self._request("DELETE", url)
+
+    def query_update(self, query, values):
+        url = query
+        self._request("PATCH", url, json=values)
+
+    def query_replace(self, query, values):
+        url = query
+        self._request("PUT", url, json=values)
+
+    def format_query(self, query:dict) -> str:
+        "Turn the query to a form that's understandable by the underlying API"
+        query = super().format_query(query)
+        id = query.pop(self.id_field) if query is not None and self.id_field in query else None
+
+        url_base = self.url
+        url_params = self._get_url_params(query)
+
+        # URL should look like "www.example.com/api/items/{id}?{param}={value}"
+        # or "www.example.com/api/items/{id}"
+        # or "www.example.com/api/items?{param}={value}"
+        # or "www.example.com/api/items"
+        if id and url_params:
+            return f"{url_base}/{id}?{url_params}"
+        elif id:
+            return f"{url_base}/{id}"
+        elif url_params:
+            return f"{url_base}?{url_params}"
+        else:
+            return url_base
+
+    def _get_url_params(self, query:dict) -> str:
+        query = {} if query is None else query
+        url_params = self.url_params.copy()
+        url_params.update(query)
+        return urlparse.urlencode(url_params)
