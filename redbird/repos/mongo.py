@@ -84,60 +84,6 @@ class MongoSession:
                 self._binds[url] = self.create_client(url)
             return self._binds[url]
 
-class MongoResult(BaseResult):
-
-    """Filter object of MongoRepo"""
-
-    repo: 'MongoRepo'
-    __operators__ = {
-        GreaterThan: "$gt",
-        LessThan: "$lt",
-        GreaterEqual: "$gte",
-        LessEqual: "$lte",
-        NotEqual: "$ne",
-    }
-
-    def query_data(self):
-        col = self.repo.get_collection()
-        for data in col.find(self.query_):
-            yield data
-
-    def limit(self, n:int):
-        "Get n first items"
-        col = self.repo.get_collection()
-        return [
-            self.repo.data_to_item(item)
-            for item in col.find(self.query_).limit(n)
-        ]
-
-    def update(self, **kwargs):
-        "Update the resulted rows"
-        col = self.repo.get_collection()
-        col.update_many(self.query_, {"$set": kwargs})
-
-    def delete(self):
-        "Delete found documents"
-        col = self.repo.get_collection()
-        col.delete_many(self.query_)
-
-    def count(self):
-        "Count found documents"
-        col = self.repo.get_collection()
-        return col.count_documents(self.query_)
-
-    def format_query(self, query):
-        query = super().format_query(query)
-        return {
-            key: self._get_query_value(val)
-            for key, val in query.items()
-        }
-    
-    def _get_query_value(self, value):
-        if isinstance(value, Operation):
-            return {self.__operators__[type(value)]: value.value}
-        else:
-            return value
-
 class MongoRepo(TemplateRepo):
     """MongoDB Repository
 
