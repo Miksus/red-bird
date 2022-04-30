@@ -105,7 +105,6 @@ class RESTRepo(TemplateRepo):
 
     def format_query(self, query:dict) -> str:
         "Turn the query to a form that's understandable by the underlying API"
-        query = super().format_query(query)
         id = query.pop(self.id_field) if query is not None and self.id_field in query else None
 
         url_base = self.url
