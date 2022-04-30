@@ -4,6 +4,7 @@ from typing import Iterator
 from .base import BaseRepo, BaseResult, Data
 
 class TemplateResult(BaseResult):
+    repo: 'TemplateRepo'
 
     def query_data(self) -> Iterator[Data]:
         "Get actual result"
@@ -52,6 +53,14 @@ class TemplateResult(BaseResult):
         except NotImplementedError:
             return super().last()
 
+    def format_query(self, query: dict) -> dict:
+        qry = super().format_query(query)
+        try:
+            return self.repo.format_query(qry)
+        except NotImplementedError:
+            return qry
+
+
 class TemplateRepo(BaseRepo):
     cls_result = TemplateResult
 
@@ -82,4 +91,5 @@ class TemplateRepo(BaseRepo):
     def query_count(self, query):
         raise NotImplementedError("Count using query not implemented.")
 
-    
+    def format_query(self, query:dict):
+        raise NotImplementedError("Query formatting not implemented.")
