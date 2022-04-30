@@ -23,11 +23,11 @@ class DummySession:
     ...
 
 class BaseResult(ABC):
-    """Abstract query result
+    """Abstract filter result
 
-    Result classes handle the querying to the
-    repository providing convenient way to 
-    stack operations and reuse queries.
+    Result classes add additional alchemy
+    to Red Bird providing convenient ways
+    to read, modify or delete data. 
     
     Subclass of BaseRepo should also have custom
     subclass of BaseResult as cls_result attribute.
@@ -145,24 +145,6 @@ class BaseResult(ABC):
         "Turn the query to a form that's understandable by the underlying database"
         qry = self.repo.query_format(**query)
         return qry.format(self.repo) if hasattr(qry, "format") else qry.dict()
-
-    def format_query_value(self, oper_or_value:Union[Operation, Any]):
-        "Turn an operation to string/object understandable by the underlying database"
-        if isinstance(oper_or_value, Operation):
-            oper = oper_or_value
-            result_format_method = oper._get_formatter(self)
-            value = result_format_method(oper)
-        else:
-            value = oper_or_value
-        return value
-
-    def format_query_field(self, key:str, value:Union[Operation, Any]) -> str:
-        "Turn a query key to a field understandable by the underlying database"
-        conf = self.repo.query_format
-        field_case = getattr(conf, "__case__", None)
-        if field_case is not None:
-            key = to_case(key, case=field_case)
-        return key
 
 class BaseRepo(ABC):
     """Abstract Repository

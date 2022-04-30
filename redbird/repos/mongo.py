@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.templates import TemplateRepo
 
 if TYPE_CHECKING:
     from pymongo import MongoClient
@@ -83,59 +84,7 @@ class MongoSession:
                 self._binds[url] = self.create_client(url)
             return self._binds[url]
 
-class MongoResult(BaseResult):
-
-    repo: 'MongoRepo'
-    __operators__ = {
-        GreaterThan: "$gt",
-        LessThan: "$lt",
-        GreaterEqual: "$gte",
-        LessEqual: "$lte",
-        NotEqual: "$ne",
-    }
-
-    def query_data(self):
-        col = self.repo.get_collection()
-        for data in col.find(self.query_):
-            yield data
-
-    def limit(self, n:int):
-        "Get n first items"
-        col = self.repo.get_collection()
-        return [
-            self.repo.data_to_item(item)
-            for item in col.find(self.query_).limit(n)
-        ]
-
-    def update(self, **kwargs):
-        "Update the resulted rows"
-        col = self.repo.get_collection()
-        col.update_many(self.query_, {"$set": kwargs})
-
-    def delete(self):
-        "Delete found documents"
-        col = self.repo.get_collection()
-        col.delete_many(self.query_)
-
-    def count(self):
-        "Count found documents"
-        col = self.repo.get_collection()
-        return col.count_documents(self.query_)
-
-    def format_query(self, query):
-        query = super().format_query(query)
-        return {
-            key: self._get_query_value(val)
-            for key, val in query.items()
-        }
-    
-    def _get_query_value(self, value):
-        if isinstance(value, Operation):
-            return {self.__operators__[type(value)]: value.value}
-        else:
-            return value
-
-class MongoRepo(BaseRepo):
+class MongoRepo(TemplateRepo):
     """MongoDB Repository
 
     Parameters
@@ -152,9 +101,17 @@ class MongoRepo(BaseRepo):
         document from others. 
     """
     model: BaseModel = None
-    cls_result = MongoResult
+    # cls_result = MongoResult
     default_id_field = "_id"
     cls_session = MongoSession
+
+    __operators__ = {
+        GreaterThan: "$gt",
+        LessThan: "$lt",
+        GreaterEqual: "$gte",
+        LessEqual: "$lte",
+        NotEqual: "$ne",
+    }
 
     def __init__(self, *args, url=None, database:str=None, collection=None, session=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -214,3 +171,41 @@ class MongoRepo(BaseRepo):
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)
         return json
+
+# Query based
+    def query_read(self, query):
+        col = self.get_collection()
+        for data in col.find(query):
+            yield data
+
+    def query_read_limit(self, query, n:int):
+        "Get n first items"
+        col = self.get_collection()
+        return [
+            self.data_to_item(item)
+            for item in col.find(query).limit(n)
+        ]
+
+    def query_update(self, query, values):
+        col = self.get_collection()
+        col.update_many(query, {"$set": values})
+
+    def query_delete(self, query):
+        col = self.get_collection()
+        col.delete_many(query)
+
+    def query_count(self, query):
+        col = self.get_collection()
+        return col.count_documents(query)
+
+    def format_query(self, query):
+        return {
+            key: self._get_query_value(val)
+            for key, val in query.items()
+        }
+
+    def _get_query_value(self, value):
+        if isinstance(value, Operation):
+            return {self.__operators__[type(value)]: value.value}
+        else:
+            return value

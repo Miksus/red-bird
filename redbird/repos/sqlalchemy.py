@@ -5,6 +5,7 @@ from sqlalchemy import Table, MetaData, Column
 from sqlalchemy.orm import mapper
 from sqlalchemy.ext.automap import automap_base
 from redbird import BaseRepo, BaseResult
+from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
 from redbird.oper import Operation
@@ -18,59 +19,8 @@ class TableRecord:
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-class SQLAlchemyResult(BaseResult):
 
-    repo: 'SQLRepo'
-
-    def query_data(self):
-        for data in self._filter_orm():
-            yield data
-
-    def first(self):
-        item = self._filter_orm().first()
-        if item is not None:
-            return self.repo.data_to_item(item)
-
-    def update(self, **kwargs):
-        "Update the resulted rows"
-        model = self.repo.model
-        session = self.repo.session
-
-        self._filter_orm().update(kwargs)
-
-    def delete(self):
-        self._filter_orm().delete()
-
-    def count(self):
-        return self._filter_orm().count()
-
-    def format_query(self, oper: dict):
-        from sqlalchemy import column, orm, true
-        stmt = true()
-        for column_name, oper_or_value in oper.items():
-            if isinstance(oper_or_value, Operation):
-                oper = oper_or_value
-                magic = oper.__py_magic__
-                oper_method = getattr(column(column_name), magic)
-
-                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
-                sql_oper = oper_method(oper.value)
-            else:
-                value = oper_or_value
-                sql_oper = column(column_name) == value
-            stmt &= sql_oper
-        return stmt
-
-    def format_greater_than(self, oper:Operation):
-        model = self.repo.model
-        return 
-
-    def _filter_orm(self):
-        session = self.repo.session
-        return session.query(self.repo.model_orm).filter(self.query_)
-
-
-class SQLRepo(BaseRepo):
+class SQLRepo(TemplateRepo):
     """SQL Repository
 
     Parameters
@@ -90,9 +40,7 @@ class SQLRepo(BaseRepo):
     session : sqlalchemy.session.Session
 
     """
-    cls_result = SQLAlchemyResult
 
-    
     model: Type[BaseModel]
 
     def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, table:str=None, engine:'Engine'=None, session=None, **kwargs):
@@ -171,3 +119,43 @@ class SQLRepo(BaseRepo):
     @model_orm.setter
     def model_orm(self, value):
         self._model_orm = value
+
+    def query_read(self, query):
+        for data in self._filter_orm(query):
+            yield data
+
+    def query_read_first(self, query):
+        item = self._filter_orm(query).first()
+        if item is not None:
+            return self.data_to_item(item)
+
+    def query_update(self, query, values):
+
+        self._filter_orm(query).update(values)
+
+    def query_delete(self, query):
+        self._filter_orm(query).delete()
+
+    def query_count(self, query):
+        return self._filter_orm(query).count()
+
+    def _filter_orm(self, query):
+        session = self.session
+        return session.query(self.model_orm).filter(query)
+
+    def format_query(self, oper: dict):
+        from sqlalchemy import column, orm, true
+        stmt = true()
+        for column_name, oper_or_value in oper.items():
+            if isinstance(oper_or_value, Operation):
+                oper = oper_or_value
+                magic = oper.__py_magic__
+                oper_method = getattr(column(column_name), magic)
+
+                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
+                sql_oper = oper_method(oper.value)
+            else:
+                value = oper_or_value
+                sql_oper = column(column_name) == value
+            stmt &= sql_oper
+        return stmt

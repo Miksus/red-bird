@@ -63,6 +63,11 @@ html_logo = "logo.png"
 html_theme_options = {
     "repository_url": "https://github.com/Miksus/red-bird",
     "use_repository_button": True,
+    "repository_branch": "master",
+    "use_issues_button": True,
+    "use_download_button": True,
+    "use_fullscreen_button": True,
+    "use_edit_page_button": True,
 }
 #html_sidebars = {}
 
