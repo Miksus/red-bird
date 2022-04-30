@@ -23,11 +23,11 @@ class DummySession:
     ...
 
 class BaseResult(ABC):
-    """Abstract query result
+    """Abstract filter result
 
-    Result classes handle the querying to the
-    repository providing convenient way to 
-    stack operations and reuse queries.
+    Result classes add additional alchemy
+    to Red Bird providing convenient ways
+    to read, modify or delete data. 
     
     Subclass of BaseRepo should also have custom
     subclass of BaseResult as cls_result attribute.

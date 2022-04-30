@@ -20,6 +20,8 @@ class TableRecord:
 
 class SQLAlchemyResult(BaseResult):
 
+    """Filter object of SQLRepo"""
+
     repo: 'SQLRepo'
 
     def query_data(self):

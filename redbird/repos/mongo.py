@@ -85,6 +85,8 @@ class MongoSession:
 
 class MongoResult(BaseResult):
 
+    """Filter object of MongoRepo"""
+
     repo: 'MongoRepo'
     __operators__ = {
         GreaterThan: "$gt",

@@ -10,6 +10,8 @@ from redbird.dummy import DummySession
 
 class MemoryResult(BaseResult):
 
+    """Filter object of MemoryRepo"""
+
     repo: 'MemoryRepo'
 
     def query_data(self):

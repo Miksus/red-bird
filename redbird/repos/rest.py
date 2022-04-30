@@ -19,6 +19,8 @@ class Session(requests.Session):
 
 class RESTResult(BaseResult):
 
+    """Filter object of RESTRepo"""
+
     repo: 'RESTRepo'
     def query_data(self):
         url = self.query_
