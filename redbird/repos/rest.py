@@ -40,8 +40,6 @@ class RESTRepo(TemplateRepo):
     result : str, callable
         Where the list of items is found from the output.
     """
-
-    cls_result = RESTResult
     result: Optional[Union[str, callable]]
 
     def __init__(self, *args, url, headers:dict=None, url_params:dict=None, result=None, **kwargs):
