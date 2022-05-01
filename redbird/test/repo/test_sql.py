@@ -39,7 +39,24 @@ def test_minimal():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo(engine=engine, table="pytest")
+    repo = SQLRepo.from_engine(engine=engine, table="pytest")
+    assert repo.model_orm.__table__.name == "pytest"
+    assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+
+    repo.add({"id": "a", "name": "Jack", "age": 500})
+    assert list(repo) == [dict(id="a", name="Jack", age=500)]
+
+def test_from_session():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    engine = create_engine('sqlite://')
+    session = Session(engine)
+    engine.execute("""CREATE TABLE pytest (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        age INTEGER
+    )""")
+    repo = SQLRepo(session=session, table="pytest")
     assert repo.model_orm.__table__.name == "pytest"
     assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
 
@@ -54,7 +71,7 @@ def test_with_model():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo(MyItem, engine=engine, table="pytest")
+    repo = SQLRepo.from_engine(model=MyItem, engine=engine, table="pytest")
     assert repo.model is MyItem
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -68,7 +85,7 @@ def test_with_model_orm_mode():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo(MyItemWithORM, engine=engine, table="pytest")
+    repo = SQLRepo.from_engine(model=MyItemWithORM, engine=engine, table="pytest")
     assert repo.model is MyItemWithORM
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -82,7 +99,7 @@ def test_with_orm():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo(model_orm=SQLItem, engine=engine)
+    repo = SQLRepo.from_engine(model_orm=SQLItem, reflect_model=True, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
@@ -97,7 +114,7 @@ def test_with_model_and_orm():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo(MyItem, model_orm=SQLItem, engine=engine)
+    repo = SQLRepo.from_engine(model=MyItem, model_orm=SQLItem, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
@@ -113,6 +130,6 @@ def test_with_dict():
         age INTEGER
     )""")
 
-    repo = SQLRepo(dict, engine=engine, table="pytest")
+    repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]

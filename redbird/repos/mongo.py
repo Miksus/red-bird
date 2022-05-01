@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 
 from pydantic import BaseModel, ValidationError
@@ -34,12 +34,12 @@ class MongoSession:
     _bind: 'MongoClient'
     _binds: Dict[str, 'MongoClient']
 
-    def __init__(self, url, binds:Dict[str, str]=None):
+    def __init__(self, url=None, binds:Dict[str, str]=None, client=None):
         self.url = url
         self.binds = binds if binds is not None else {}
 
         self._binds = {}
-        self._bind = None
+        self._bind = client
 
     @property
     def client(self):
@@ -96,7 +96,7 @@ class MongoRepo(TemplateRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -112,8 +112,22 @@ class MongoRepo(TemplateRepo):
     session : Session, Any
         A MongoDB session object that should
         have at least ``client`` attribute
+
+    Examples
+    --------
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017/mydb?authSource=admin", collection="mycol")
+
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017", database="mydb", collection="mycol")
+
+    .. code-block:: python
+
+        from pymongo import MongoClient
+        repo = MongoRepo.from_client(client=MongoClient("mongodb://localhost:27017"))
     """
-    model: BaseModel = None
     # cls_result = MongoResult
     default_id_field = "_id"
     cls_session = MongoSession
@@ -125,12 +139,19 @@ class MongoRepo(TemplateRepo):
         LessEqual: "$lte",
         NotEqual: "$ne",
     }
+    session: Any
+    database: Optional[str]
+    collection: Optional[str]
 
-    def __init__(self, *args, url=None, database:str=None, collection=None, session=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session = self.cls_session(url=url) if session is None else session
-        self.database = database
-        self.collection = collection
+    @classmethod
+    def from_uri(cls, *args, uri, **kwargs):
+        kwargs["session"] = MongoSession(url=uri)
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def from_client(cls, *args, client, **kwargs):
+        kwargs["session"] = MongoSession(client=client)
+        return cls(*args, **kwargs)
 
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError
