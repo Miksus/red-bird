@@ -29,6 +29,10 @@ setup(
      python_requires='>=3.6.0',
     extras_require={
         "full": ["sqlalchemy", "pymongo", "requests", "pydantic-sqlalchemy"],
+        "full-test": [
+            "sqlalchemy", "pymongo", "requests", "pydantic-sqlalchemy",
+            "pytest", "python-dotenv", "responses",
+        ],
     },
     install_requires = ["pydantic"],
 )
