@@ -46,6 +46,23 @@ def test_minimal():
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
+def test_from_session():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    engine = create_engine('sqlite://')
+    session = Session(engine)
+    engine.execute("""CREATE TABLE pytest (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        age INTEGER
+    )""")
+    repo = SQLRepo(session=session, table="pytest")
+    assert repo.model_orm.__table__.name == "pytest"
+    assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+
+    repo.add({"id": "a", "name": "Jack", "age": 500})
+    assert list(repo) == [dict(id="a", name="Jack", age=500)]
+
 def test_with_model():
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
