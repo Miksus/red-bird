@@ -1,10 +1,7 @@
 
+import pytest
 from redbird.repos import SQLRepo
-
 from pydantic import BaseModel
-
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, String, Integer
 
 class MyItem(BaseModel):
     id: str
@@ -18,20 +15,27 @@ class MyItemWithORM(BaseModel):
     class Config:
         orm_mode = True
 
-SQLBase = declarative_base()
+try:
+    from sqlalchemy.orm import declarative_base
+    from sqlalchemy import Column, String, Integer
+except ImportError:
+    pass
+else:
+    SQLBase = declarative_base()
 
-class SQLItem(SQLBase):
-    __tablename__ = 'pytest'
-    id = Column(String, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
+    class SQLItem(SQLBase):
+        __tablename__ = 'pytest'
+        id = Column(String, primary_key=True)
+        name = Column(String)
+        age = Column(Integer)
 
-    def __eq__(self, other):
-        if not isinstance(other, SQLItem):
-            return False
-        return other.id == self.id and other.name == self.name and other.age == self.age
+        def __eq__(self, other):
+            if not isinstance(other, SQLItem):
+                return False
+            return other.id == self.id and other.name == self.name and other.age == self.age
 
 def test_minimal():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
@@ -47,6 +51,7 @@ def test_minimal():
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
 def test_from_session():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
     engine = create_engine('sqlite://')
@@ -64,6 +69,7 @@ def test_from_session():
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
 def test_with_model():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
@@ -78,6 +84,7 @@ def test_with_model():
     assert list(repo) == [MyItem(id="a", name="Jack", age=500)]
 
 def test_with_model_orm_mode():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
@@ -92,6 +99,7 @@ def test_with_model_orm_mode():
     assert list(repo) == [MyItemWithORM(id="a", name="Jack", age=500)]
 
 def test_with_orm():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
@@ -107,6 +115,7 @@ def test_with_orm():
     assert list(repo) == [repo.model(id="a", name="Jack", age=500)]
 
 def test_with_model_and_orm():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
@@ -122,6 +131,7 @@ def test_with_model_and_orm():
     assert list(repo) == [MyItem(id="a", name="Jack", age=500)]
 
 def test_with_dict():
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     engine.execute("""CREATE TABLE pytest (
