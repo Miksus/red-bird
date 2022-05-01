@@ -1,9 +1,6 @@
 
 from typing import TYPE_CHECKING, Any, Optional, Type
-from pydantic import BaseModel, PrivateAttr, validator
-from sqlalchemy import Table, MetaData, Column
-from sqlalchemy.orm import mapper
-from sqlalchemy.ext.automap import automap_base
+from pydantic import BaseModel, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
@@ -157,6 +154,7 @@ class SQLRepo(TemplateRepo):
 
 
     def __init__(self, *args, reflect_model=False, **kwargs):
+        from sqlalchemy.ext.automap import automap_base
         if "model_orm" not in kwargs:
             session = kwargs["session"]
             table = kwargs["table"]

@@ -7,18 +7,24 @@ from pydantic import BaseModel, PrivateAttr
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
 
-import requests
+
 
 from redbird.templates import TemplateRepo
 
-class Session(requests.Session):
-    """Subclassed requests.Session for more
-    unified methods.
-    """
+try:
+    import requests
+except ImportError:
+    # Cannot import, we cannot create request Session
+    # RESTRepo cannot be used
+    pass
+else:
+    class Session(requests.Session):
+        """Subclassed requests.Session for more
+        unified methods.
+        """
 
-    def remove(self):
-        self.close()
-
+        def remove(self):
+            self.close()
 
 class RESTRepo(TemplateRepo):
 
