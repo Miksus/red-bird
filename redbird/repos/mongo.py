@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 
 from pydantic import BaseModel, ValidationError
@@ -96,7 +96,7 @@ class MongoRepo(TemplateRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -113,7 +113,6 @@ class MongoRepo(TemplateRepo):
         A MongoDB session object that should
         have at least ``client`` attribute
     """
-    model: BaseModel = None
     # cls_result = MongoResult
     default_id_field = "_id"
     cls_session = MongoSession
@@ -125,12 +124,14 @@ class MongoRepo(TemplateRepo):
         LessEqual: "$lte",
         NotEqual: "$ne",
     }
+    session: Any
+    database: Optional[str]
+    collection: Optional[str]
 
-    def __init__(self, *args, url=None, database:str=None, collection=None, session=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session = self.cls_session(url=url) if session is None else session
-        self.database = database
-        self.collection = collection
+    @classmethod
+    def from_uri(cls, *args, uri, **kwargs):
+        kwargs["session"] = MongoSession(url=uri)
+        return cls(*args, **kwargs)
 
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError

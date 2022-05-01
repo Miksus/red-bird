@@ -2,7 +2,7 @@
 from abc import abstractmethod, ABC
 from operator import getitem, setitem
 from textwrap import dedent, indent, shorten
-from typing import Any, Dict, Generator, Iterator, List, Literal, Mapping, Tuple, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, Generator, Iterator, List, Literal, Mapping, Optional, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 import warnings
 
@@ -143,10 +143,10 @@ class BaseResult(ABC):
 
     def format_query(self, query:dict) -> dict:
         "Turn the query to a form that's understandable by the underlying database"
-        qry = self.repo.query_format(**query)
+        qry = self.repo.query_model(**query)
         return qry.format(self.repo) if hasattr(qry, "format") else qry.dict()
 
-class BaseRepo(ABC):
+class BaseRepo(ABC, BaseModel):
     """Abstract Repository
 
     Base class for the repository pattern.
@@ -160,7 +160,7 @@ class BaseRepo(ABC):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -172,25 +172,15 @@ class BaseRepo(ABC):
         converting data to the item model from
         the repository. By default raise 
     """
+    cls_result: ClassVar[Type[BaseResult]]
 
-    default_id_field: str = "id"
-    id_field: str
-    model = dict
-    cls_result: Type[BaseResult]
-    query_format: Type[BaseModel]
-    default_query_format: Type[BaseModel] = BasicQuery
+    id_field: Optional[str]
+    model: Type = dict
+    
+    query_model: Optional[Type[BaseModel]] = BasicQuery
 
-    errors_query: Literal['raise', 'warn', 'discard']
-    field_access: Literal['attr', 'item']
-
-    def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None, errors_query="raise"):
-        self.model = dict if model is None else model
-        self.id_field = id_field or self.default_id_field
-        
-        self.field_access = field_access
-        self.query_format = self.default_query_format if query is None else query
-
-        self.errors_query = errors_query
+    errors_query: Literal['raise', 'warn', 'discard'] = 'raise'
+    field_access: Literal['attr', 'key', 'infer'] = 'infer'
 
     def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
@@ -371,10 +361,14 @@ class BaseRepo(ABC):
         getattr is used. If fields are accessed via 
         items, getitem is used.
         """
+        if self.field_access == "infer":
+            field_access = "key" if hasattr(self.model, "__getitem__") else "attr"
+        else:
+            field_access = self.field_access
         func = {
             "attr": getattr,
-            "item": getitem,
-        }[self.field_access]
+            "key": getitem,
+        }[field_access]
         
         return func(item, key)
 
@@ -385,21 +379,13 @@ class BaseRepo(ABC):
         setattr is used. If fields are accessed via 
         items, setitem is used.
         """
+        if self.field_access == "infer":
+            field_access = "key" if hasattr(self.model, "__getitem__") else "attr"
+        else:
+            field_access = self.field_access
         func = {
             "attr": setattr,
-            "item": setitem,
-        }[self.field_access]
+            "key": setitem,
+        }[field_access]
         
         func(item, key, value)
-
-    @property
-    def field_access(self) -> Literal['item', 'attr']:
-        return self._field_access
-    
-    @field_access.setter
-    def field_access(self, value: Literal['item', 'attr', None]):
-        if value is None:
-            value = 'item' if self.model == dict else 'attr'
-        if value not in ('item', 'attr'):
-            raise ValueError("Only 'item' and 'attr' are possible ways to access item's values.")
-        self._field_access = value

@@ -1,8 +1,8 @@
 
 import urllib.parse as urlparse
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
@@ -33,7 +33,7 @@ class RESTRepo(TemplateRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -58,16 +58,12 @@ class RESTRepo(TemplateRepo):
     result : str, callable
         Where the list of items is found from the output.
     """
-    result: Optional[Union[str, callable]]
+    result: Optional[Union[str, Callable]]
+    url: str
+    url_params: dict = {}
+    headers: dict = {}
 
-    def __init__(self, *args, url, headers:dict=None, url_params:dict=None, result=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.url = url
-        self.session = Session()
-
-        self.headers = headers
-        self.url_params = {} if url_params is None else url_params
-        self.result = result
+    _session = PrivateAttr()
 
     def insert(self, item):
         json = self.item_to_dict(item)
@@ -146,3 +142,10 @@ class RESTRepo(TemplateRepo):
         url_params = self.url_params.copy()
         url_params.update(query)
         return urlparse.urlencode(url_params)
+
+    @property
+    def session(self):
+        if not hasattr(self, "_session"):
+            self._session = Session()
+        return self._session
+        

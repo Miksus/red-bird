@@ -124,8 +124,8 @@ class DummyRepo(BaseRepo):
     the API and acting as a look-up template.
     """
 
-    model: DummyModel
-    cls_result: DummyResult
+    #model: DummyModel
+    #cls_result: DummyResult
 
     def __init__(self, model: DummyModel, **kwargs):
         self.model = model

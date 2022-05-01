@@ -149,26 +149,48 @@ class TestPopulated(RepoTests):
         Item = repo.model
 
         repo.filter_by(id="b").replace(id="b", name="Something")
-        assert repo.filter_by().all() == [
-            Item(id="a", name="Jack", age=20),
-            Item(id="c", name="James", age=30),
-            Item(id="d", name="Johnny", age=30),
-            Item(id="e", name="Jesse", age=40),
-            Item(id="b", name="Something"),
-        ]
+        if repo.model == dict and not isinstance(repo, SQLRepo):
+            expected = [
+                Item(id="a", name="Jack", age=20),
+                Item(id="c", name="James", age=30),
+                Item(id="d", name="Johnny", age=30),
+                Item(id="e", name="Jesse", age=40),
+                Item(id="b", name="Something"),
+            ]
+        else:
+            expected = [
+                Item(id="a", name="Jack", age=20),
+                Item(id="c", name="James", age=30),
+                Item(id="d", name="Johnny", age=30),
+                Item(id="e", name="Jesse", age=40),
+                Item(id="b", name="Something", age=None),
+            ]
+        assert repo.filter_by().all() == expected
 
     def test_filter_by_replace_dict(self, repo):
         self.populate(repo)
         Item = repo.model
 
         repo.filter_by(id="b").replace({"id": "b", "name": "Something"})
-        assert repo.filter_by().all() == [
-            Item(id="a", name="Jack", age=20),
-            Item(id="c", name="James", age=30),
-            Item(id="d", name="Johnny", age=30),
-            Item(id="e", name="Jesse", age=40),
-            Item(id="b", name="Something"),
-        ]
+        
+        if repo.model == dict and not isinstance(repo, SQLRepo):
+            expected = [
+                Item(id="a", name="Jack", age=20),
+                Item(id="c", name="James", age=30),
+                Item(id="d", name="Johnny", age=30),
+                Item(id="e", name="Jesse", age=40),
+                Item(id="b", name="Something"),
+            ]
+        else:
+            expected = [
+                Item(id="a", name="Jack", age=20),
+                Item(id="c", name="James", age=30),
+                Item(id="d", name="Johnny", age=30),
+                Item(id="e", name="Jesse", age=40),
+                Item(id="b", name="Something", age=None),
+            ]
+
+        assert repo.filter_by().all() == expected
 
     def test_filter_by_delete(self, repo):
         self.populate(repo)
@@ -375,11 +397,19 @@ class TestEmpty:
 
         repo.replace(Item(id="a", name="Max"))
 
+        if repo.model == dict and not isinstance(repo, SQLRepo):
+            expected = [
+                Item(id="a", name="Max"),
+                Item(id="b", name="John", age=30),
+            ]
+        else:
+            expected = [
+                Item(id="a", name="Max", age=None),
+                Item(id="b", name="John", age=30),
+            ]
+
         items = sorted(repo.filter_by().all(), key=lambda x: repo.get_field_value(x, "id"))
-        assert items == [
-            Item(id="a", name="Max"),
-            Item(id="b", name="John", age=30),
-        ]
+        assert items == expected
 
     def test_add_exist(self, repo):
         Item = repo.model

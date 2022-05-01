@@ -1,8 +1,8 @@
 
 from operator import getitem
-from typing import Dict, List
+from typing import Any, Dict, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
@@ -39,7 +39,7 @@ class MemoryRepo(TemplateRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -54,17 +54,14 @@ class MemoryRepo(TemplateRepo):
         The collection.
     """
     #cls_result = MemoryResult
-    collection: List[BaseModel]
+    collection: List[Any] = []
 
-    def __init__(self, *args, collection=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.collection = [] if collection is None else collection
-        self.session = DummySession()
-
+    _session = PrivateAttr()
     def insert(self, item):
-        id_ = self.get_field_value(item, self.id_field)
-        if id_ in [self.get_field_value(col_item, self.id_field) for col_item in self.collection]:
-            raise KeyFoundError(f"Item {id_} already in the collection.")
+        if self.id_field is not None:
+            id_ = self.get_field_value(item, self.id_field)
+            if id_ in [self.get_field_value(col_item, self.id_field) for col_item in self.collection]:
+                raise KeyFoundError(f"Item {id_} already in the collection.")
         data = self.item_to_data(item)
         self.collection.append(data)
 
@@ -94,3 +91,9 @@ class MemoryRepo(TemplateRepo):
             for item in cont 
             if not item in query
         ]
+
+    @property
+    def session(self):
+        if not hasattr(self, "_session"):
+            self._session = DummySession()
+        return self._session

@@ -1,6 +1,6 @@
 
 from abc import abstractmethod
-from typing import Any, Iterator
+from typing import Any, ClassVar, Iterator
 from .base import BaseRepo, BaseResult, Data
 
 class TemplateResult(BaseResult):
@@ -73,7 +73,7 @@ class TemplateRepo(BaseRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -115,7 +115,7 @@ class TemplateRepo(BaseRepo):
                 ...
                 return data
     """
-    cls_result = TemplateResult
+    cls_result: ClassVar = TemplateResult
 
     @abstractmethod
     def query_read(self, query):

@@ -1,6 +1,6 @@
 
-from typing import TYPE_CHECKING, Type
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, Any, Optional, Type
+from pydantic import BaseModel, PrivateAttr, validator
 from sqlalchemy import Table, MetaData, Column
 from sqlalchemy.orm import mapper
 from sqlalchemy.ext.automap import automap_base
@@ -13,11 +13,6 @@ from redbird.oper import Operation
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-class TableRecord:
-    """Represent simple database model"""
-    def __init__(self, **kwargs):
-        for key, val in kwargs.items():
-            setattr(self, key, val)
 
 
 class SQLRepo(TemplateRepo):
@@ -32,7 +27,7 @@ class SQLRepo(TemplateRepo):
     id_field : str, optional
         Attribute or key that identifies each item
         in the repository.
-    field_access : {'attr', 'item'}, optional
+    field_access : {'attr', 'key'}, optional
         How to access a field in an item. Either
         by attribute ('attr') or key ('item').
         By default guessed from the model.
@@ -55,15 +50,43 @@ class SQLRepo(TemplateRepo):
 
     """
 
-    model: Type[BaseModel]
+    model_orm: Optional[Any]
+    table: Optional[str]
+    session: Any
+    engine: Optional[Any]
 
-    def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, table:str=None, engine:'Engine'=None, session=None, **kwargs):
-        self.session = self.create_scoped_session(engine) if session is None else session
-        self._table = table
-        self.model_orm = model_orm
+    _Base = PrivateAttr()
 
-        model = self.orm_model_to_pydantic(self.model_orm) if model is None else model
-        super().__init__(model, **kwargs)    
+    @classmethod
+    def from_engine(cls, *args, engine, **kwargs):
+        kwargs["session"] = cls.create_scoped_session(engine)
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def from_connection_string(cls, *args, conn_string, **kwargs):
+        from sqlalchemy import create_engine
+        return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
+
+
+    def __init__(self, *args, reflect_model=False, **kwargs):
+        if "model_orm" not in kwargs:
+            session = kwargs["session"]
+            table = kwargs["table"]
+            self._Base = automap_base()
+            self._Base.prepare(session.get_bind(), reflect=True)
+            kwargs["model_orm"] = getattr(self._Base.classes, table)
+        if reflect_model:
+            kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
+        super().__init__(*args, **kwargs)
+
+    # def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, table:str=None, engine:'Engine'=None, session=None, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.session = self.create_scoped_session(engine) if session is None else session
+    #     self._table = table
+    #     self.model_orm = model_orm
+    # 
+    #     model = self.orm_model_to_pydantic(self.model_orm) if model is None else model
+    #     super().__init__(model, **kwargs)    
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
@@ -102,7 +125,8 @@ class SQLRepo(TemplateRepo):
         from pydantic_sqlalchemy import sqlalchemy_to_pydantic
         return sqlalchemy_to_pydantic(model)
 
-    def create_scoped_session(self, engine):
+    @staticmethod
+    def create_scoped_session(engine):
         from sqlalchemy.orm import sessionmaker, scoped_session
         Session = sessionmaker(bind=engine)
         return scoped_session(Session)
@@ -122,7 +146,7 @@ class SQLRepo(TemplateRepo):
         self.model_orm.__table__.create(bind=self.session.bind)
 
     @property
-    def model_orm(self):
+    def model_ormz(self):
         if self._model_orm is not None:
             return self._model_orm
         self._Base = automap_base()
@@ -130,8 +154,8 @@ class SQLRepo(TemplateRepo):
         self._model_orm = getattr(self._Base.classes, self._table)
         return self._model_orm
 
-    @model_orm.setter
-    def model_orm(self, value):
+    @model_ormz.setter
+    def model_ormz(self, value):
         self._model_orm = value
 
     def query_read(self, query):
