@@ -24,14 +24,14 @@ setup(
         "Programming Language :: Python :: 3.8",
 
         "Intended Audience :: Developers",
-     ],
-     include_package_data=True, # for MANIFEST.in
-     python_requires='>=3.6.0',
+    ],
+    include_package_data=True, # for MANIFEST.in
+    python_requires='>=3.6.0',
     extras_require={
         "full": ["sqlalchemy", "pymongo", "requests", "pydantic-sqlalchemy"],
         "full-test": [
             "sqlalchemy", "pymongo", "requests", "pydantic-sqlalchemy",
-            "pytest", "python-dotenv", "responses",
+            "pytest", "python-dotenv", "responses", "mongomock"
         ],
     },
     install_requires = ["pydantic"],
