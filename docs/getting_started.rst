@@ -45,6 +45,8 @@ the structure of the items:
     from redbird.ext import MemoryRepo
     repo = MemoryRepo(model=Car)
 
+See more about configuring repositories from :ref:`here <repositories>`.
+
 Usage Examples
 --------------
 

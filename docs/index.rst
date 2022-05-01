@@ -188,7 +188,7 @@ Delete operation:
    getting_started
    repos/index
    crud
-   filtering
+   operations
    references/index
    versions
 

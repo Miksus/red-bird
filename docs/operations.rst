@@ -1,10 +1,6 @@
 
-Filtering
-=========
-
-
 Operations
-----------
+==========
 
 Sometimes more sophisticated filtering operations
 are needed such as getting items that are greater
