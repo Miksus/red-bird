@@ -52,6 +52,19 @@ class MemoryRepo(TemplateRepo):
         the repository. By default raise 
     collection : list
         The collection.
+    
+    Examples
+    --------
+    .. code-block:: python
+
+        repo = MemoryRepo()
+
+    .. code-block:: python
+
+        repo = MemoryRepo(collection=[
+            {"car_type": "van", "color": "red"},
+            {"car_type": "truck", "color": "red"}
+        ])
     """
     #cls_result = MemoryResult
     collection: List[Any] = []

@@ -57,6 +57,25 @@ class RESTRepo(TemplateRepo):
         request.
     result : str, callable
         Where the list of items is found from the output.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        repo = MemoryRepo(url="http://example.com/api")
+
+    For services requiring authentication via headers:
+    .. code-block:: python
+
+        token = "1234567890"
+        repo = MemoryRepo(url="http://example.com/api", headers={"Authorization": f"Bearer {token}"})
+
+    You may also supply some URL parameters for every query:
+
+    .. code-block:: python
+
+        repo = MemoryRepo(url="http://example.com/api", url_params={"fields": "car_type,car_model,registration_number"})
     """
     result: Optional[Union[str, Callable]]
     url: str

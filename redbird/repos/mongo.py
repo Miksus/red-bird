@@ -112,6 +112,21 @@ class MongoRepo(TemplateRepo):
     session : Session, Any
         A MongoDB session object that should
         have at least ``client`` attribute
+
+    Examples
+    --------
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017/mydb?authSource=admin", collection="mycol")
+
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017", database="mydb", collection="mycol")
+
+    .. code-block:: python
+
+        from pymongo import MongoClient
+        repo = MongoRepo.from_client(client=MongoClient("mongodb://localhost:27017"))
     """
     # cls_result = MongoResult
     default_id_field = "_id"

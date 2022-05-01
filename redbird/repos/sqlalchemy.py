@@ -48,6 +48,94 @@ class SQLRepo(TemplateRepo):
         SQLAlchemy engine.
     session : sqlalchemy.session.Session
 
+    Examples
+    --------
+
+    .. code-block:: python
+
+        from sqlalchemy import create_engine
+        from redbird.repos import SQLRepo
+
+        engine = create_engine('sqlite://')
+        repo = SQLRepo.from_engine(engine=engine, table="my_table")
+
+    You may also supply a session:
+
+    .. code-block:: python
+
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import Session
+        from redbird.repos import SQLRepo
+
+        engine = create_engine('sqlite://')
+        session = Session(engine)
+        repo = SQLRepo(session=session, table="my_table")
+
+    Using ORM model:
+
+    .. code-block:: python
+
+        from sqlalchemy.orm import declarative_base
+        
+        Base = declarative_base()
+
+        class Car(Base):
+            __tablename__ = 'my_table'
+            color = Column(String, primary_key=True)
+            car_type = Column(String)
+            milage = Column(Integer)
+
+        from sqlalchemy import create_engine
+        from redbird.repos import SQLRepo
+
+        engine = create_engine('sqlite://')
+        repo = SQLRepo.from_engine(model_orm=Car, engine=engine)
+
+    Using ORM model and reflect Pydantic Model:
+
+    .. code-block:: python
+
+        from sqlalchemy.orm import declarative_base
+        
+        Base = declarative_base()
+
+        class Car(Base):
+            __tablename__ = 'my_table'
+            color = Column(String, primary_key=True)
+            car_type = Column(String)
+            milage = Column(Integer)
+
+        from sqlalchemy import create_engine
+        from redbird.repos import SQLRepo
+
+        engine = create_engine('sqlite://')
+        repo = SQLRepo.from_engine(model_orm=Car, reflect_model=True, engine=engine)
+
+    Using ORM model and Pydantic Model:
+
+    .. code-block:: python
+
+        from pydantic import BaseModel
+        from sqlalchemy.orm import declarative_base
+        
+        Base = declarative_base()
+
+        class CarORM(Base):
+            __tablename__ = 'my_table'
+            color = Column(String, primary_key=True)
+            car_type = Column(String)
+            milage = Column(Integer)
+
+        class Car(BaseModel):
+            id: str
+            name: str
+            age: int
+
+        from sqlalchemy import create_engine
+        from redbird.repos import SQLRepo
+
+        engine = create_engine('sqlite://')
+        repo = SQLRepo.from_engine(model=Car, model_orm=CarORM, engine=engine)
     """
 
     model_orm: Optional[Any]
