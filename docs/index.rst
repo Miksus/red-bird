@@ -189,6 +189,7 @@ Delete operation:
    repos/index
    crud
    filtering
+   references/index
    versions
 
 Indices and tables
