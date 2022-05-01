@@ -75,7 +75,16 @@ You may also fetch the first n found items:
 .. code-block:: python
 
     repo.filter_by(nationality="Finnish").limit(2)
-    
+
+If you have ``id_field`` specified in the repository,
+you may also get an item using the ID by using any of 
+the following:
+
+.. code-block:: python
+
+    repo["11-22-33"]
+    repo.get_by("11-22-33").first()
+
 .. _update:
 
 Update
@@ -95,6 +104,12 @@ You may also update several at a time:
 .. code-block:: python
 
     repo.filter_by(nationality="English").update(age=30)
+
+You may also update an item by the ID field using ``get_by``:
+
+.. code-block:: python
+
+    repo.get_by("11-22-33").update(age=30)
 
 .. _delete:
 
@@ -119,3 +134,9 @@ You may also delete multiple items:
 .. code-block:: python
 
     repo.filter_by(nationality="English").delete()
+
+You may also delete an item by the ID field using ``get_by``:
+
+.. code-block:: python
+
+    repo.get_by("11-22-33").delete()

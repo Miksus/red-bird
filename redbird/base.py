@@ -316,6 +316,12 @@ class BaseRepo(ABC, BaseModel):
             return dict(**item)
 
 # Keyword arguments
+    
+    def get_by(self, id):
+        "Get item based on ID but returns result for further operations"
+        qry = {self.id_field: id}
+        return self.filter_by(**qry)
+
     def filter_by(self, **kwargs) -> BaseResult:
         """Filter the repository
         
