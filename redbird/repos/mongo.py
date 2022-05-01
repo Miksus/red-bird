@@ -34,12 +34,12 @@ class MongoSession:
     _bind: 'MongoClient'
     _binds: Dict[str, 'MongoClient']
 
-    def __init__(self, url, binds:Dict[str, str]=None):
+    def __init__(self, url=None, binds:Dict[str, str]=None, client=None):
         self.url = url
         self.binds = binds if binds is not None else {}
 
         self._binds = {}
-        self._bind = None
+        self._bind = client
 
     @property
     def client(self):
@@ -146,6 +146,11 @@ class MongoRepo(TemplateRepo):
     @classmethod
     def from_uri(cls, *args, uri, **kwargs):
         kwargs["session"] = MongoSession(url=uri)
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def from_client(cls, *args, client, **kwargs):
+        kwargs["session"] = MongoSession(client=client)
         return cls(*args, **kwargs)
 
     def insert(self, item):
