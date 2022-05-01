@@ -15,9 +15,6 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
-from sqlalchemy import Column, String, Integer, create_engine
-from sqlalchemy.orm import declarative_base
-
 from pydantic import BaseModel, Field
 
 # ------------------------
@@ -43,18 +40,25 @@ class MongoItem(BaseModel):
     name: str
     age: int
 
-SQLBase = declarative_base()
+try:
+    from sqlalchemy import Column, String, Integer, create_engine
+    from sqlalchemy.orm import declarative_base
+except ImportError:
+    # Has no SQLAlchemy
+    pass
+else:
+    SQLBase = declarative_base()
 
-class SQLItem(SQLBase):
-    __tablename__ = 'items'
-    id = Column(String, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
+    class SQLItem(SQLBase):
+        __tablename__ = 'items'
+        id = Column(String, primary_key=True)
+        name = Column(String)
+        age = Column(Integer)
 
-    def __eq__(self, other):
-        if not isinstance(other, SQLItem):
-            return False
-        return other.id == self.id and other.name == self.name and other.age == self.age
+        def __eq__(self, other):
+            if not isinstance(other, SQLItem):
+                return False
+            return other.id == self.id and other.name == self.name and other.age == self.age
 
 # ------------------------
 # MOCK
@@ -175,6 +179,9 @@ class RESTMock:
 
 
 def get_repo(type_):
+    if type_.startswith("sql-"):
+        pytest.importorskip("sqlalchemy")
+        from sqlalchemy import Column, String, Integer, create_engine
     if type_ == "memory":
         repo = MemoryRepo(model=PydanticItem, id_field="id")
 

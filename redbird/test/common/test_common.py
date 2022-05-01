@@ -14,9 +14,6 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
-from sqlalchemy import Column, String, Integer, create_engine
-from sqlalchemy.orm import declarative_base
-
 from pydantic import BaseModel, Field
 
 
