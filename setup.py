@@ -10,7 +10,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author="Mikael Koli",
     author_email="koli.mikael@gmail.com",
-    url="https://github.com/Miksus/red-base.git",
+    url="https://github.com/Miksus/red-bird.git",
     packages=find_packages(),
     description="Repository Patterns for Python",
     long_description=long_description,

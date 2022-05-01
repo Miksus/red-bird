@@ -1,26 +1,18 @@
 
 Mongo Repository
-====================
+================
 
-First, create an item:
-
-.. code-block:: python
-
-    from pydantic import BaseModel
-
-    class Person(BaseModel):
-        id: str
-        name: str
-        age: int
-
-Initiate a repository:
+MongoRepo is a repository for MongoDB data stores.
+MongoDB is useful if you have unstructured data
+or you wish to store data in JSON format.
 
 .. code-block:: python
 
-    from redbird.ext import MongoRepo
+    from redbird.repos import MongoRepo
+    repo = MongoRepo(url="mongodb://USERNAME:PASSWORD@localhost:27017", database="my_db", collection="my_items")
 
-    repo = MongoRepo(Person, url="mongodb://localhost:27017/my_database")
-
+Usage
+-----
 
 Now you may use the repository the same
 way as any other repository. Please see:

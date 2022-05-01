@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 
 from pydantic import BaseModel, ValidationError
@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.templates import TemplateRepo
 
 if TYPE_CHECKING:
     from pymongo import MongoClient
@@ -33,12 +34,12 @@ class MongoSession:
     _bind: 'MongoClient'
     _binds: Dict[str, 'MongoClient']
 
-    def __init__(self, url, binds:Dict[str, str]=None):
+    def __init__(self, url=None, binds:Dict[str, str]=None, client=None):
         self.url = url
         self.binds = binds if binds is not None else {}
 
         self._binds = {}
-        self._bind = None
+        self._bind = client
 
     @property
     def client(self):
@@ -47,9 +48,9 @@ class MongoSession:
         return self._bind
 
     def create_client(self, url=None):
-        from pymongo import MongoClient
+        import pymongo
         url = self.url if url is None else url
-        return MongoClient(url)
+        return pymongo.MongoClient(url)
 
     def close(self):
         "Close client and all binds"
@@ -83,9 +84,54 @@ class MongoSession:
                 self._binds[url] = self.create_client(url)
             return self._binds[url]
 
-class MongoResult(BaseResult):
+class MongoRepo(TemplateRepo):
+    """MongoDB Repository
 
-    repo: 'MongoRepo'
+    Parameters
+    ----------
+    model : Type
+        Class of an item in the repository.
+        Commonly dict or subclass of Pydantic
+        BaseModel. By default dict
+    id_field : str, optional
+        Attribute or key that identifies each item
+        in the repository.
+    field_access : {'attr', 'key'}, optional
+        How to access a field in an item. Either
+        by attribute ('attr') or key ('item').
+        By default guessed from the model.
+    query : Type, optional
+        Query model of the repository.
+    errors_query : {'raise', 'warn', 'discard'}
+        Whether to raise an exception, warn or discard
+        the item in case of validation error in 
+        converting data to the item model from
+        the repository. By default raise 
+    url : str
+        Connection string to the database
+    session : Session, Any
+        A MongoDB session object that should
+        have at least ``client`` attribute
+
+    Examples
+    --------
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017/mydb?authSource=admin", collection="mycol")
+
+    .. code-block:: python
+
+        repo = MongoRepo.from_uri(uri="mongodb://localhost:27017", database="mydb", collection="mycol")
+
+    .. code-block:: python
+
+        from pymongo import MongoClient
+        repo = MongoRepo.from_client(client=MongoClient("mongodb://localhost:27017"))
+    """
+    # cls_result = MongoResult
+    default_id_field = "_id"
+    cls_session = MongoSession
+
     __operators__ = {
         GreaterThan: "$gt",
         LessThan: "$lt",
@@ -93,74 +139,19 @@ class MongoResult(BaseResult):
         LessEqual: "$lte",
         NotEqual: "$ne",
     }
+    session: Any
+    database: Optional[str]
+    collection: Optional[str]
 
-    def query_data(self):
-        col = self.repo.get_collection()
-        for data in col.find(self.query_):
-            yield data
+    @classmethod
+    def from_uri(cls, *args, uri, **kwargs):
+        kwargs["session"] = MongoSession(url=uri)
+        return cls(*args, **kwargs)
 
-    def limit(self, n:int):
-        "Get n first items"
-        col = self.repo.get_collection()
-        return [
-            self.repo.data_to_item(item)
-            for item in col.find(self.query_).limit(n)
-        ]
-
-    def update(self, **kwargs):
-        "Update the resulted rows"
-        col = self.repo.get_collection()
-        col.update_many(self.query_, {"$set": kwargs})
-
-    def delete(self):
-        "Delete found documents"
-        col = self.repo.get_collection()
-        col.delete_many(self.query_)
-
-    def count(self):
-        "Count found documents"
-        col = self.repo.get_collection()
-        return col.count_documents(self.query_)
-
-    def format_query(self, query):
-        query = super().format_query(query)
-        return {
-            key: self._get_query_value(val)
-            for key, val in query.items()
-        }
-    
-    def _get_query_value(self, value):
-        if isinstance(value, Operation):
-            return {self.__operators__[type(value)]: value.value}
-        else:
-            return value
-
-class MongoRepo(BaseRepo):
-    """MongoDB Repository
-
-    Parameters
-    ----------
-    model : BaseModel
-        Class of a document
-    url : str
-        Connection string to the database
-    session : Session, Any
-        A MongoDB session object that should
-        have at least ``client`` attribute
-    id_field : str
-        Field/attribute that identifies a 
-        document from others. 
-    """
-    model: BaseModel = None
-    cls_result = MongoResult
-    default_id_field = "_id"
-    cls_session = MongoSession
-
-    def __init__(self, *args, url=None, database:str=None, collection=None, session=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.session = self.cls_session(url=url) if session is None else session
-        self.database = database
-        self.collection = collection
+    @classmethod
+    def from_client(cls, *args, client, **kwargs):
+        kwargs["session"] = MongoSession(client=client)
+        return cls(*args, **kwargs)
 
     def insert(self, item):
         from pymongo.errors import DuplicateKeyError
@@ -214,3 +205,41 @@ class MongoRepo(BaseRepo):
         # Rename whatever is as id_field to _id
         json["_id"] = json.pop(self.id_field)
         return json
+
+# Query based
+    def query_read(self, query):
+        col = self.get_collection()
+        for data in col.find(query):
+            yield data
+
+    def query_read_limit(self, query, n:int):
+        "Get n first items"
+        col = self.get_collection()
+        return [
+            self.data_to_item(item)
+            for item in col.find(query).limit(n)
+        ]
+
+    def query_update(self, query, values):
+        col = self.get_collection()
+        col.update_many(query, {"$set": values})
+
+    def query_delete(self, query):
+        col = self.get_collection()
+        col.delete_many(query)
+
+    def query_count(self, query):
+        col = self.get_collection()
+        return col.count_documents(query)
+
+    def format_query(self, query):
+        return {
+            key: self._get_query_value(val)
+            for key, val in query.items()
+        }
+
+    def _get_query_value(self, value):
+        if isinstance(value, Operation):
+            return {self.__operators__[type(value)]: value.value}
+        else:
+            return value

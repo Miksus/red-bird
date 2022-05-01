@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import pytest
 import responses
 import requests
+import mongomock
 from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
@@ -38,8 +39,7 @@ class PydanticItemORM(BaseModel):
 
 class MongoItem(BaseModel):
     __colname__ = 'items'
-    _id: str = Field(alias="id")
-    id: str
+    id: str  = Field(alias="_id")
     name: str
     age: int
 
@@ -70,7 +70,7 @@ def get_mongo_uri():
 class RESTMock:
 
     def __init__(self):
-        self.repo = MemoryRepo(PydanticItem)
+        self.repo = MemoryRepo(model=PydanticItem, id_field="id")
     
     def post(self, request):
         data = json.loads(request.body)
@@ -179,10 +179,10 @@ class RESTMock:
 
 def get_repo(type_):
     if type_ == "memory":
-        repo = MemoryRepo(PydanticItem)
+        repo = MemoryRepo(model=PydanticItem, id_field="id")
 
     elif type_ == "memory-dict":
-        repo = MemoryRepo(dict)
+        repo = MemoryRepo(model=dict, id_field="id")
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
@@ -191,7 +191,7 @@ def get_repo(type_):
             name TEXT,
             age INTEGER
         )""")
-        repo = SQLRepo(engine=engine, table="pytest")
+        repo = SQLRepo.from_engine(engine=engine, table="pytest", id_field="id")
 
     elif type_ == "sql-pydantic":
         engine = create_engine('sqlite://')
@@ -200,34 +200,37 @@ def get_repo(type_):
             name TEXT,
             age INTEGER
         )""")
-        repo = SQLRepo(PydanticItem, engine=engine, table="pytest")
+        repo = SQLRepo.from_engine(model=PydanticItem, engine=engine, table="pytest", id_field="id")
         #SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items")
+        repo = SQLRepo.from_engine(model_orm=SQLItem, engine=engine, table="items", id_field="id")
         repo.create()
 
     elif type_ == "sql-pydantic-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(PydanticItemORM, model_orm=SQLItem, engine=engine)
+        repo = SQLRepo.from_engine(model=PydanticItemORM, model_orm=SQLItem, engine=engine, id_field="id")
         SQLItem.__table__.create(bind=repo.session.bind)
 
+    elif type_ == "mongo-mock":
+        repo = MongoRepo.from_uri(model=PydanticItem, uri="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
+ 
     elif type_ == "mongo":
-        repo = MongoRepo(PydanticItem, url=get_mongo_uri(), database="pytest", collection="items", id_field="id")
+        repo = MongoRepo.from_uri(model=PydanticItem, uri=get_mongo_uri(), database="pytest", collection="items", id_field="id")
 
         # Empty the collection
         pytest.importorskip("pymongo")
-        from pymongo import MongoClient
+        import pymongo
 
-        client = MongoClient(repo.session.url)
+        client = pymongo.MongoClient(repo.session.url)
         col_name = repo.model.__colname__
         db = client.get_default_database()
         col = db[col_name]
         col.delete_many({})
 
     elif type_ == "http-rest":
-        repo = RESTRepo(PydanticItem, url="http://localhost:5000/api/items", id_field="id")
+        repo = RESTRepo(model=PydanticItem, url="http://localhost:5000/api/items", id_field="id")
 
     return repo
 
@@ -242,6 +245,9 @@ def repo(request):
         api = RESTMock()
         with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
             api.add_routes(rsps)
+            yield repo
+    elif request.param == "mongo-mock":
+        with mongomock.patch(servers=(('localhost', 27017),)):
             yield repo
     else:
         yield repo
