@@ -67,7 +67,7 @@ html_theme_options = {
     "use_issues_button": True,
     "use_download_button": True,
     "use_fullscreen_button": True,
-    "use_edit_page_button": True,
+    #"use_edit_page_button": True,
 }
 #html_sidebars = {}
 
