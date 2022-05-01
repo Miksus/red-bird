@@ -151,6 +151,26 @@ class BaseRepo(ABC):
 
     Base class for the repository pattern.
 
+    Parameters
+    ----------
+    model : Type
+        Class of an item in the repository.
+        Commonly dict or subclass of Pydantic
+        BaseModel. By default dict
+    id_field : str, optional
+        Attribute or key that identifies each item
+        in the repository.
+    field_access : {'attr', 'item'}, optional
+        How to access a field in an item. Either
+        by attribute ('attr') or key ('item').
+        By default guessed from the model.
+    query : Type, optional
+        Query model of the repository.
+    errors_query : {'raise', 'warn', 'discard'}
+        Whether to raise an exception, warn or discard
+        the item in case of validation error in 
+        converting data to the item model from
+        the repository. By default raise 
     """
 
     default_id_field: str = "id"
@@ -161,6 +181,7 @@ class BaseRepo(ABC):
     default_query_format: Type[BaseModel] = BasicQuery
 
     errors_query: Literal['raise', 'warn', 'discard']
+    field_access: Literal['attr', 'item']
 
     def __init__(self, model=None, id_field=None, field_access:str=None, query:BaseModel=None, errors_query="raise"):
         self.model = dict if model is None else model
@@ -215,21 +236,75 @@ class BaseRepo(ABC):
 
     @abstractmethod
     def insert(self):
-        "Add an item to the repository"
+        """Insert item to the repository
+        
+        Parameters
+        ----------
+        item: instance of model
+            Item to insert to the repository
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.insert(Item(id="a", color="red"))
+        """
         ...
 
     def upsert(self, item: Item):
+        """Upsert item to the repository
+
+        Upsert is an insert if the item
+        does not exist in the repository
+        and update if it does.
+        
+        Parameters
+        ----------
+        item: instance of model
+            Item to upsert to the repository
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.upsert(Item(id="a", color="red"))
+        """
         try:
             self.insert(item)
         except KeyFoundError:
             self.update(item)
 
     def delete(self, item: Item):
+        """Delete item from the repository
+        
+        Parameters
+        ----------
+        item: instance of model
+            Item to delete from the repository
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.delete(Item(id="a", color="red"))
+        """
         id_ = self.get_field_value(item, self.id_field)
         del self[id_]
 
     def update(self, item: Item):
-        "Update an item in the repository"
+        """Update item in the repository
+        
+        Parameters
+        ----------
+        item: instance of model
+            Item to update in the repository
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.update(Item(id="a", color="red"))
+        """
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
         # We don't update the ID
@@ -252,7 +327,20 @@ class BaseRepo(ABC):
 
 # Keyword arguments
     def filter_by(self, **kwargs) -> BaseResult:
-        "Get items from the repository by filtering using keyword args"
+        """Filter the repository
+        
+        Parameters
+        ----------
+        **kwargs : dict
+            Query which is used to conduct 
+            furher operation.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.filter_by(color="red")
+        """
         return self.cls_result(query=kwargs, repo=self)
 
     def data_to_item(self, data:Data) -> Item:

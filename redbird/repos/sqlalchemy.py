@@ -25,10 +25,24 @@ class SQLRepo(TemplateRepo):
 
     Parameters
     ----------
-    model : Type of BaseModel, optional
-        Pydantic model class to be used as an item model.
-        If not provided, model_orm is converted to
-        be as such.
+    model : Type
+        Class of an item in the repository.
+        Commonly dict or subclass of Pydantic
+        BaseModel. By default dict
+    id_field : str, optional
+        Attribute or key that identifies each item
+        in the repository.
+    field_access : {'attr', 'item'}, optional
+        How to access a field in an item. Either
+        by attribute ('attr') or key ('item').
+        By default guessed from the model.
+    query : Type, optional
+        Query model of the repository.
+    errors_query : {'raise', 'warn', 'discard'}
+        Whether to raise an exception, warn or discard
+        the item in case of validation error in 
+        converting data to the item model from
+        the repository. By default raise 
     model_orm : Type of Base, optional
         Subclass of SQL Alchemy representation of the item.
         This is the class that is operated behind the scenes.

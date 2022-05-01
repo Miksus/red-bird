@@ -89,16 +89,29 @@ class MongoRepo(TemplateRepo):
 
     Parameters
     ----------
-    model : BaseModel
-        Class of a document
+    model : Type
+        Class of an item in the repository.
+        Commonly dict or subclass of Pydantic
+        BaseModel. By default dict
+    id_field : str, optional
+        Attribute or key that identifies each item
+        in the repository.
+    field_access : {'attr', 'item'}, optional
+        How to access a field in an item. Either
+        by attribute ('attr') or key ('item').
+        By default guessed from the model.
+    query : Type, optional
+        Query model of the repository.
+    errors_query : {'raise', 'warn', 'discard'}
+        Whether to raise an exception, warn or discard
+        the item in case of validation error in 
+        converting data to the item model from
+        the repository. By default raise 
     url : str
         Connection string to the database
     session : Session, Any
         A MongoDB session object that should
         have at least ``client`` attribute
-    id_field : str
-        Field/attribute that identifies a 
-        document from others. 
     """
     model: BaseModel = None
     # cls_result = MongoResult
