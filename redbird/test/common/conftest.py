@@ -87,10 +87,7 @@ class RESTMock:
         id = self.get_id(request)
         data = json.loads(request.body)
         assert "id" not in data
-
-        data["id"] = id
-        item = self.repo.model(**data)
-        self.repo.update(item)
+        self.repo.get_by(id).update(**data)
         return (200, {}, b"")
 
     def put(self, request):
