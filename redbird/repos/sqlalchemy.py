@@ -165,15 +165,6 @@ class SQLRepo(TemplateRepo):
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
         super().__init__(*args, **kwargs)
 
-    # def __init__(self, model:Type[BaseModel]=None, model_orm=None, *, table:str=None, engine:'Engine'=None, session=None, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.session = self.create_scoped_session(engine) if session is None else session
-    #     self._table = table
-    #     self.model_orm = model_orm
-    # 
-    #     model = self.orm_model_to_pydantic(self.model_orm) if model is None else model
-    #     super().__init__(model, **kwargs)    
-
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
         row = self.item_to_data(item)
@@ -230,19 +221,6 @@ class SQLRepo(TemplateRepo):
 
     def create(self):
         self.model_orm.__table__.create(bind=self.session.bind)
-
-    @property
-    def model_ormz(self):
-        if self._model_orm is not None:
-            return self._model_orm
-        self._Base = automap_base()
-        self._Base.prepare(self.session.get_bind(), reflect=True)
-        self._model_orm = getattr(self._Base.classes, self._table)
-        return self._model_orm
-
-    @model_ormz.setter
-    def model_ormz(self, value):
-        self._model_orm = value
 
     def query_read(self, query):
         for data in self._filter_orm(query):
