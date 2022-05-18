@@ -306,6 +306,7 @@ class TestFilteringOperations(RepoTests):
             Item(id="c", name="James", age=30),
             Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
+            Item(id="f", name="Jim", age=41),
         ]
 
     def test_less_than(self, repo):
@@ -334,6 +335,7 @@ class TestFilteringOperations(RepoTests):
             Item(id="c", name="James", age=30),
             Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
+            dict(id="f", name="Jim", age=41),
         ]
 
     def test_less_equal(self, repo):
@@ -364,10 +366,13 @@ class TestFilteringOperations(RepoTests):
             #Item(id="c", name="James", age=30),
             #Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
+            dict(id="f", name="Jim", age=41),
         ]
 
     def test_between(self, repo):
         self.populate(repo)
+        if isinstance(repo, RESTRepo):
+            pytest.xfail("RESTRepo does not support operations (yet)")
         Item = repo.model
         assert repo.filter_by(age=between(30, 40)).all() == [
             #Item(id="a", name="Jack", age=20),
