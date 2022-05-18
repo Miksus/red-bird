@@ -12,7 +12,7 @@ from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
-from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
+from redbird.oper import between, greater_equal, greater_than, less_equal, less_than, not_equal
 
 from pydantic import BaseModel, Field
 
@@ -279,6 +279,20 @@ class TestPopulated(RepoTests):
 )
 class TestFilteringOperations(RepoTests):
 
+    def populate(self, repo, items=None):
+        if items is None:
+            items = [
+                dict(id="a", name="Jack", age=20),
+                dict(id="b", name="John", age=30),
+                dict(id="c", name="James", age=30),
+                dict(id="d", name="Johnny", age=30),
+                dict(id="e", name="Jesse", age=40),
+                dict(id="f", name="Jim", age=41),
+            ]
+        for d in items:
+            item = repo.to_item(d)
+            repo.add(item)
+
     def test_greater_than(self, repo):
         self.populate(repo)
 
@@ -350,6 +364,18 @@ class TestFilteringOperations(RepoTests):
             #Item(id="c", name="James", age=30),
             #Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
+        ]
+
+    def test_between(self, repo):
+        self.populate(repo)
+        Item = repo.model
+        assert repo.filter_by(age=between(30, 40)).all() == [
+            #Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            #Item(id="e", name="Jim", age=41),
         ]
 
 @pytest.mark.parametrize(

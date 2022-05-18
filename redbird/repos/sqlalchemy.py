@@ -5,7 +5,7 @@ from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
-from redbird.oper import Operation
+from redbird.oper import Between, Operation
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -269,15 +269,21 @@ class SQLRepo(TemplateRepo):
 
     def format_query(self, oper: dict):
         from sqlalchemy import column, orm, true
+        import sqlalchemy
         stmt = true()
         for column_name, oper_or_value in oper.items():
             if isinstance(oper_or_value, Operation):
                 oper = oper_or_value
-                magic = oper.__py_magic__
-                oper_method = getattr(column(column_name), magic)
+                if hasattr(oper, "__py_magic__"):
+                    magic = oper.__py_magic__
+                    oper_method = getattr(column(column_name), magic)
 
-                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
-                sql_oper = oper_method(oper.value)
+                    # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
+                    sql_oper = oper_method(oper.value)
+                elif oper == Between:
+                    sql_oper = sqlalchemy.between(oper.start, oper.end)
+                else:
+                    raise NotImplementedError
             else:
                 value = oper_or_value
                 sql_oper = column(column_name) == value
