@@ -269,7 +269,6 @@ class SQLRepo(TemplateRepo):
 
     def format_query(self, oper: dict):
         from sqlalchemy import column, orm, true
-        import sqlalchemy
         stmt = true()
         for column_name, oper_or_value in oper.items():
             if isinstance(oper_or_value, Operation):
@@ -280,10 +279,10 @@ class SQLRepo(TemplateRepo):
 
                     # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
                     sql_oper = oper_method(oper.value)
-                elif oper == Between:
-                    sql_oper = sqlalchemy.between(oper.start, oper.end)
+                elif isinstance(oper, Between):
+                    sql_oper = column(column_name).between(oper.start, oper.end)
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(f"Not implemented operator: {oper}")
             else:
                 value = oper_or_value
                 sql_oper = column(column_name) == value
