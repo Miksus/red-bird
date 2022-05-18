@@ -341,6 +341,9 @@ class BaseRepo(ABC, BaseModel):
 
     def data_to_item(self, data:Data) -> Item:
         "Turn object from repo (row, doc, dict, etc.) to item"
+        if isinstance(data, self.model):
+            # Already the right type
+            return data
         if not isinstance(data, Mapping):
             # data is namespace-like
             data = vars(data)
