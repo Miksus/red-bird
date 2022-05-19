@@ -50,6 +50,15 @@ class NotEqual(Operation):
     def __ne__(self, value):
         return value != self.value
 
+class Between(Operation):
+
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def evaluate(self, value):
+        return self.start <= value <= self.end
+
 
 def greater_than(value):
     return GreaterThan(value)
@@ -65,3 +74,6 @@ def less_equal(value):
 
 def not_equal(value):
     return NotEqual(value)
+
+def between(start, end):
+    return Between(start, end)

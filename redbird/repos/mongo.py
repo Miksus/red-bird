@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
-from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.oper import Between, GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.templates import TemplateRepo
 
 if TYPE_CHECKING:
@@ -240,6 +240,15 @@ class MongoRepo(TemplateRepo):
 
     def _get_query_value(self, value):
         if isinstance(value, Operation):
-            return {self.__operators__[type(value)]: value.value}
+            type_ = type(value)
+            if type_ in self.__operators__:
+                return {self.__operators__[type_]: value.value}
+            elif type_ == Between:
+                return {
+                    '$gte': value.start,
+                    '$lte': value.end,
+                }
+            else:
+                raise NotImplementedError("MongoRepo does not yet support operator: {type_}")
         else:
             return value
