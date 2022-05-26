@@ -5,7 +5,7 @@ from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
-from redbird.oper import Between, Operation
+from redbird.oper import Between, Operation, skip
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -259,6 +259,8 @@ class SQLRepo(TemplateRepo):
                     sql_oper = oper_method(oper.value)
                 elif isinstance(oper, Between):
                     sql_oper = column(column_name).between(oper.start, oper.end)
+                elif oper is skip:
+                    continue
                 else:
                     raise NotImplementedError(f"Not implemented operator: {oper}")
             else:

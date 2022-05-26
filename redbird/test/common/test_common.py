@@ -12,7 +12,7 @@ from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
-from redbird.oper import between, greater_equal, greater_than, less_equal, less_than, not_equal
+from redbird.oper import skip, between, greater_equal, greater_than, less_equal, less_than, not_equal
 
 from pydantic import BaseModel, Field
 
@@ -381,6 +381,20 @@ class TestFilteringOperations(RepoTests):
             Item(id="d", name="Johnny", age=30),
             Item(id="e", name="Jesse", age=40),
             #Item(id="e", name="Jim", age=41),
+        ]
+
+    def test_skip(self, repo):
+        self.populate(repo)
+        if isinstance(repo, RESTRepo):
+            pytest.xfail("RESTRepo does not support operations (yet)")
+        Item = repo.model
+        assert repo.filter_by(age=skip).all() == [
+            Item(id="a", name="Jack", age=20),
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            Item(id="f", name="Jim", age=41),
         ]
 
 @pytest.mark.parametrize(

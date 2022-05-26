@@ -59,6 +59,23 @@ class Between(Operation):
     def evaluate(self, value):
         return self.start <= value <= self.end
 
+class _Skip(Operation):
+    """Field operator that does not affect filtering.
+    This is just a convenient placeholder."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            # Create the instance
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        pass
+
+    def evaluate(self, value):
+        return True
 
 def greater_than(value):
     return GreaterThan(value)
@@ -77,3 +94,5 @@ def not_equal(value):
 
 def between(start, end):
     return Between(start, end)
+
+skip = _Skip()
