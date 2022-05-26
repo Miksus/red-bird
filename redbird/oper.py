@@ -92,7 +92,15 @@ def less_equal(value):
 def not_equal(value):
     return NotEqual(value)
 
-def between(start, end):
+def between(start, end, none_as_open=False):
+    if none_as_open:
+        # Handle Nones
+        if start is None and end is None:
+            return skip
+        elif end is None:
+            return greater_equal(start)
+        elif start is None:
+            return less_equal(end)
     return Between(start, end)
 
 skip = _Skip()
