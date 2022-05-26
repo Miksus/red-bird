@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
-from redbird.oper import Between, GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
+from redbird.oper import Between, GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation, skip
 from redbird.templates import TemplateRepo
 
 if TYPE_CHECKING:
@@ -236,6 +236,7 @@ class MongoRepo(TemplateRepo):
         return {
             key: self._get_query_value(val)
             for key, val in query.items()
+            if val is not skip
         }
 
     def _get_query_value(self, value):
