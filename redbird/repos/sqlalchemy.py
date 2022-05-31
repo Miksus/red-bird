@@ -153,17 +153,31 @@ class SQLRepo(TemplateRepo):
         return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
 
 
-    def __init__(self, *args, reflect_model=False, **kwargs):
+    def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, **kwargs):
+        from sqlalchemy import create_engine
         from sqlalchemy.ext.automap import automap_base
+
+        # Determine connection
+        if conn_string is not None:
+            engine = create_engine(conn_string)
+        if engine is not None:
+            session = self.create_scoped_session(engine)
+
+        # Create model_orm/model
         if "model_orm" not in kwargs:
-            session = kwargs["session"]
+            if session is None:
+                raise TypeError(
+                    "Connection cannot be determined. "
+                    "Consider using method 'from_connection_string' "
+                    "and pass connection string as conn_string"
+                )
             table = kwargs["table"]
             self._Base = automap_base()
             self._Base.prepare(session.get_bind(), reflect=True)
             kwargs["model_orm"] = getattr(self._Base.classes, table)
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, session=session, **kwargs)
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
