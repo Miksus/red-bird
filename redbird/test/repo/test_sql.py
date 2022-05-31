@@ -143,3 +143,7 @@ def test_with_dict():
     repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]
+
+def test_error_missing_connection_items():
+    with pytest.raises(TypeError):
+        SQLRepo(model=MyItem, table="my_table")
