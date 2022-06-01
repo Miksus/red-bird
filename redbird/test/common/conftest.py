@@ -219,11 +219,11 @@ def get_repo(type_):
 
     elif type_ == "mongo-mock":
         pytest.importorskip("pymongo")
-        repo = MongoRepo.from_uri(model=PydanticItem, uri="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
+        repo = MongoRepo(model=PydanticItem, uri="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
  
     elif type_ == "mongo":
         pytest.importorskip("pymongo")
-        repo = MongoRepo.from_uri(model=PydanticItem, uri=get_mongo_uri(), database="pytest", collection="items", id_field="id")
+        repo = MongoRepo(model=PydanticItem, uri=get_mongo_uri(), database="pytest", collection="items", id_field="id")
 
         # Empty the collection
         import pymongo
