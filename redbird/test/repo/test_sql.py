@@ -145,5 +145,6 @@ def test_with_dict():
     assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]
 
 def test_error_missing_connection_items():
+    pytest.importorskip("sqlalchemy")
     with pytest.raises(TypeError):
         SQLRepo(model=MyItem, table="my_table")
