@@ -6,6 +6,7 @@ from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
 from redbird.oper import Between, Operation
+from redbird.utils.deprecate import deprecated
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -63,7 +64,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(engine=engine, table="my_table")
+        repo = SQLRepo(engine=engine, table="my_table")
 
     You may also supply a session:
 
@@ -95,7 +96,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model_orm=Car, engine=engine)
+        repo = SQLRepo(model_orm=Car, engine=engine)
 
     Using ORM model and reflect Pydantic Model:
 
@@ -115,7 +116,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model_orm=Car, reflect_model=True, engine=engine)
+        repo = SQLRepo(model_orm=Car, reflect_model=True, engine=engine)
 
     Using ORM model and Pydantic Model:
 
@@ -141,7 +142,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model=Car, model_orm=CarORM, engine=engine)
+        repo = SQLRepo(model=Car, model_orm=CarORM, engine=engine)
     """
 
     model_orm: Optional[Any]
@@ -152,11 +153,13 @@ class SQLRepo(TemplateRepo):
     _Base = PrivateAttr()
 
     @classmethod
+    @deprecated("Please use normal init instead.")
     def from_engine(cls, *args, engine, **kwargs):
         kwargs["session"] = cls.create_scoped_session(engine)
         return cls(*args, **kwargs)
 
     @classmethod
+    @deprecated("Please use normal init instead.")
     def from_connection_string(cls, *args, conn_string, **kwargs):
         from sqlalchemy import create_engine
         return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
