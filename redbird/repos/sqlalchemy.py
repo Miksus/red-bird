@@ -5,7 +5,9 @@ from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
+
 from redbird.oper import Between, Operation, skip
+from redbird.utils.deprecate import deprecated
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -41,9 +43,18 @@ class SQLRepo(TemplateRepo):
     table : str, optional
         Table name where the items lies. Should only be given
         if no model_orm specified.
-    engine : sqlalchemy.engine.Engine
-        SQLAlchemy engine.
+    conn_string : str, optional
+        Connection string to the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
+    engine : sqlalchemy.engine.Engine, optional
+        SQLAlchemy engine to connect the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
     session : sqlalchemy.session.Session
+        Connection session to the database.
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
 
     Examples
     --------
@@ -54,7 +65,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(engine=engine, table="my_table")
+        repo = SQLRepo(engine=engine, table="my_table")
 
     You may also supply a session:
 
@@ -86,7 +97,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model_orm=Car, engine=engine)
+        repo = SQLRepo(model_orm=Car, engine=engine)
 
     Using ORM model and reflect Pydantic Model:
 
@@ -106,7 +117,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model_orm=Car, reflect_model=True, engine=engine)
+        repo = SQLRepo(model_orm=Car, reflect_model=True, engine=engine)
 
     Using ORM model and Pydantic Model:
 
@@ -132,7 +143,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model=Car, model_orm=CarORM, engine=engine)
+        repo = SQLRepo(model=Car, model_orm=CarORM, engine=engine)
     """
 
     model_orm: Optional[Any]
@@ -143,27 +154,43 @@ class SQLRepo(TemplateRepo):
     _Base = PrivateAttr()
 
     @classmethod
+    @deprecated("Please use normal init instead.")
     def from_engine(cls, *args, engine, **kwargs):
         kwargs["session"] = cls.create_scoped_session(engine)
         return cls(*args, **kwargs)
 
     @classmethod
+    @deprecated("Please use normal init instead.")
     def from_connection_string(cls, *args, conn_string, **kwargs):
         from sqlalchemy import create_engine
         return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
 
 
-    def __init__(self, *args, reflect_model=False, **kwargs):
+    def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, **kwargs):
+        from sqlalchemy import create_engine
         from sqlalchemy.ext.automap import automap_base
+
+        # Determine connection
+        if conn_string is not None:
+            engine = create_engine(conn_string)
+        if engine is not None:
+            session = self.create_scoped_session(engine)
+
+        # Create model_orm/model
         if "model_orm" not in kwargs:
-            session = kwargs["session"]
+            if session is None:
+                raise TypeError(
+                    "Connection cannot be determined. "
+                    "Consider using method 'from_connection_string' "
+                    "and pass connection string as conn_string"
+                )
             table = kwargs["table"]
             self._Base = automap_base()
             self._Base.prepare(session.get_bind(), reflect=True)
             kwargs["model_orm"] = getattr(self._Base.classes, table)
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, session=session, **kwargs)
 
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError

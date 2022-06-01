@@ -195,7 +195,7 @@ def get_repo(type_):
             name TEXT,
             age INTEGER
         )""")
-        repo = SQLRepo.from_engine(engine=engine, table="pytest", id_field="id")
+        repo = SQLRepo(engine=engine, table="pytest", id_field="id")
 
     elif type_ == "sql-pydantic":
         engine = create_engine('sqlite://')
@@ -204,17 +204,17 @@ def get_repo(type_):
             name TEXT,
             age INTEGER
         )""")
-        repo = SQLRepo.from_engine(model=PydanticItem, engine=engine, table="pytest", id_field="id")
+        repo = SQLRepo(model=PydanticItem, engine=engine, table="pytest", id_field="id")
         #SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model_orm=SQLItem, engine=engine, table="items", id_field="id")
+        repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items", id_field="id")
         repo.create()
 
     elif type_ == "sql-pydantic-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo.from_engine(model=PydanticItemORM, model_orm=SQLItem, engine=engine, id_field="id")
+        repo = SQLRepo(model=PydanticItemORM, model_orm=SQLItem, engine=engine, id_field="id")
         SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "mongo-mock":
