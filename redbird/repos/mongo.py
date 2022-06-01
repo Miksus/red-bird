@@ -143,6 +143,15 @@ class MongoRepo(TemplateRepo):
     database: Optional[str]
     collection: Optional[str]
 
+    def __init__(self, *args, uri=None, client=None, session=None, **kwargs):
+        if uri is not None:
+            session = MongoSession(url=uri)
+        if client is not None:
+            session = MongoSession(client=client)
+        if session is None:
+            raise TypeError("Missing session. Pass either uri, client or session")
+        super().__init__(*args, session=session, **kwargs)
+
     @classmethod
     def from_uri(cls, *args, uri, **kwargs):
         kwargs["session"] = MongoSession(url=uri)

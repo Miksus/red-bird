@@ -43,3 +43,27 @@ def test_creation_passed(mongo_uri):
     col = repo.get_collection()
     assert col.name == "items"
     assert col.database.name == "pytest2"
+
+def test_init_uri(mongo_uri):
+    pytest.importorskip("pymongo")
+    repo = MongoRepo(uri=mongo_uri, database="pytest", collection="items")
+
+    col = repo.get_collection()
+    assert col.name == "items"
+    assert col.database.name == "pytest"
+
+def test_init_client():
+    pytest.importorskip("pymongo")
+    from pymongo import MongoClient
+    client = MongoClient("mongodb://localhost:27017/pytest?authSource=admin")
+    repo = MongoRepo(client=client, database="pytest", collection="items")
+
+    col = repo.get_collection()
+    assert col.name == "items"
+    assert col.database.name == "pytest"
+
+def test_init_fail_missing_connection():
+    pytest.importorskip("pymongo")
+    from pymongo import MongoClient
+    with pytest.raises(TypeError):
+        repo = MongoRepo(database="pytest", collection="items")
