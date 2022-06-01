@@ -34,7 +34,7 @@ else:
                 return False
             return other.id == self.id and other.name == self.name and other.age == self.age
 
-def test_minimal():
+def test_init_engine():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -43,14 +43,14 @@ def test_minimal():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo.from_engine(engine=engine, table="pytest")
+    repo = SQLRepo(engine=engine, table="pytest")
     assert repo.model_orm.__table__.name == "pytest"
     assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
-def test_from_session():
+def test_init_session():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
@@ -68,7 +68,7 @@ def test_from_session():
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
-def test_with_model():
+def test_init_model():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -77,13 +77,13 @@ def test_with_model():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo.from_engine(model=MyItem, engine=engine, table="pytest")
+    repo = SQLRepo(model=MyItem, engine=engine, table="pytest")
     assert repo.model is MyItem
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [MyItem(id="a", name="Jack", age=500)]
 
-def test_with_model_orm_mode():
+def test_init_model_orm_mode():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -92,13 +92,13 @@ def test_with_model_orm_mode():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo.from_engine(model=MyItemWithORM, engine=engine, table="pytest")
+    repo = SQLRepo(model=MyItemWithORM, engine=engine, table="pytest")
     assert repo.model is MyItemWithORM
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [MyItemWithORM(id="a", name="Jack", age=500)]
 
-def test_with_orm():
+def test_init_orm():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -107,14 +107,14 @@ def test_with_orm():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo.from_engine(model_orm=SQLItem, reflect_model=True, engine=engine)
+    repo = SQLRepo(model_orm=SQLItem, reflect_model=True, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [repo.model(id="a", name="Jack", age=500)]
 
-def test_with_model_and_orm():
+def test_init_model_and_orm():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -123,14 +123,14 @@ def test_with_model_and_orm():
         name TEXT,
         age INTEGER
     )""")
-    repo = SQLRepo.from_engine(model=MyItem, model_orm=SQLItem, engine=engine)
+    repo = SQLRepo(model=MyItem, model_orm=SQLItem, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [MyItem(id="a", name="Jack", age=500)]
 
-def test_with_dict():
+def test_init_dict():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -140,11 +140,11 @@ def test_with_dict():
         age INTEGER
     )""")
 
-    repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
+    repo = SQLRepo(model=dict, engine=engine, table="pytest")
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]
 
-def test_error_missing_connection_items():
+def test_init_fail_missing_connection():
     pytest.importorskip("sqlalchemy")
     with pytest.raises(TypeError):
         SQLRepo(model=MyItem, table="my_table")
