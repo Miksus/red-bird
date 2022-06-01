@@ -50,6 +50,24 @@ def test_init_engine():
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
 
+def test_init_conn_string(tmpdir):
+    pytest.importorskip("sqlalchemy")
+    from sqlalchemy import create_engine
+    with tmpdir.as_cwd() as old_dir:
+        conn_string = 'sqlite:///pytest.db'
+        engine = create_engine(conn_string)
+        engine.execute("""CREATE TABLE pytest (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            age INTEGER
+        )""")
+        repo = SQLRepo(conn_string=conn_string, table="pytest")
+        assert repo.model_orm.__table__.name == "pytest"
+        assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+
+        repo.add({"id": "a", "name": "Jack", "age": 500})
+        assert list(repo) == [dict(id="a", name="Jack", age=500)]
+
 def test_init_session():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
@@ -148,3 +166,22 @@ def test_init_fail_missing_connection():
     pytest.importorskip("sqlalchemy")
     with pytest.raises(TypeError):
         SQLRepo(model=MyItem, table="my_table")
+
+def test_init_deprecated(tmpdir):
+    with tmpdir.as_cwd() as old_dir:
+        pytest.importorskip("sqlalchemy")
+        from sqlalchemy import create_engine
+        engine = create_engine('sqlite:///pytest.db')
+        engine.execute("""CREATE TABLE pytest (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            age INTEGER
+        )""")
+
+        repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
+        repo.add({"id": "a", "name": "Jack", "age": 500})
+        assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]
+        
+        repo = SQLRepo.from_connection_string(model=dict, conn_string="sqlite:///pytest.db", table="pytest")
+        repo.add({"id": "b", "name": "Jack", "age": 5000})
+        assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}, {"id": "b", "name": "Jack", "age": 5000}]
