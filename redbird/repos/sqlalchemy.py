@@ -41,9 +41,18 @@ class SQLRepo(TemplateRepo):
     table : str, optional
         Table name where the items lies. Should only be given
         if no model_orm specified.
-    engine : sqlalchemy.engine.Engine
-        SQLAlchemy engine.
+    conn_string : str, optional
+        Connection string to the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
+    engine : sqlalchemy.engine.Engine, optional
+        SQLAlchemy engine to connect the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
     session : sqlalchemy.session.Session
+        Connection session to the database.
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
 
     Examples
     --------
