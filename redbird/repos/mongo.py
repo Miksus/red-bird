@@ -107,11 +107,16 @@ class MongoRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    url : str
-        Connection string to the database
+    uri : str, optional
+        Connection string to the database.
+        Pass uri, client or session.
+    client : mongodb.MongoClient, optional
+        MongoDB client for the connection.
+        Pass uri, client or session.
     session : Session, Any
         A MongoDB session object that should
-        have at least ``client`` attribute
+        have at least ``client`` attribute.
+        Pass uri, client or session.
 
     Examples
     --------
@@ -149,7 +154,10 @@ class MongoRepo(TemplateRepo):
         if client is not None:
             session = MongoSession(client=client)
         if session is None:
-            raise TypeError("Missing session. Pass either uri, client or session")
+            raise TypeError(
+                "Cannot determine the connection. "
+                "Consider passing 'uri', 'client' or 'session'."
+            )
         super().__init__(*args, session=session, **kwargs)
 
     @classmethod

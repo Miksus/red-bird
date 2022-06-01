@@ -9,7 +9,15 @@ or you wish to store data in JSON format.
 .. code-block:: python
 
     from redbird.repos import MongoRepo
-    repo = MongoRepo(url="mongodb://USERNAME:PASSWORD@localhost:27017", database="my_db", collection="my_items")
+    repo = MongoRepo(uri="mongodb://USERNAME:PASSWORD@localhost:27017", database="my_db", collection="my_items")
+
+Alternatively, you may pass the client:
+
+.. code-block:: python
+
+    from redbird.repos import MongoRepo
+    from pymongo import MongoClient
+    repo = MongoRepo(client=MongoClient("mongodb://USERNAME:PASSWORD@localhost:27017"), database="my_db", collection="my_items")
 
 Usage
 -----
