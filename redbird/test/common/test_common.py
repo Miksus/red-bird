@@ -608,10 +608,17 @@ class TestEmpty:
 
         repo.add(Item(id="a", name="Max", age=20))
         repo.add(Item(id="b", name="John", age=30))
-        assert list(repo) == [
+
+        # asserting
+        actual = list(repo)
+        expected =[
             Item(id="a", name="Max", age=20),
             Item(id="b", name="John", age=30),
         ]
+        if not repo.ordered:
+            actual = sort_items(actual, repo)
+            expected = sort_items(expected, repo)
+        assert actual == expected
 
         repo.get_by("a").update(age=40)
 
