@@ -12,6 +12,9 @@ access from the application code. The aim is that the code runs the
 same regardless if the data is stored to an SQL database, NoSQL 
 database, file or even as an in-memory list.
 
+- `Source code <https://github.com/Miksus/red-bird>`_
+- `Releases (PyPI) <https://pypi.org/project/redbird>`_
+
 Why Repository Pattern?
 -----------------------
 
