@@ -45,6 +45,9 @@ class CSVFileRepo(TemplateRepo):
         the repository. By default raise 
     filename : list
         The repository file
+    kwds_csv : dict
+        Keyword arguments used to create 
+        ``csv.DictWriter`` and ``csv.DictReader``
     
     Examples
     --------
