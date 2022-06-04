@@ -13,6 +13,7 @@ for all features except those stated otherwise.
 
    memory
    csv
+   json_dir
    sql
    mongo
 

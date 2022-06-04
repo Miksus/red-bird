@@ -30,7 +30,7 @@ class JSONDirectoryRepo(TemplateRepo):
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
         BaseModel. By default dict
-    id_field : str, optional
+    id_field : str
         Attribute or key that identifies each item
         in the repository.
     field_access : {'attr', 'key'}, optional
@@ -57,14 +57,8 @@ class JSONDirectoryRepo(TemplateRepo):
     --------
     .. code-block:: python
 
-        repo = MemoryRepo()
+        repo = JSONDirectoryRepo(path="path/to/repo", id_field="id")
 
-    .. code-block:: python
-
-        repo = MemoryRepo(collection=[
-            {"car_type": "van", "color": "red"},
-            {"car_type": "truck", "color": "red"}
-        ])
     """
 
     path: Path
