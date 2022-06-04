@@ -28,6 +28,7 @@ TEST_CASES = [
     pytest.param("mongo-mock"),
     pytest.param("http-rest"),
     pytest.param("csv"),
+    pytest.param("json-dir"),
 ]
 
 

@@ -10,6 +10,7 @@ import responses
 import requests
 import mongomock
 from redbird.repos.csv import CSVFileRepo
+from redbird.repos.json import JSONDirectoryRepo
 from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
@@ -192,6 +193,9 @@ def get_repo(type_, tmpdir):
     elif type_ == "csv":
         repo = CSVFileRepo(model=PydanticItem, id_field="id", filename=str(tmpdir / "repo.csv"))
         repo.create()
+
+    elif type_ == "json-dir":
+        repo = JSONDirectoryRepo(model=PydanticItem, id_field="id", path=str(tmpdir))
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
