@@ -12,6 +12,9 @@ class Item(BaseModel):
     name: str
     age: Optional[int]
 
+def sort_items(items, repo, field="id"):
+    return list(sorted(items, key=lambda x: repo.get_field_value(x, field)))
+
 def test_missing_id(tmpdir):
     with pytest.raises(ValueError):
         repo = JSONDirectoryRepo(path=tmpdir, model=Item)
@@ -64,27 +67,38 @@ def test_dict_operations(tmpdir):
     repo.add(dict(id="c", name="James", age=30))
 
     # Read
-    assert repo.filter_by().all() == [
+    actual = repo.filter_by().all()
+    expected = [
         dict(id="a", name="Jack", age=20),
         dict(id="b", name="Jack"),
         dict(id="c", name="James", age=30)
     ]
-    assert repo.filter_by(name="Jack").all() == [
+    assert sort_items(actual, repo) == sort_items(expected, repo)
+
+    actual = repo.filter_by(name="Jack").all() 
+    expected = [
         dict(id="a", name="Jack", age=20),
         dict(id="b", name="Jack")
     ]
-    assert repo.filter_by(age=30).all() == [
+    assert sort_items(actual, repo) == sort_items(expected, repo)
+
+    actual = repo.filter_by(age=30).all() 
+    expected = [
         dict(id="c", name="James", age=30),
     ]
+    assert sort_items(actual, repo) == sort_items(expected, repo)
+
     assert repo.filter_by(age="30").all() == []
 
     # Update
     repo.filter_by(name="Jack").update(age=50)
-    assert repo.filter_by().all() == [
+    actual = repo.filter_by().all()
+    expected = [
         dict(id="a", name="Jack", age=50),
         dict(id="b", name="Jack", age=50),
         dict(id="c", name="James", age=30)
     ]
+    assert sort_items(actual, repo) == sort_items(expected, repo)
 
     # Delete
     repo.filter_by(name="Jack").delete()
