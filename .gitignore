@@ -50,8 +50,9 @@ private.ini
 # Some other random stuff
 bash.exe.stackdump
 
-# Sphinx documentation
+# Documentation related
 docs/_build/
+*.drawio
 
 # tox
 .tox/

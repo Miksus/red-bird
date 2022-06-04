@@ -18,12 +18,18 @@ setup(
     classifiers=[
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
 
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
 
         "Intended Audience :: Developers",
+
+        'Topic :: Database',
     ],
     include_package_data=True, # for MANIFEST.in
     python_requires='>=3.6.0',
@@ -33,6 +39,9 @@ setup(
             "sqlalchemy", "pymongo", "requests", "pydantic-sqlalchemy",
             "pytest", "python-dotenv", "responses", "mongomock"
         ],
+        "sql": ["sqlalchemy", "pydantic-sqlalchemy"],
+        "mongodb": ['pymongo'],
+        "rest": ["requests"],
     },
     install_requires = ["pydantic"],
 )
