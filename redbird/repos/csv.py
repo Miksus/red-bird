@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Union, TextIO
 
 import csv
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.base import Data, Item
 from redbird.templates import TemplateRepo
@@ -68,6 +68,7 @@ class CSVFileRepo(TemplateRepo):
     kwds_csv: dict = {}
 
     _session = PrivateAttr()
+    ordered: bool = Field(default=True, const=True)
 
     def insert(self, item):
         file_non_zero = self.filename.exists() and self.filename.stat().st_size > 0

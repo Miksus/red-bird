@@ -18,11 +18,16 @@ class QueryMatcher:
 
     def __contains__(self, item):
         "Match whether item fulfills the query"
-        get_value = self.value_getter
         return all(
-            val.evaluate(get_value(item, key)) if isinstance(val, Operation) else get_value(item, key) == val
+            val.evaluate(self.get_value(item, key)) if isinstance(val, Operation) else self.get_value(item, key) == val
             for key, val in self.query.items()
         )
+
+    def get_value(self, item, key):
+        try:
+            return self.value_getter(item, key)
+        except KeyError:
+            return None
 
 def read_items(repo: TemplateRepo, reader: Generator, query: dict) -> List[Item]:
     

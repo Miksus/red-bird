@@ -2,7 +2,7 @@
 import urllib.parse as urlparse
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
@@ -89,6 +89,8 @@ class RESTRepo(TemplateRepo):
     headers: dict = {}
 
     _session = PrivateAttr()
+
+    ordered: bool = Field(default=False, const=True)
 
     def insert(self, item):
         json = self.item_to_dict(item)

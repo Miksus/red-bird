@@ -1,6 +1,6 @@
 
 from typing import TYPE_CHECKING, Any, Optional, Type
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
@@ -151,6 +151,7 @@ class SQLRepo(TemplateRepo):
     session: Any
     engine: Optional[Any]
 
+    ordered: bool = Field(default=True, const=True)
     _Base = PrivateAttr()
 
     @classmethod
