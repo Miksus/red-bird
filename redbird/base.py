@@ -40,23 +40,23 @@ class BaseResult(ABC):
         self.repo = repo
         self.query_ = self.format_query(query)
         
-    def first(self):
+    def first(self) -> Item:
         "Return first item"
         for item in self.query():
             return item
     
-    def last(self):
+    def last(self) -> Item:
         "Return last item"
         item = None
         for item in self.query():
             pass
         return item
 
-    def all(self):
+    def all(self) -> List[Item]:
         "Return all items"
         return list(self.query())
 
-    def limit(self, n:int) -> Generator:
+    def limit(self, n:int) -> List[Item]:
         "Return n items"
         items = []
         for i, item in enumerate(self.query(), start=1):
@@ -139,7 +139,6 @@ class BaseResult(ABC):
     def count(self) -> int:
         "Count the resulted items"
         return len(list(self))
-
 
     def format_query(self, query:dict) -> dict:
         "Turn the query to a form that's understandable by the underlying database"

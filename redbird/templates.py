@@ -1,7 +1,7 @@
 
 from abc import abstractmethod
-from typing import Any, ClassVar, Iterator
-from .base import BaseRepo, BaseResult, Data
+from typing import Any, ClassVar, Dict, Iterator, List, Union
+from .base import BaseRepo, BaseResult, Data, Item
 
 class TemplateResult(BaseResult):
     repo: 'TemplateRepo'
@@ -27,7 +27,7 @@ class TemplateResult(BaseResult):
             # default alternative (delete, add)
             return super().replace(**kwargs)
 
-    def count(self):
+    def count(self) -> int:
         try:
             return self.repo.query_count(self.query_)
         except NotImplementedError:
@@ -35,19 +35,19 @@ class TemplateResult(BaseResult):
             # default alternative (len(self))
             return super().count()
 
-    def first(self):
+    def first(self) -> Item:
         try:
             return self.repo.query_read_first(self.query_)
         except NotImplementedError:
             return super().first()
 
-    def limit(self, n:int):
+    def limit(self, n:int) -> List[Item]:
         try:
             return self.repo.query_read_limit(self.query_, n)
         except NotImplementedError:
             return super().limit(n)
 
-    def last(self):
+    def last(self) -> Item:
         try:
             return self.repo.query_read_last(self.query_)
         except NotImplementedError:
@@ -157,9 +157,6 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").update(color="blue")
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         ...
 
@@ -180,13 +177,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").delete()
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         ...
 
-    def query_read_first(self, query: Any):
+    def query_read_first(self, query: dict) -> Item:
         """Query the first item
 
         You may override this method. By default,
@@ -204,13 +198,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").first()
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Read using first not implemented.")
 
-    def query_read_limit(self, query, n:int):
+    def query_read_limit(self, query: dict, n:int) -> List[Item]:
         """Query the first n items
 
         You may override this method. By default,
@@ -230,13 +221,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").limit(3)
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Read using limit not implemented.")
 
-    def query_read_last(self, query):
+    def query_read_last(self, query: dict) -> Item:
         """Query the last item
 
         You may override this method. By default,
@@ -254,13 +242,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").last()
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Read using first not implemented.")
 
-    def query_replace(self, query, values):
+    def query_replace(self, query: dict, values: dict):
         """Replace the items with given values using given query
 
         You may override this method. By default,
@@ -281,13 +266,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").replace(color="blue")
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Replacing using query not implemented.")
 
-    def query_count(self, query):
+    def query_count(self, query: dict):
         """Count the items returned by the query
 
         You may override this method. By default,
@@ -305,13 +287,10 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").count()
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Count using query not implemented.")
 
-    def format_query(self, query:dict):
+    def format_query(self, query: dict) -> dict:
         """Format the query to a format suitable by the repository
 
         You may override this method. By default,
@@ -328,8 +307,5 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red")
 
-        .. warning::
-
-            This class is meant to be called directly.
         """
         raise NotImplementedError("Query formatting not implemented.")
