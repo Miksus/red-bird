@@ -224,12 +224,12 @@ class MongoRepo(TemplateRepo):
         return json
 
 # Query based
-    def query_read(self, query):
+    def query_data(self, query):
         col = self.get_collection()
         for data in col.find(query):
             yield data
 
-    def query_read_limit(self, query, n:int):
+    def query_data_limit(self, query, n:int):
         "Get n first items"
         col = self.get_collection()
         return [

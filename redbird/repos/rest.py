@@ -109,7 +109,7 @@ class RESTRepo(TemplateRepo):
         )
         return page
 
-    def query_read(self, query):
+    def query_data(self, query):
         url = query
         page = self._request("GET", url)
         output = page.json()

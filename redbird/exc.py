@@ -1,3 +1,4 @@
+import warnings
 
 class KeyFoundError(Exception):
     """Typically raised in insertion.
@@ -16,3 +17,11 @@ class DataToItemError(ValueError):
 
 class ConversionWarning(UserWarning):
     "Converting data to item or item to data failed non-fatally"
+
+
+def _handle_conversion_error(repo, data):
+    errors_query = repo.errors_query
+    if errors_query == "raise":
+        raise
+    elif errors_query == "warn":
+        warnings.warn(f'Converting data to item failed: \n{data}', ConversionWarning)
