@@ -13,5 +13,4 @@ for more thorough instruction of how to use the library.
    :caption: Contents:
 
    base_classes
-   repo_classes
 

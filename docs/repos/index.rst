@@ -17,6 +17,8 @@ for all features except those stated otherwise.
    sql
    mongo
 
+   custom_repo
+
 Common Configurations
 ---------------------
 

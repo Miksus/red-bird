@@ -25,6 +25,8 @@ class CSVFileRepo(TemplateRepo):
 
     Parameters
     ----------
+    filename : path-like
+        The repository file
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -43,24 +45,16 @@ class CSVFileRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    filename : list
-        The repository file
     kwds_csv : dict
         Keyword arguments used to create 
         ``csv.DictWriter`` and ``csv.DictReader``
     
     Examples
     --------
-    .. code-block:: python
-
-        repo = MemoryRepo()
 
     .. code-block:: python
 
-        repo = MemoryRepo(collection=[
-            {"car_type": "van", "color": "red"},
-            {"car_type": "truck", "color": "red"}
-        ])
+        repo = CSVFileRepo(filepath="path/to/repo", fieldnames=['id', 'name', 'age'])
     """
 
     filename: Path

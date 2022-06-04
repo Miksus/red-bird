@@ -104,3 +104,10 @@ way as any other repository. Please see:
 - :ref:`Creating an item to the repository <create>`
 - :ref:`Deleting an item from the repository <delete>`
 - :ref:`Updating an item in the repository <update>`
+
+
+Class
+-----
+
+.. autoclass:: redbird.repos.SQLRepo
+    :members: insert, filter_by, update, delete

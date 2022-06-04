@@ -19,6 +19,24 @@ Alternatively, you may pass the client:
     from pymongo import MongoClient
     repo = MongoRepo(client=MongoClient("mongodb://USERNAME:PASSWORD@localhost:27017"), database="my_db", collection="my_items")
 
+With Pydantic model:
+
+.. code-block:: python
+
+    from redbird.repos import MongoRepo
+
+    class MyItem(BaseModel):
+        id: str
+        name: str
+        age: int
+
+    repo = MongoRepo(
+        uri="mongodb://USERNAME:PASSWORD@localhost:27017", 
+        database="my_db", 
+        collection="my_items",
+        model=MyItem
+    )
+
 Usage
 -----
 
@@ -29,3 +47,10 @@ way as any other repository. Please see:
 - :ref:`Creating an item to the repository <create>`
 - :ref:`Deleting an item from the repository <delete>`
 - :ref:`Updating an item in the repository <update>`
+
+
+Class
+-----
+
+.. autoclass:: redbird.repos.MongoRepo
+    :members: insert, filter_by, update, delete

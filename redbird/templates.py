@@ -133,18 +133,26 @@ class TemplateRepo(BaseRepo):
     """
     cls_result: ClassVar = TemplateResult
 
-    def query_data(self, query: dict) -> Iterator[Item]:
-        """Query raw data
+    def query_data(self, query: dict) -> Iterator[Data]:
+        """Query (read) the data store and return raw data
 
-        Override this method.
+        Override this or :func:`~redbird.templates.TemplateRepo.query_items` method.
 
         Parameters
         ----------
-        query : any
+        query : dict
             Repository query, by default dict.
+
+        Returns
+        -------
+        iterable (any)
+            Iterable of raw data that is converted to an item using :func:`~redbird.base.BaseRepo.data_to_item`
 
         Examples
         --------
+
+        Used in following cases:
+
         .. code-block:: python
 
             repo.filter_by(color="red").all()
@@ -153,17 +161,26 @@ class TemplateRepo(BaseRepo):
         raise NotImplementedError("Method query_data not implemented")
 
     def query_items(self, query: dict) -> Iterator[Item]:
-        """Query transformed items
+        """Query (read) the data store and return items
 
-        Override this method.
+        Override this or :func:`~redbird.templates.TemplateRepo.query_data` method.
 
         Parameters
         ----------
-        query : any
+        query : dict
             Repository query, by default dict.
+
+        Returns
+        -------
+        iterable (``model``)
+            Items that are instances of the class in the ``model`` attibute.
+            Typically dicts or instances of subclassed Pydantic BaseModel
 
         Examples
         --------
+
+        Used in following cases:
+
         .. code-block:: python
 
             repo.filter_by(color="red").all()
@@ -184,6 +201,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in following cases:
+
         .. code-block:: python
 
             repo.filter_by(color="red").update(color="blue")
@@ -204,6 +224,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in following cases:
+
         .. code-block:: python
 
             repo.filter_by(color="red").delete()
@@ -225,6 +248,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+
         .. code-block:: python
 
             repo.filter_by(color="red").first()
@@ -248,6 +274,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+
         .. code-block:: python
 
             repo.filter_by(color="red").limit(3)
@@ -269,6 +298,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+
         .. code-block:: python
 
             repo.filter_by(color="red").last()
@@ -293,6 +325,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+
         .. code-block:: python
 
             repo.filter_by(color="red").replace(color="blue")
@@ -314,6 +349,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+
         .. code-block:: python
 
             repo.filter_by(color="red").count()
@@ -334,6 +372,9 @@ class TemplateRepo(BaseRepo):
 
         Examples
         --------
+
+        Used in the following case:
+        
         .. code-block:: python
 
             repo.filter_by(color="red")

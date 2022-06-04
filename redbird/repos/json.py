@@ -26,6 +26,8 @@ class JSONDirectoryRepo(TemplateRepo):
 
     Parameters
     ----------
+    path : Path-like
+        Path to the repository directory
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -44,8 +46,6 @@ class JSONDirectoryRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    path : Path-like
-        Path to the repository directory
     kwds_json_load : dict
         Keyword arguments passed to ``json.load``. 
     kwds_json_dump : dict
@@ -154,6 +154,10 @@ class JSONDirectoryRepo(TemplateRepo):
 
     def get_file_path(self, id):
         return self.path / f"{id}.json"
+
+    def create(self):
+        "Create the repository directory"
+        self.path.mkdir(parents=True, exist_ok=True)
 
     @property
     def session(self):
