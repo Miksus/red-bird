@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
@@ -147,6 +147,8 @@ class MongoRepo(TemplateRepo):
     session: Any
     database: Optional[str]
     collection: Optional[str]
+
+    ordered: bool = Field(default=True, const=True)
 
     def __init__(self, *args, uri=None, client=None, session=None, **kwargs):
         if uri is not None:

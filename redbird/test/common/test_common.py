@@ -34,6 +34,9 @@ TEST_CASES = [
 ]
 
 
+def sort_items(items, repo, field="id"):
+    return list(sorted(items, key=lambda x: repo.get_field_value(x, field)))
+
 # ------------------------
 # ACTUAL TESTS
 # ------------------------
@@ -433,10 +436,16 @@ class TestEmpty:
         assert repo.filter_by().all() == [Item(id="a", name="Jack", age=20)]
 
         repo.add(Item(id="b", name="John", age=30))
-        assert repo.filter_by().all() == [
+        
+        actual = repo.filter_by().all()
+        expected = [
             Item(id="a", name="Jack", age=20),
             Item(id="b", name="John", age=30)
         ]
+        if repo.ordered:
+            assert actual == expected
+        else:
+            assert sort_items(actual, repo) == sort_items(expected, repo)
 
     def test_update(self, repo):
         Item = repo.model
@@ -445,11 +454,17 @@ class TestEmpty:
         repo.add(Item(id="b", name="John", age=30))
 
         repo.update(Item(id="a", name="Max"))
-        items = repo.filter_by().all()
-        assert items == [
+        actual = repo.filter_by().all()
+
+        actual = repo.filter_by().all()
+        expected = [
             Item(id="a", name="Max", age=20),
             Item(id="b", name="John", age=30),
         ]
+        if repo.ordered:
+            assert actual == expected
+        else:
+            assert sort_items(actual, repo) == sort_items(expected, repo)
 
     def test_replace(self, repo):
         Item = repo.model

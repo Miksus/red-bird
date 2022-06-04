@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Dict, Generator, Iterator, List, Literal, Mapp
 from dataclasses import dataclass
 import warnings
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError, _handle_conversion_error
 from redbird.utils.case import to_case
@@ -142,6 +142,9 @@ class BaseRepo(ABC, BaseModel):
 
     errors_query: Literal['raise', 'warn', 'discard'] = 'raise'
     field_access: Literal['attr', 'key', 'infer'] = 'infer'
+
+    # Attributes that specifies how the repo behaves
+    ordered: bool = Field(default=False, const=True)
 
     def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
