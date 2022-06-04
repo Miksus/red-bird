@@ -4,8 +4,6 @@ import warnings
 from typing import Any, ClassVar, Dict, Iterator, List, Union
 
 from redbird.exc import ConversionWarning, _handle_conversion_error
-from redbird.oper import Operation
-from redbird.utils.query import QueryMatcher
 from .base import BaseRepo, BaseResult, Data, Item
 
 class TemplateResult(BaseResult):
