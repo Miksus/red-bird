@@ -19,6 +19,14 @@ class SQLRepo(TemplateRepo):
 
     Parameters
     ----------
+    conn_string : str, optional
+        Connection string to the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
+    engine : sqlalchemy.engine.Engine, optional
+        SQLAlchemy engine to connect the database. 
+        Pass either conn_string, engine or session if
+        model_orm is not defined.
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -43,14 +51,6 @@ class SQLRepo(TemplateRepo):
     table : str, optional
         Table name where the items lies. Should only be given
         if no model_orm specified.
-    conn_string : str, optional
-        Connection string to the database. 
-        Pass either conn_string, engine or session if
-        model_orm is not defined.
-    engine : sqlalchemy.engine.Engine, optional
-        SQLAlchemy engine to connect the database. 
-        Pass either conn_string, engine or session if
-        model_orm is not defined.
     session : sqlalchemy.session.Session
         Connection session to the database.
         Pass either conn_string, engine or session if
@@ -248,6 +248,7 @@ class SQLRepo(TemplateRepo):
             return d
 
     def create(self):
+        "Create the database and table"
         self.model_orm.__table__.create(bind=self.session.bind)
 
     def query_data(self, query):

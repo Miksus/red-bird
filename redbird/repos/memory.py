@@ -19,6 +19,8 @@ class MemoryRepo(TemplateRepo):
 
     Parameters
     ----------
+    collection : list
+        The collection
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -37,8 +39,6 @@ class MemoryRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    collection : list
-        The collection.
     
     Examples
     --------

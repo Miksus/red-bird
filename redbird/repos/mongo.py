@@ -89,6 +89,12 @@ class MongoRepo(TemplateRepo):
 
     Parameters
     ----------
+    uri : str, optional
+        Connection string to the database.
+        Pass uri, client or session.
+    client : mongodb.MongoClient, optional
+        MongoDB client for the connection.
+        Pass uri, client or session.
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -107,12 +113,6 @@ class MongoRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    uri : str, optional
-        Connection string to the database.
-        Pass uri, client or session.
-    client : mongodb.MongoClient, optional
-        MongoDB client for the connection.
-        Pass uri, client or session.
     session : Session, Any
         A MongoDB session object that should
         have at least ``client`` attribute.

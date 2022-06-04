@@ -32,6 +32,12 @@ class RESTRepo(TemplateRepo):
 
     Parameters
     ----------
+    url : str
+        Base URL for the API. Should not contain
+        query parameters or the item ID. The full
+        URL will be "{url}/{id}" if a single item
+        is searched, "{url}?{param}={value}" if 
+        the endpoint is queried.
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -49,13 +55,7 @@ class RESTRepo(TemplateRepo):
         Whether to raise an exception, warn or discard
         the item in case of validation error in 
         converting data to the item model from
-        the repository. By default raise 
-    url : str
-        Base URL for the API. Should not contain
-        query parameters or the item ID. The full
-        URL will be "{url}/{id}" if a single item
-        is searched, "{url}?{param}={value}" if 
-        the endpoint is queried.
+        the repository. By default raise
     headers : dict
         HTTP Headers (for example authentication)
     url_params : dict

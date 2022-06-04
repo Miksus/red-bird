@@ -12,36 +12,45 @@ access from the application code. The aim is that the code runs the
 same regardless if the data is stored to an SQL database, NoSQL 
 database, file or even as an in-memory list.
 
+- `Source code <https://github.com/Miksus/red-bird>`_
+- `Releases (PyPI) <https://pypi.org/project/redbird>`_
+
 Why Repository Pattern?
 -----------------------
+
+**Short Answer:** 
+
+Because it simplifies things, makes prototyping
+faster and testing easier.
+
+**Long answer:**
 
 Typically, data access in an application looks like this:
 
 .. image:: /imgs/typical_application.png
     :align: center
 
-The data access is often directly embedded with the application code.
-Moreover, the communication with the database may even be tangled with the 
-business logic in the application meaning that the database queries also
-contain business logic and is not only for simple data access.
+In other words, querying the databases is embedded with the application
+code, ie. the application code executes raw SQL, MongoDB queries or 
+HTTP requests to APIs. This makes the application code to be data 
+store specific. In order for the application to function, it 
+must be connected to a specific type of a database. 
 
 For many projects this approach may not cause additional difficulities but 
 there are several problems with this approach related to readability and 
 maintainability:
 
-- Understanding the application requires undrestanding how the underlying
+- Application code is data store specific thus later switching to another 
+  data store may require a lot of work.
+- Testing the application code is non-trivial if there is no test database 
+  of the same type as the production.
+- Understanding the application requires understanding how the underlying
   database works.
-- Migrating the databases may become a challenge in the application code.
-- Creating unit tests is difficult as the querying language is embedded
-  with the application and replacing the output with hard-coded lists
-  is burdensome.  
-- Separating production from development environment may be tricky if the
-  connections are hard-coded and embedded to the application code.
-- The code may become hard to read if multiple databases are used with 
-  different querying languages.
+- The code may become hard to read if multiple types of databases are used,
+  ie. SQL databases and MongoDB databases.
 
 Repository pattern aims to separate the domain layer (application logic) from 
-the database layer (data access) by unifying the syntax for creating, acquiring,
+the database layer (data access) by unifying the syntax for creating, fetching,
 modifying and deleting data in the data stores. It transforms generic actions
 to the language a specific database understands.
 
@@ -74,6 +83,29 @@ don't require optimized or complex queries. Furthermore, applications that
 do need them may still implement repository pattern and use database specific
 queries only in places where this is unavoidable.
 
+Main Features
+-------------
+
+In short, Red Bird offers:
+
+- Identical way accross data stores of doing the following operations:
+
+    - Create an item to the data store
+    - Read items from the data store
+    - Update items in the data store
+    - Delete items in the data store
+
+- Data validation via Pydantic
+- Basic querying operations (ie. equal, greater or less than)
+
+Supported repositories:
+
+- SQL (via SQLAlchemy)
+- MongoDB (via Pymongo)
+- In-memory (objects in Python list)
+- CSV (each row is an item)
+- JSON (a JSON file per item)
+
 Terminology
 -----------
 
@@ -100,11 +132,11 @@ MongoDB        collection            document         field
 REST (HTTP)    URL endpoint          JSON object      field
 ============== ===================== ================ =================================
 
-Operations
-^^^^^^^^^^
+Database Operations
+^^^^^^^^^^^^^^^^^^^
 
 There are four generic operations implemented by almost every data store:
-create, read, update and delete. These are often called CRUD. Read-only
+create, read, update and delete. These are often labeled CRUD. Read-only
 data store may only have read operation and some simple data stores may 
 only have read, create and delete (such as a CSV file). For basic CRUD 
 actions, Red Bird uses tems more commonly used in Python language: 
@@ -118,9 +150,9 @@ These unified methods for manipulating data (a single item) are illustrated belo
 ============== ================ =========== =========== ================ =======================
 Repository     get              add         delete      update           replace
 ============== ================ =========== =========== ================ =======================
-Python memory  list.__getitem__ list.append list.pop    setattr          repo.delete & repo.add
-SQL            SELECT           INSERT      DELETE      UPDATE           repo.delete & repo.add
-MongoDB        findOne          insertOne   deleteOne   updateOne        repo.delete & repo.add
+Python memory  list[...]        list.append list.pop    setattr          list.pop & list.append
+SQL            SELECT           INSERT      DELETE      UPDATE           DELETE & INSERT
+MongoDB        findOne          insertOne   deleteOne   updateOne        deleteOne & insertOne
 REST (HTTP)    GET              POST        DELETE      PATCH            PUT
 ============== ================ =========== =========== ================ =======================
 
@@ -141,7 +173,7 @@ that is unique for each item:
   from redbird.repos import MemoryRepo
   repo = MemoryRepo(id_field="registration_number")
 
-Create operation:
+Create some items to the database:
 
 .. code-block::
 
@@ -149,7 +181,7 @@ Create operation:
   repo.add({"registration_number": "111-222-333", "color": "red"})
   repo.add({"registration_number": "444-555-666", "color": "blue"})
 
-Get operation:
+Get items from the database:
 
 .. code-block::
 
@@ -159,7 +191,7 @@ Get operation:
   # Multiple items
   repo.filter_by(color="red").all()
 
-Update operation:
+Update items in the database:
 
 .. code-block::
 
@@ -169,7 +201,7 @@ Update operation:
   # Multiple items
   repo.filter_by(color="blue").update(color="green")
 
-Delete operation:
+Delete items from the database:
 
 .. code-block::
 
@@ -178,7 +210,6 @@ Delete operation:
 
   # Multiple items
   repo.filter_by(color="red").delete()
-
 
 
 .. toctree::
