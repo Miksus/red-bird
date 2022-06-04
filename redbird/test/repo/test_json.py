@@ -54,3 +54,42 @@ def test_kwds_json(tmpdir):
 
     # Testing reading
     assert repo['1111'] == Item(id="1111", name="Jack", age=20)
+
+def test_dict_operations(tmpdir):
+    repo = JSONDirectoryRepo(path=tmpdir, id_field="id")
+
+    # Insert
+    repo.add(dict(id="a", name="Jack", age=20))
+    repo.add(dict(id="b", name="Jack"))
+    repo.add(dict(id="c", name="James", age=30))
+
+    # Read
+    assert repo.filter_by().all() == [
+        dict(id="a", name="Jack", age=20),
+        dict(id="b", name="Jack"),
+        dict(id="c", name="James", age=30)
+    ]
+    assert repo.filter_by(name="Jack").all() == [
+        dict(id="a", name="Jack", age=20),
+        dict(id="b", name="Jack")
+    ]
+    assert repo.filter_by(age=30).all() == [
+        dict(id="c", name="James", age=30),
+    ]
+    assert repo.filter_by(age="30").all() == []
+
+    # Update
+    repo.filter_by(name="Jack").update(age=50)
+    assert repo.filter_by().all() == [
+        dict(id="a", name="Jack", age=50),
+        dict(id="b", name="Jack", age=50),
+        dict(id="c", name="James", age=30)
+    ]
+
+    # Delete
+    repo.filter_by(name="Jack").delete()
+    assert repo.filter_by().all() == [
+        #dict(id="a", name="Jack", age=50),
+        #dict(id="b", name="Jack", age=50),
+        dict(id="c", name="James", age=30)
+    ]
