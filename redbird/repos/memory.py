@@ -9,20 +9,7 @@ from redbird.exc import KeyFoundError
 from redbird.oper import Operation
 from redbird.dummy import DummySession
 
-
-class QueryMatcher:
-
-    def __init__(self, query, value_getter):
-        self.query = query
-        self.value_getter = value_getter
-
-    def __contains__(self, item):
-        "Match whether item fulfills the query"
-        get_value = self.value_getter
-        return all(
-            val.evaluate(get_value(item, key)) if isinstance(val, Operation) else get_value(item, key) == val
-            for key, val in self.query.items()
-        )
+from redbird.utils.query import QueryMatcher
 
 class MemoryRepo(TemplateRepo):
     """Memory repository

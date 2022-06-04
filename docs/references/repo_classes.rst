@@ -10,6 +10,12 @@ MemoryRepo
 .. autoclass:: redbird.repos.MemoryRepo
     :members: insert, filter_by, update, delete
 
+CSVFileRepo
+-----------
+
+.. autoclass:: redbird.repos.CSVFileRepo
+    :members: insert, filter_by, update, delete
+
 
 SQLRepo
 -------
