@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import pytest
 import responses
 import requests
+from redbird.repos.csv import CSVFileRepo
+from redbird.repos.json import JSONDirectoryRepo
 from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
@@ -148,7 +150,17 @@ class TestPopulated(RepoTests):
         Item = repo.model
 
         repo.filter_by(id="b").replace(id="b", name="Something")
+
+        expected = [
+            Item(id="a", name="Jack", age=20),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            Item(id="b", name="Something", age=None),
+        ]
         if repo.model == dict and not isinstance(repo, SQLRepo):
+            # In dict repositories the not given fields don't exists
+            # (exception: structured data stores)
             expected = [
                 Item(id="a", name="Jack", age=20),
                 Item(id="c", name="James", age=30),
@@ -156,15 +168,14 @@ class TestPopulated(RepoTests):
                 Item(id="e", name="Jesse", age=40),
                 Item(id="b", name="Something"),
             ]
-        else:
-            expected = [
-                Item(id="a", name="Jack", age=20),
-                Item(id="c", name="James", age=30),
-                Item(id="d", name="Johnny", age=30),
-                Item(id="e", name="Jesse", age=40),
-                Item(id="b", name="Something", age=None),
-            ]
-        assert repo.filter_by().all() == expected
+
+        actual = repo.filter_by().all()
+        if isinstance(repo, JSONDirectoryRepo):
+            # In these repositories we cannot determine the order
+            expected = list(sorted(expected, key=lambda x: x.id))
+            actual = list(sorted(actual, key=lambda x: x.id))
+
+        assert actual == expected
 
     def test_filter_by_replace_dict(self, repo):
         self.populate(repo)
@@ -172,7 +183,16 @@ class TestPopulated(RepoTests):
 
         repo.filter_by(id="b").replace({"id": "b", "name": "Something"})
         
+        expected = [
+            Item(id="a", name="Jack", age=20),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+            Item(id="e", name="Jesse", age=40),
+            Item(id="b", name="Something", age=None),
+        ]
         if repo.model == dict and not isinstance(repo, SQLRepo):
+            # In dict repositories the not given fields don't exists
+            # (exception: structured data stores)
             expected = [
                 Item(id="a", name="Jack", age=20),
                 Item(id="c", name="James", age=30),
@@ -180,14 +200,12 @@ class TestPopulated(RepoTests):
                 Item(id="e", name="Jesse", age=40),
                 Item(id="b", name="Something"),
             ]
-        else:
-            expected = [
-                Item(id="a", name="Jack", age=20),
-                Item(id="c", name="James", age=30),
-                Item(id="d", name="Johnny", age=30),
-                Item(id="e", name="Jesse", age=40),
-                Item(id="b", name="Something", age=None),
-            ]
+
+        actual = repo.filter_by().all()
+        if isinstance(repo, JSONDirectoryRepo):
+            # In these repositories we cannot determine the order
+            expected = list(sorted(expected, key=lambda x: x.id))
+            actual = list(sorted(actual, key=lambda x: x.id))
 
         assert repo.filter_by().all() == expected
 
