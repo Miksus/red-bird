@@ -136,9 +136,13 @@ class TestPopulated(RepoTests):
                 Item(id="c", name="James", age=30),
             ]
         if not repo.ordered:
-            actual = sort_items(actual, repo)
-            expected = sort_items(expected, repo)
-        assert actual == expected
+            # We don't know which are the top 2
+            assert isinstance(actual, list)
+            for item in actual:
+                assert repo.get_field_value(item, "age") == 30
+            assert len(actual) == 2
+        else:
+            assert actual == expected
 
     def test_filter_by_all(self, repo):
         self.populate(repo)
