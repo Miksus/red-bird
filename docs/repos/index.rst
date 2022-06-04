@@ -12,6 +12,7 @@ for all features except those stated otherwise.
    :caption: Contents:
 
    memory
+   csv
    sql
    mongo
 

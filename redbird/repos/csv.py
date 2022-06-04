@@ -17,9 +17,11 @@ from redbird.utils.query import delete_items, read_items, update_items
 from redbird.utils.query import QueryMatcher
 
 class CSVFileRepo(TemplateRepo):
-    """CSV repository
+    """CSV file repository
 
-    This repository has a CSV file as data store.
+    This repository has a CSV (comma-separated values) 
+    file as a data store. Each item represents a row
+    in the file.
 
     Parameters
     ----------
@@ -42,7 +44,7 @@ class CSVFileRepo(TemplateRepo):
         converting data to the item model from
         the repository. By default raise 
     filename : list
-        The collection.
+        The repository file
     
     Examples
     --------
