@@ -9,6 +9,7 @@ import pytest
 import responses
 import requests
 import mongomock
+from redbird.repos.csv import CSVFileRepo
 from redbird.repos.rest import RESTRepo
 from redbird.repos.sqlalchemy import SQLRepo
 from redbird.repos.memory import MemoryRepo
@@ -178,7 +179,7 @@ class RESTMock:
         )
 
 
-def get_repo(type_):
+def get_repo(type_, tmpdir):
     if type_.startswith("sql-"):
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import Column, String, Integer, create_engine
@@ -187,6 +188,10 @@ def get_repo(type_):
 
     elif type_ == "memory-dict":
         repo = MemoryRepo(model=dict, id_field="id")
+
+    elif type_ == "csv":
+        repo = CSVFileRepo(model=PydanticItem, id_field="id", filename=str(tmpdir / "repo.csv"))
+        repo.create()
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
@@ -244,8 +249,8 @@ def get_repo(type_):
 # ------------------------
 
 @pytest.fixture
-def repo(request):
-    repo = get_repo(request.param)
+def repo(request, tmpdir):
+    repo = get_repo(request.param, tmpdir)
     if request.param == "http-rest":
         api = RESTMock()
         with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
