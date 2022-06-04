@@ -8,7 +8,7 @@ import warnings
 
 from pydantic import BaseModel
 
-from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError
+from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError, _handle_conversion_error
 from redbird.utils.case import to_case
 
 from .oper import Operation
@@ -71,50 +71,12 @@ class BaseResult(ABC):
             try:
                 yield self.repo.data_to_item(data)
             except ValueError:
-                if self.repo.errors_query == "raise":
-                    raise
-                elif self.repo.errors_query == "warn":
-                    warnings.warn(f'Converting data to item failed: \n{data}', ConversionWarning)
+                _handle_conversion_error(self.repo, data)
 
     @abstractmethod
     def query_data(self) -> Iterator[Data]:
         "Get actual result"
         ...
-
-    def validate(self, max_shown=10):
-        tmpl = dedent("""
-            Validation Errors
-            =================
-            Model: {model}
-            Errors: {n_errors}
-
-            Details
-            =================
-            {details}
-            """)[1:]
-        errors = []
-        for data in self.query_data():
-            try:
-                self.repo.data_to_item(data)
-            except ValueError as exc:
-                errors.append((data, exc))
-        if errors:
-            msg_details = ""
-            for data, exc in errors[:max_shown]:
-                item = shorten(str(data), width=100)
-                msg_details = msg_details + dedent("""
-                    Item
-                    -----------------
-                    {item}
-
-                    {exc}
-                    """).format(item=item, exc=indent(str(exc), " " * 2))
-            if len(errors) > max_shown:
-                msg_details = msg_details + "\n[...]"
-
-            msg_details = indent(msg_details, " " * 2)
-
-            raise ValueError(tmpl.format(n_errors=len(errors), details=msg_details, model=self.repo.model))
 
     def __iter__(self) -> Iterator[Item]:
         return self.query()

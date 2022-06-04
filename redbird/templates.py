@@ -1,14 +1,30 @@
 
 from abc import abstractmethod
+import warnings
 from typing import Any, ClassVar, Dict, Iterator, List, Union
+
+from redbird.exc import ConversionWarning, _handle_conversion_error
 from .base import BaseRepo, BaseResult, Data, Item
 
 class TemplateResult(BaseResult):
     repo: 'TemplateRepo'
 
+    def query(self) -> Iterator[Item]:
+        "Get actual result"
+        try:
+            items = self.repo.query_items(self.query_)
+        except NotImplementedError:
+            for data in self.repo.query_data(self.query_):
+                try:
+                    yield self.repo.data_to_item(data)
+                except ValueError:
+                    _handle_conversion_error(self.repo, data)
+        else:
+             yield from items
+
     def query_data(self) -> Iterator[Data]:
         "Get actual result"
-        return self.repo.query_read(self.query_)
+        return self.repo.query_data(self.query_)
 
     def update(self, **kwargs):
         return self.repo.query_update(self.query_, kwargs)
@@ -117,9 +133,8 @@ class TemplateRepo(BaseRepo):
     """
     cls_result: ClassVar = TemplateResult
 
-    @abstractmethod
-    def query_read(self, query):
-        """Query all
+    def query_data(self, query: dict) -> Iterator[Item]:
+        """Query raw data
 
         Override this method.
 
@@ -134,14 +149,30 @@ class TemplateRepo(BaseRepo):
 
             repo.filter_by(color="red").all()
         
-        .. warning::
-
-            This class is meant to be called directly.
         """
-        ...
+        raise NotImplementedError("Method query_data not implemented")
+
+    def query_items(self, query: dict) -> Iterator[Item]:
+        """Query transformed items
+
+        Override this method.
+
+        Parameters
+        ----------
+        query : any
+            Repository query, by default dict.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            repo.filter_by(color="red").all()
+        
+        """
+        raise NotImplementedError("Method query_items not implemented")
 
     @abstractmethod
-    def query_update(self, query, values):
+    def query_update(self, query: dict, values: dict):
         """Update the result of the query with given values
 
         Override this method.
@@ -161,7 +192,7 @@ class TemplateRepo(BaseRepo):
         ...
 
     @abstractmethod
-    def query_delete(self, query):
+    def query_delete(self, query: dict):
         """Delete the result of the query
 
         Override this method.

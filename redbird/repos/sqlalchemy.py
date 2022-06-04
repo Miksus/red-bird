@@ -249,11 +249,11 @@ class SQLRepo(TemplateRepo):
     def create(self):
         self.model_orm.__table__.create(bind=self.session.bind)
 
-    def query_read(self, query):
+    def query_data(self, query):
         for data in self._filter_orm(query):
             yield data
 
-    def query_read_first(self, query):
+    def query_data_first(self, query):
         item = self._filter_orm(query).first()
         if item is not None:
             return self.data_to_item(item)

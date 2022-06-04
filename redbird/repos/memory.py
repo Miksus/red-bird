@@ -81,7 +81,7 @@ class MemoryRepo(TemplateRepo):
     def item_to_data(self, item):
         return item
 
-    def query_read(self, query):
+    def query_data(self, query):
         query = QueryMatcher(query, value_getter=self.get_field_value)
         col = self.collection
         for data in col:
