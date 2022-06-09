@@ -160,6 +160,22 @@ class TestPopulated(RepoTests):
             expected = sort_items(expected, repo)
         assert actual == expected
 
+    def test_filter_by_iter(self, repo):
+        self.populate(repo)
+        Item = repo.model
+        
+        actual = list(repo.filter_by(age=30))
+        expected = [
+            Item(id="b", name="John", age=30),
+            Item(id="c", name="James", age=30),
+            Item(id="d", name="Johnny", age=30),
+        ]
+        
+        if not repo.ordered:
+            actual = sort_items(actual, repo)
+            expected = sort_items(expected, repo)
+        assert actual == expected
+
     def test_filter_by_update(self, repo):
         self.populate(repo)
         Item = repo.model
