@@ -1,7 +1,7 @@
 
 from functools import wraps
 from operator import getitem
-from typing import Dict, Generator, List, Literal
+from typing import Dict, Generator, List
 import warnings
 
 from redbird.base import Data, Item
@@ -9,6 +9,10 @@ from redbird.exc import ConversionWarning, _handle_conversion_error
 from redbird.templates import TemplateRepo
 from redbird.oper import Operation
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 class QueryMatcher:
 
