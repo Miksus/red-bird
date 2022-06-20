@@ -43,5 +43,5 @@ setup(
         "mongodb": ['pymongo'],
         "rest": ["requests"],
     },
-    install_requires = ["pydantic"],
+    install_requires = ["pydantic", "typing_extensions"],
 )

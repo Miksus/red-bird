@@ -2,7 +2,7 @@
 from abc import abstractmethod, ABC
 from operator import getitem, setitem
 from textwrap import dedent, indent, shorten
-from typing import Any, ClassVar, Dict, Generator, Iterator, List, Literal, Mapping, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, Generator, Iterator, List, Mapping, Optional, Tuple, Type, TypeVar, Union
 from dataclasses import dataclass
 import warnings
 
@@ -12,6 +12,12 @@ from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemT
 from redbird.utils.case import to_case
 
 from .oper import Operation
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 
 Item = TypeVar("Item")
 Data = TypeVar("Data")
