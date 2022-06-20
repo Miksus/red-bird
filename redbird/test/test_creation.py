@@ -14,4 +14,9 @@ def test_repo_incomplete():
         class MyRepo(BaseRepo):
             ...
         MyRepo()
-    assert str(excinfo.value.args[0]) == "Can't instantiate abstract class MyRepo with abstract methods insert"
+    assert str(excinfo.value.args[0]) in (
+        # Python <3.10
+        "Can't instantiate abstract class MyRepo with abstract methods insert",
+        # Python >=3.10
+        "Can't instantiate abstract class MyRepo with abstract method insert",
+    )
