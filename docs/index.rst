@@ -97,6 +97,7 @@ In short, Red Bird offers:
 
 - Data validation via Pydantic
 - Basic querying operations (ie. equal, greater or less than)
+- :ref:`A log handler <logging_handler>` for logging to data stores
 
 Supported repositories:
 
@@ -220,6 +221,7 @@ Delete items from the database:
    repos/index
    crud
    operations
+   logging_handler
    references/index
    versions
 
