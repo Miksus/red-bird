@@ -127,3 +127,22 @@ def test_set_level(logger):
     records = repo.filter_by().all()
     assert len(records) == 1
     assert records[0]['levelname'] == 'WARNING'
+
+def test_record_formatter(logger):
+    # Test formatter that returns the LogRecord itself
+    class DummyFormatter(logging.Formatter):
+        def format(self, record):
+            record.my_message = "Message: " + super().format(record)
+            return record
+    
+    repo = MemoryRepo()
+    handler = RepoHandler(repo=repo)
+    handler.formatter = DummyFormatter()
+    handler.setLevel(logging.WARNING)
+    logger.addHandler(handler)
+
+    logger.warning("an info")
+
+    actual_record = repo.filter_by().first()
+    assert actual_record['my_message'] == "Message: an info"
+    assert 'formatted_message' not in actual_record
