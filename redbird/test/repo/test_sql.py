@@ -185,3 +185,36 @@ def test_init_deprecated(tmpdir):
         repo = SQLRepo.from_connection_string(model=dict, conn_string="sqlite:///pytest.db", table="pytest")
         repo.add({"id": "b", "name": "Jack", "age": 5000})
         assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}, {"id": "b", "name": "Jack", "age": 5000}]
+
+
+def test_init_reflect_model_without_primary_key():
+    # https://stackoverflow.com/a/23771348/13696660
+    pytest.importorskip("sqlalchemy")
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+    with pytest.raises(KeyError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create")
+    
+    engine.execute("""CREATE TABLE pytest (
+        id TEXT,
+        name TEXT,
+        age INTEGER
+    )""")
+    with pytest.raises(KeyError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable")
+
+def test_init_create_table():
+    pytest.importorskip("sqlalchemy")
+    from sqlalchemy import create_engine
+    from sqlalchemy.exc import NoSuchTableError
+    engine = create_engine('sqlite://')
+    with pytest.raises(NoSuchTableError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable", id_field="id")
+    with pytest.raises(NoSuchTableError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable", id_field="id", if_missing="raise")
+
+    repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
+    assert issubclass(repo.model, BaseModel)
+
+    repo.add({"id": "a", "name": "Jack", "age": 500})
+    assert list(repo) == [MyItem(id="a", name="Jack", age=500)]

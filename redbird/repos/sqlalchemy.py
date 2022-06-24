@@ -167,10 +167,10 @@ class SQLRepo(TemplateRepo):
         from sqlalchemy import create_engine
         return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
 
-
-    def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, **kwargs):
+    def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, if_missing="raise", **kwargs):
         from sqlalchemy import create_engine
         from sqlalchemy.ext.automap import automap_base
+        from sqlalchemy.exc import NoSuchTableError
 
         # Determine connection
         if conn_string is not None:
@@ -187,9 +187,19 @@ class SQLRepo(TemplateRepo):
                     "and pass connection string as conn_string"
                 )
             table = kwargs["table"]
+            table_exists = session.get_bind().has_table(table)
+            if not table_exists:
+                if if_missing == "raise":
+                    raise NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
+                elif if_missing == "create":
+                    self._create_table(session, kwargs['model'], name=table, primary_column=kwargs.get('id_field'))
+
             self._Base = automap_base()
             self._Base.prepare(engine=session.get_bind(), reflect=True)
-            model_orm = self._Base.classes[table]
+            try:
+                model_orm = self._Base.classes[table]
+            except KeyError as exc:
+                raise KeyError(f"Cannot automap table '{table}'. Perhaps table missing primary key?") from exc
             kwargs["model_orm"] = model_orm
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
@@ -303,3 +313,22 @@ class SQLRepo(TemplateRepo):
                 sql_oper = column == value
             stmt &= sql_oper
         return stmt
+
+    def _create_table(self, session, model, name, primary_column=None):
+        from sqlalchemy import Table, Column, MetaData
+        from sqlalchemy import String, Integer, Float, Boolean
+        types = {
+            str: String,
+            int: Integer,
+            float: Float,
+            bool: Boolean
+        }
+        columns = [
+            Column(name, types[field.type_], primary_key=name == primary_column)
+            for name, field in model.__fields__.items()
+        ]
+        meta = MetaData()
+        table = Table(name, meta, *columns)
+
+        engine = session.get_bind()
+        table.create(engine)
