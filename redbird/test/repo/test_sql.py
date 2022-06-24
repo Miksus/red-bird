@@ -189,6 +189,7 @@ def test_init_deprecated(tmpdir):
 
 def test_init_reflect_model_without_primary_key():
     # https://stackoverflow.com/a/23771348/13696660
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     with pytest.raises(KeyError):
