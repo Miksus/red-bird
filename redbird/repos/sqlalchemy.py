@@ -150,6 +150,7 @@ class SQLRepo(TemplateRepo):
     table: Optional[str]
     session: Any
     engine: Optional[Any]
+    autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
     ordered: bool = Field(default=True, const=True)
     _Base = PrivateAttr()
@@ -196,8 +197,9 @@ class SQLRepo(TemplateRepo):
                     self._create_table(session, kwargs['model'], name=table, primary_column=kwargs.get('id_field'))
 
             self._Base = automap_base()
-            self._Base.prepare(session.get_bind(), reflect=True)
-            kwargs["model_orm"] = getattr(self._Base.classes, table)
+            self._Base.prepare(engine=session.get_bind(), reflect=True)
+            model_orm = self._Base.classes[table]
+            kwargs["model_orm"] = model_orm
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
         super().__init__(*args, session=session, **kwargs)
@@ -205,13 +207,13 @@ class SQLRepo(TemplateRepo):
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
         row = self.item_to_data(item)
-
-        try:
-            self.session.add(row)
-            self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
+        self.session.add(row)
+        if self.autocommit:
+            try:
+                self.session.commit()
+            except IntegrityError as exc:
+                self.session.rollback()
+                raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
 
     def upsert(self, item):
         row = self.item_to_data(item)
@@ -270,11 +272,14 @@ class SQLRepo(TemplateRepo):
             return self.data_to_item(item)
 
     def query_update(self, query, values):
-
         self._filter_orm(query).update(values)
+        if self.autocommit:
+            self.session.commit()
 
     def query_delete(self, query):
         self._filter_orm(query).delete()
+        if self.autocommit:
+            self.session.commit()
 
     def query_count(self, query):
         return self._filter_orm(query).count()
@@ -284,26 +289,27 @@ class SQLRepo(TemplateRepo):
         return session.query(self.model_orm).filter(query)
 
     def format_query(self, oper: dict):
-        from sqlalchemy import column, orm, true
+        from sqlalchemy import Column, orm, true
         stmt = true()
         for column_name, oper_or_value in oper.items():
+            column = getattr(self.model_orm, column_name) if self.model_orm is not None else Column(column_name)
             if isinstance(oper_or_value, Operation):
                 oper = oper_or_value
                 if hasattr(oper, "__py_magic__"):
                     magic = oper.__py_magic__
-                    oper_method = getattr(column(column_name), magic)
+                    oper_method = getattr(column, magic)
 
                     # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
                     sql_oper = oper_method(oper.value)
                 elif isinstance(oper, Between):
-                    sql_oper = column(column_name).between(oper.start, oper.end)
+                    sql_oper = column.between(oper.start, oper.end)
                 elif oper is skip:
                     continue
                 else:
                     raise NotImplementedError(f"Not implemented operator: {oper}")
             else:
                 value = oper_or_value
-                sql_oper = column(column_name) == value
+                sql_oper = column == value
             stmt &= sql_oper
         return stmt
 
