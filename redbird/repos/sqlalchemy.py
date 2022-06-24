@@ -280,25 +280,26 @@ class SQLRepo(TemplateRepo):
         return session.query(self.model_orm).filter(query)
 
     def format_query(self, oper: dict):
-        from sqlalchemy import column, orm, true
+        from sqlalchemy import Column, orm, true
         stmt = true()
         for column_name, oper_or_value in oper.items():
+            column = getattr(self.model_orm, column_name) if self.model_orm is not None else Column(column_name)
             if isinstance(oper_or_value, Operation):
                 oper = oper_or_value
                 if hasattr(oper, "__py_magic__"):
                     magic = oper.__py_magic__
-                    oper_method = getattr(column(column_name), magic)
+                    oper_method = getattr(column, magic)
 
                     # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
                     sql_oper = oper_method(oper.value)
                 elif isinstance(oper, Between):
-                    sql_oper = column(column_name).between(oper.start, oper.end)
+                    sql_oper = column.between(oper.start, oper.end)
                 elif oper is skip:
                     continue
                 else:
                     raise NotImplementedError(f"Not implemented operator: {oper}")
             else:
                 value = oper_or_value
-                sql_oper = column(column_name) == value
+                sql_oper = column == value
             stmt &= sql_oper
         return stmt
