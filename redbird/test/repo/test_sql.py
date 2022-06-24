@@ -191,7 +191,7 @@ def test_init_reflect_model_without_primary_key():
     # https://stackoverflow.com/a/23771348/13696660
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create")
     
     engine.execute("""CREATE TABLE pytest (
@@ -199,7 +199,7 @@ def test_init_reflect_model_without_primary_key():
         name TEXT,
         age INTEGER
     )""")
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         repo = SQLRepo(model=MyItem, engine=engine, table="mytable")
 
 def test_init_create_table():

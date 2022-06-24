@@ -186,8 +186,6 @@ class SQLRepo(TemplateRepo):
                     "Consider using method 'from_connection_string' "
                     "and pass connection string as conn_string"
                 )
-            if kwargs.get("id_field") is None:
-                raise ValueError("Cannot automap ORM model without primary key: https://docs.sqlalchemy.org/en/14/faq/ormconfiguration.html#how-do-i-map-a-table-that-has-no-primary-key")
             table = kwargs["table"]
             table_exists = session.get_bind().has_table(table)
             if not table_exists:
@@ -198,7 +196,10 @@ class SQLRepo(TemplateRepo):
 
             self._Base = automap_base()
             self._Base.prepare(engine=session.get_bind(), reflect=True)
-            model_orm = self._Base.classes[table]
+            try:
+                model_orm = self._Base.classes[table]
+            except KeyError as exc:
+                raise KeyError(f"Cannot automap table '{table}'. Perhaps table missing primary key?") from exc
             kwargs["model_orm"] = model_orm
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
