@@ -187,8 +187,9 @@ class SQLRepo(TemplateRepo):
                 )
             table = kwargs["table"]
             self._Base = automap_base()
-            self._Base.prepare(session.get_bind(), reflect=True)
-            kwargs["model_orm"] = getattr(self._Base.classes, table)
+            self._Base.prepare(engine=session.get_bind(), reflect=True)
+            model_orm = self._Base.classes[table]
+            kwargs["model_orm"] = model_orm
         if reflect_model:
             kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
         super().__init__(*args, session=session, **kwargs)
