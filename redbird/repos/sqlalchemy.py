@@ -150,6 +150,7 @@ class SQLRepo(TemplateRepo):
     table: Optional[str]
     session: Any
     engine: Optional[Any]
+    autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
     ordered: bool = Field(default=True, const=True)
     _Base = PrivateAttr()
@@ -196,13 +197,13 @@ class SQLRepo(TemplateRepo):
     def insert(self, item):
         from sqlalchemy.exc import IntegrityError
         row = self.item_to_data(item)
-
-        try:
-            self.session.add(row)
-            self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
+        self.session.add(row)
+        if self.autocommit:
+            try:
+                self.session.commit()
+            except IntegrityError as exc:
+                self.session.rollback()
+                raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
 
     def upsert(self, item):
         row = self.item_to_data(item)
@@ -261,11 +262,14 @@ class SQLRepo(TemplateRepo):
             return self.data_to_item(item)
 
     def query_update(self, query, values):
-
         self._filter_orm(query).update(values)
+        if self.autocommit:
+            self.session.commit()
 
     def query_delete(self, query):
         self._filter_orm(query).delete()
+        if self.autocommit:
+            self.session.commit()
 
     def query_count(self, query):
         return self._filter_orm(query).count()
