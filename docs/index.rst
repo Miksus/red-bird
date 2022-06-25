@@ -222,6 +222,7 @@ Delete items from the database:
    crud
    operations
    logging_handler
+   examples/index
    references/index
    versions
 
