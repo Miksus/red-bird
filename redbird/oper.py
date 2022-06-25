@@ -59,6 +59,12 @@ class Between(Operation):
     def evaluate(self, value):
         return self.start <= value <= self.end
 
+class In(Operation):
+    __py_magic__ = "__contains__"
+
+    def evaluate(self, value):
+        return value in self.value
+
 class _Skip(Operation):
     """Field operator that does not affect filtering.
     This is just a convenient placeholder."""
@@ -102,5 +108,8 @@ def between(start, end, none_as_open=False):
         elif start is None:
             return less_equal(end)
     return Between(start, end)
+
+def in_(values):
+    return In(values)
 
 skip = _Skip()

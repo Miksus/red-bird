@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
-from redbird.oper import Between, GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation, skip
+from redbird.oper import Between, GreaterEqual, GreaterThan, In, LessEqual, LessThan, NotEqual, Operation, skip
 from redbird.templates import TemplateRepo
 
 if TYPE_CHECKING:
@@ -143,6 +143,7 @@ class MongoRepo(TemplateRepo):
         GreaterEqual: "$gte",
         LessEqual: "$lte",
         NotEqual: "$ne",
+        In: "$in",
     }
     session: Any
     database: Optional[str]
