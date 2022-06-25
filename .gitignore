@@ -42,6 +42,7 @@ proto/
 
 # Data & logs
 *.csv
+*.db
 
 # Private configurations
 private.yaml
