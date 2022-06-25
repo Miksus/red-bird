@@ -6,7 +6,7 @@ from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
 
-from redbird.oper import Between, Operation, skip
+from redbird.oper import Between, In, Operation, skip
 from redbird.utils.deprecate import deprecated
 
 if TYPE_CHECKING:
@@ -296,16 +296,18 @@ class SQLRepo(TemplateRepo):
             column = getattr(self.model_orm, column_name) if self.model_orm is not None else Column(column_name)
             if isinstance(oper_or_value, Operation):
                 oper = oper_or_value
-                if hasattr(oper, "__py_magic__"):
+                if isinstance(oper, Between):
+                    sql_oper = column.between(oper.start, oper.end)
+                elif isinstance(oper, In):
+                    sql_oper = column.in_(oper.value)
+                elif oper is skip:
+                    continue
+                elif hasattr(oper, "__py_magic__"):
                     magic = oper.__py_magic__
                     oper_method = getattr(column, magic)
 
                     # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
                     sql_oper = oper_method(oper.value)
-                elif isinstance(oper, Between):
-                    sql_oper = column.between(oper.start, oper.end)
-                elif oper is skip:
-                    continue
                 else:
                     raise NotImplementedError(f"Not implemented operator: {oper}")
             else:
