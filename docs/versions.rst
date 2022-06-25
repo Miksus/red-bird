@@ -4,6 +4,13 @@
 Version history
 ===============
 
+- ``0.4.0``
+
+    - Added logging utility: ``RepoHandler``
+    - Fixed not committing deletes and updates in SQLRepo
+    - Fixed ORM model reflection in SQLRepo
+    - Continued documentation
+
 - ``0.3.0``
 
     - First official release
