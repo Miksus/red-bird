@@ -27,6 +27,10 @@ class CSVFileRepo(TemplateRepo):
     ----------
     filename : path-like
         The repository file
+    fieldnames : list of str
+        Names of the columns in the CSV file.
+        If unspecified, model's fields are used
+        instead
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -58,7 +62,7 @@ class CSVFileRepo(TemplateRepo):
     """
 
     filename: Path
-    field_names: Optional[List[str]] = None
+    fieldnames: Optional[List[str]] = None
     kwds_csv: dict = {}
 
     _session = PrivateAttr()
@@ -93,8 +97,8 @@ class CSVFileRepo(TemplateRepo):
 
     def get_headers(self) -> List[str]:
         "Get headers of the CSV file (using the model)"
-        if self.field_names is not None:
-            return self.field_names
+        if self.fieldnames is not None:
+            return self.fieldnames
         elif hasattr(self.model, "__fields__"):
             return list(self.model.__fields__)
         else:
