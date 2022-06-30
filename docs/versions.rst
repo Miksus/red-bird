@@ -4,6 +4,10 @@
 Version history
 ===============
 
+- ``0.5.0``
+
+    - Added ``in`` operator
+
 - ``0.4.0``
 
     - Added logging utility: ``RepoHandler``
