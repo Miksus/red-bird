@@ -1,5 +1,6 @@
 
 import logging
+from typing import Optional
 from pydantic import BaseModel
 
 import pytest
@@ -16,9 +17,9 @@ class LogRecord(BaseModel):
     pathname: str
     filename: str
     module: str
-    exc_info: str
-    exc_text: str
-    stack_info: str
+    exc_info: Optional[tuple]
+    exc_text: Optional[str]
+    stack_info: Optional[tuple]
     lineno: int
     funcName: str
     created: float
@@ -97,6 +98,20 @@ def test_info(logger):
 
     actual_values = {key: val for key, val in record.items() if key in expected_values}
     assert actual_values == expected_values
+
+def test_model(logger):
+    repo = MemoryRepo(model=LogRecord)
+    handler = RepoHandler(repo=repo)
+    assert handler.repo is repo
+
+    logger.addHandler(handler)
+
+    logger.info("a log", extra={"myextra": "something"})
+
+    try:
+        raise RuntimeError("Oops")
+    except:
+        logger.exception("Error occurred")
 
 def test_filter(logger):
     repo = MemoryRepo()
