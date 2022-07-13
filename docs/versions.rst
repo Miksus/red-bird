@@ -4,6 +4,10 @@
 Version history
 ===============
 
+- ``0.5.1``
+
+    - Fixed ``CSVFileRepo`` error if read and the file does not exists
+
 - ``0.5.0``
 
     - Added ``in`` operator
