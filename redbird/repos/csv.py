@@ -106,6 +106,10 @@ class CSVFileRepo(TemplateRepo):
 
     def read_file(self) -> Iterator[dict]:
         "Read repository file"
+        if not self.filename.is_file():
+            # The repository does not exists, creating
+            self.create(if_exists="ignore")
+            return
         with open(self.filename, "r") as file:
             reader = self.get_reader(file)
 
