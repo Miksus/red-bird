@@ -39,6 +39,14 @@ def test_none_read(tmpdir):
     repo = CSVFileRepo(filename=file, model=Item)
 
     assert [] == repo.filter_by().all()
+    assert repo.filename.read_text() == "id,name,age\n"
+
+def test_fieldnames_read(tmpdir):
+    file = tmpdir / "test.csv"
+    repo = CSVFileRepo(filename=file, fieldnames=["id", "name", "age"])
+
+    assert [] == repo.filter_by().all()
+    assert repo.filename.read_text() == "id,name,age\n"
 
 def test_kwds_csv(tmpdir):
     file = tmpdir / "test.csv"
