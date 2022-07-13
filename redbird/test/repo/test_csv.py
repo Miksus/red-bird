@@ -34,6 +34,12 @@ def test_none(tmpdir):
     repo.add(Item(id="b", name="John"))
     assert [Item(id="b", name="John", age=None)] == repo.filter_by().all()
 
+def test_none_read(tmpdir):
+    file = tmpdir / "test.csv"
+    repo = CSVFileRepo(filename=file, model=Item)
+
+    assert [] == repo.filter_by().all()
+
 def test_kwds_csv(tmpdir):
     file = tmpdir / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item, kwds_csv={'delimiter': '|'})
