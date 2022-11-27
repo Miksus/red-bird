@@ -53,7 +53,7 @@ full = [
     "requests", 
     "pydantic-sqlalchemy"
 ]
-full-test = [
+test = [
     "sqlalchemy", 
     "pymongo", 
     "requests", 
