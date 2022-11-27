@@ -126,14 +126,14 @@ class CSVFileRepo(TemplateRepo):
             writer = self.get_writer(file)
             writer.writeheader()
             for item in items:
-                d = self.item_to_dict(item)
+                d = self.item_to_dict(item, exclude_unset=False)
                 writer.writerow(d)
 
     def append_file(self, item: Item):
         "Write a single item at the end of the file"
         with open(self.filename, "a", newline="") as file:
             writer = self.get_writer(file)
-            d = self.item_to_dict(item)
+            d = self.item_to_dict(item, exclude_unset=False)
             writer.writerow(d)
 
     def get_writer(self, buff: TextIO):
