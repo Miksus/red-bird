@@ -268,7 +268,7 @@ class BaseRepo(ABC, BaseModel):
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
         values = self.item_to_dict(item)
         # We don't update the ID
-        values.pop(self.id_field)
+        values.pop(self.id_field, None)
         self.filter_by(**qry).update(**values)
 
     def replace(self, item: Item):

@@ -4,6 +4,15 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+def pytest_addoption(parser):
+    parser.addoption(
+        '--no-build',
+        action='store_false',
+        dest="is_build",
+        default=True,
+        help='Expect the package is not built.'
+    )
+
 def get_node_id(request):
     components = request.node.nodeid.split("::")
     filename = components[0]
