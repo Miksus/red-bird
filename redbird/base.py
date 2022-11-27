@@ -65,10 +65,20 @@ class BaseResult(ABC):
     def limit(self, n:int) -> List[Item]:
         "Return n items"
         items = []
-        for i, item in enumerate(self.query(), start=1):
-            if i > n:
-                break
-            items.append(item)
+
+        if n >= 0:
+            # limit n first
+            for i, item in enumerate(self.query(), start=1):
+                if i > n:
+                    break
+                items.append(item)
+        else:
+            # limit n last
+            n_items = self.count()
+            for i, item in enumerate(self.query()):
+                i_end = i - n_items
+                if i_end >= n:
+                    items.append(item)
         return items
         
     def query(self) -> Iterator[Item]:

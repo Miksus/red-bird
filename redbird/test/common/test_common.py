@@ -1,5 +1,6 @@
 
 import configparser
+import itertools
 from typing import Optional
 import re, os
 import json
@@ -126,6 +127,24 @@ class TestPopulated(RepoTests):
             item = repo.filter_by(age=30).last()
             assert repo.get_field_value(item, 'age') == 30
 
+    def test_filter_by_sort(self, repo):
+        self.populate(repo)
+        Item = repo.model
+
+        actual = repo.filter_by(age=30).limit(2)
+        expected = [
+                Item(id="b", name="John", age=30),
+                Item(id="c", name="James", age=30),
+            ]
+        if not repo.ordered:
+            # We don't know which are the top 2
+            assert isinstance(actual, list)
+            for item in actual:
+                assert repo.get_field_value(item, "age") == 30
+            assert len(actual) == 2
+        else:
+            assert actual == expected
+
     def test_filter_by_limit(self, repo):
         self.populate(repo)
         Item = repo.model
@@ -134,6 +153,24 @@ class TestPopulated(RepoTests):
         expected = [
                 Item(id="b", name="John", age=30),
                 Item(id="c", name="James", age=30),
+            ]
+        if not repo.ordered:
+            # We don't know which are the top 2
+            assert isinstance(actual, list)
+            for item in actual:
+                assert repo.get_field_value(item, "age") == 30
+            assert len(actual) == 2
+        else:
+            assert actual == expected
+
+    def test_filter_by_limit_negative(self, repo):
+        self.populate(repo)
+        Item = repo.model
+
+        actual = repo.filter_by(age=30).limit(-2)
+        expected = [
+                dict(id="c", name="James", age=30),
+                dict(id="d", name="Johnny", age=30),
             ]
         if not repo.ordered:
             # We don't know which are the top 2
@@ -674,6 +711,29 @@ class TestEmpty:
         repo.get_by("b").delete()
         assert list(repo) == [
             Item(id="a", name="Max", age=40),
+        ]
+
+    def test_update_dynamic_id(self, repo):
+        counter = itertools.count()
+        class Item(BaseModel):
+            id:int = Field(default_factory=lambda: next(counter))
+            name:str
+
+        repo.model = Item
+        repo.id_field = "id"
+
+        repo.add(Item(name="Jack"))
+        repo.add(Item(name="John"))
+
+        item = Item(name="James")
+        repo.add(item.copy())
+        item.name = "Johny"
+        repo.update(item)
+
+        assert list(repo) == [
+            Item(id=0, name="Jack"),
+            Item(id=1, name="John"),
+            Item(id=2, name="Johny"),
         ]
 
 @pytest.mark.parametrize(
