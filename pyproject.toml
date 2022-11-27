@@ -1,0 +1,101 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["redbird"]
+
+[project]
+name = "redbird"
+description = "Repository Patterns for Python"
+readme = "README.md"
+license = {file="LICENSE"}
+authors = [
+    {name = "Mikael Koli", email = "koli.mikael@gmail.com"},
+]
+requires-python = ">=3.7"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+
+    "Intended Audience :: Developers",
+
+    'Topic :: Database',
+]
+dynamic = ["version"]
+dependencies = [
+    'pydantic', 
+    'typing_extensions', 
+]
+
+[tool.setuptools_scm]
+write_to = "redbird/_version.py"
+local_scheme = "no-local-version"
+
+[project.urls]
+Homepage = 'https://github.com/Miksus/red-bird'
+Documentation = 'https://red-bird.readthedocs.io'
+Funding = 'https://github.com/sponsors/Miksus'
+Source = 'https://github.com/Miksus/red-bird'
+Changelog = 'https://red-bird.readthedocs.io/en/stable/versions.html'
+
+[project.optional-dependencies]
+full = [
+    "sqlalchemy", 
+    "pymongo", 
+    "requests", 
+    "pydantic-sqlalchemy"
+]
+test = [
+    "sqlalchemy", 
+    "pymongo", 
+    "requests", 
+    "pydantic-sqlalchemy",
+    "pytest", 
+    "python-dotenv", 
+    "responses", 
+    "mongomock"
+]
+sql = [
+    "sqlalchemy", 
+    "pydantic-sqlalchemy"
+]
+mongodb = ['pymongo']
+rest = ["requests"]
+
+[tool.coverage.run]
+source = ["redbird"]
+branch = false
+omit = [
+    "test/*",
+    "_version.py"
+]
+data_file = "cov_data/.coverage"
+
+[tool.coverage.report]
+omit = [
+    "redbird/test/*",
+    "redbird/_version.py",
+    "redbird/__main__.py"
+]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    "pragma: no cover",
+
+    # Don't complain about abstract methods, they aren't run:
+    '''@(abc\.)?abstractmethod''',
+
+    # Ignore type checking imports
+    "if TYPE_CHECKING",
+]
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "htmlcov"
