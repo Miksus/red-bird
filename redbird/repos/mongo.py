@@ -232,12 +232,16 @@ class MongoRepo(TemplateRepo):
         for data in col.find(query):
             yield data
 
-    def query_data_limit(self, query, n:int):
+    def query_read_limit(self, query, n:int):
         "Get n first items"
         col = self.get_collection()
+        if n >= 0:
+            qry = col.find(query)
+        else:
+            qry = col.find(query).sort([("$natural", -1)])
         return [
             self.data_to_item(item)
-            for item in col.find(query).limit(n)
+            for item in qry.limit(int(n))
         ]
 
     def query_update(self, query, values):
