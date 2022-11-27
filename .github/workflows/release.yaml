@@ -5,6 +5,8 @@ on:
   # Triggers the workflow on push events but only for the master branch
   push:
     branches: master
+    tags:        
+      - '*'
 
 jobs:
   build-n-publish:
