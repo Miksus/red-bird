@@ -67,7 +67,23 @@ all and is
 
     repo = MemoryRepo(id_field="registration_number", ...)
 
+Alternatively, the ``id_field`` could be set using ``__id_field__`` magic attribute:
+
+.. code-block:: python
+
+    from pydantic import BaseModel
+
+    class Car(BaseModel):
+        __id_field__ = "registration_number"
+        registration_number: str
+        color: str
+        value: float
+
+    repo = MemoryRepo(model=Car)
+
 Specifying ID field is necessary for some features to work
-such as getitem (ie. :code:`repo['123-456-789']`),
-delitem (ie. :code:`del repo['123-456-789']`) and 
-get_by (ie. :code:`repo.get_by('123-456-789')`).
+such as:
+
+- getitem: :code:`repo['123-456-789']`
+- delitem: :code:`del repo['123-456-789']`
+- get_by: :code:`repo.get_by('123-456-789')`
