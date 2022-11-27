@@ -168,7 +168,7 @@ class SQLRepo(TemplateRepo):
         return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
 
     def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, if_missing="raise", **kwargs):
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, inspect
         from sqlalchemy.ext.automap import automap_base
         from sqlalchemy.exc import NoSuchTableError
 
@@ -187,7 +187,8 @@ class SQLRepo(TemplateRepo):
                     "and pass connection string as conn_string"
                 )
             table = kwargs["table"]
-            table_exists = session.get_bind().has_table(table)
+            engine = session.get_bind()
+            table_exists = inspect(engine).has_table(table)
             if not table_exists:
                 if if_missing == "raise":
                     raise NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
@@ -195,7 +196,7 @@ class SQLRepo(TemplateRepo):
                     self._create_table(session, kwargs['model'], name=table, primary_column=kwargs.get('id_field'))
 
             self._Base = automap_base()
-            self._Base.prepare(engine=session.get_bind(), reflect=True)
+            self._Base.prepare(engine=engine, reflect=True)
             try:
                 model_orm = self._Base.classes[table]
             except KeyError as exc:
