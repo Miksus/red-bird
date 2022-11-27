@@ -4,6 +4,11 @@
 Version history
 ===============
 
+- ``0.6.0``
+
+    - Added alternative way to set repository's ID field: setting ``__id_field__`` in model
+    - Packaging updated to use pyproject.toml
+
 - ``0.5.1``
 
     - Fixed ``CSVFileRepo`` error if read and the file does not exists
