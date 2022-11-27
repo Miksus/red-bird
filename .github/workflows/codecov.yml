@@ -40,7 +40,7 @@ jobs:
         
     - name: Run test suite
       run: |
-        python -m pytest --cov=redbird --cov-report=xml redbird/test
+        python -m pytest --cov=redbird --cov-report=xml redbird/test --no-build
         
     - name: Upload test coverage
       uses: codecov/codecov-action@v2
