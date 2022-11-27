@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Dict, Generator, Iterator, List, Mapping, Opti
 from dataclasses import dataclass
 import warnings
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError, _handle_conversion_error
 from redbird.utils.case import to_case
@@ -141,8 +141,8 @@ class BaseRepo(ABC, BaseModel):
     """
     cls_result: ClassVar[Type[BaseResult]]
 
-    id_field: Optional[str]
     model: Type = dict
+    id_field: Optional[str]
     
     query_model: Optional[Type[BaseModel]] = BasicQuery
 
@@ -151,6 +151,14 @@ class BaseRepo(ABC, BaseModel):
 
     # Attributes that specifies how the repo behaves
     ordered: bool = Field(default=False, const=True)
+
+    @validator('id_field', always=True)
+    def set_id_field(cls, value, values):
+        if value is None:
+            # Get id_field from model
+            mdl = values.get("model")
+            return getattr(mdl, "__id_field__", None)
+        return value
 
     def __iter__(self) -> Iterator[Item]:
         "Iterate over the repository"
