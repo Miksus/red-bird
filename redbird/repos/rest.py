@@ -93,7 +93,7 @@ class RESTRepo(TemplateRepo):
     ordered: bool = Field(default=False, const=True)
 
     def insert(self, item):
-        json = self.item_to_dict(item)
+        json = self.item_to_dict(item, exclude_unset=False)
         self._request(
             "POST",
             self.url,
@@ -102,7 +102,7 @@ class RESTRepo(TemplateRepo):
 
     def replace(self, item):
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
-        values = self.item_to_dict(item)
+        values = self.item_to_dict(item, exclude_unset=False)
         self.filter_by(**qry).replace(**values)
 
     def _request(self, *args, **kwargs):

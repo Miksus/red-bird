@@ -284,12 +284,18 @@ class BaseRepo(ABC, BaseModel):
         self.delete(item)
         self.add(item)
 
-    def item_to_dict(self, item: Item) -> dict:
+    def item_to_dict(self, item: Item, **kwargs) -> dict:
         if isinstance(item, dict):
             return item
         elif isinstance(item, BaseModel):
+            # Deprecated
+            if 'exclude_unset' not in kwargs:
+                warnings.warn(
+                    'Converting item to dict will have exclude_unset=False.'
+                    ' To retain the old behaviour, set repo.item_to_dict(item, exclude_unset=True)', FutureWarning)
+                kwargs['exclude_unset'] = True
             # Pydantic model
-            return item.dict(exclude_unset=True)
+            return item.dict(**kwargs)
         else:
             return dict(**item)
 
