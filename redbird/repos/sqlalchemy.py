@@ -193,7 +193,8 @@ class SQLRepo(TemplateRepo):
                 if if_missing == "raise":
                     raise NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
                 elif if_missing == "create":
-                    self._create_table(session, kwargs['model'], name=table, primary_column=kwargs.get('id_field'))
+                    model = kwargs['model']
+                    self._create_table(session, model, name=table, primary_column=kwargs.get('id_field', getattr(model, "__id_field__", None)))
 
             self._Base = automap_base()
             self._Base.prepare(engine=engine, reflect=True)

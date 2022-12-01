@@ -203,6 +203,23 @@ def test_init_reflect_model_without_primary_key():
     with pytest.raises(KeyError):
         repo = SQLRepo(model=MyItem, engine=engine, table="mytable")
 
+def test_init_reflect_model_id_field_in_model():
+    pytest.importorskip("sqlalchemy")
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+    class MyItem(BaseModel):
+        __id_field__ = "name"
+        name: str
+        age: int
+
+    repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create")
+    assert repo.id_field == "name"
+
+    # Make sure the __id_field__ is not in there
+    repo.add(MyItem(name="Jack", age=20))
+    obs = engine.execute("select * from mytable")
+    assert list(obs) == [('Jack', 20)]
+
 def test_init_create_table():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
