@@ -1,4 +1,5 @@
 
+import datetime
 import pytest
 from redbird.repos import SQLRepo
 from pydantic import BaseModel
@@ -219,6 +220,42 @@ def test_init_reflect_model_id_field_in_model():
     repo.add(MyItem(name="Jack", age=20))
     obs = engine.execute("select * from mytable")
     assert list(obs) == [('Jack', 20)]
+
+def test_init_type():
+    pytest.importorskip("sqlalchemy")
+
+    class MyItem(BaseModel):
+        __id_field__ = "id"
+        id: str
+        name: str
+        age: int
+        birth_date: datetime.date
+        observed: datetime.datetime
+        meta: dict
+
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+    repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
+    
+    repo.add(MyItem(
+        id="a",
+        name="myname",
+        age=25,
+        birth_date=datetime.date(2000, 1, 1),
+        observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
+        meta={"yes": "no"}
+    ))
+    obs = repo.filter_by().all()
+    assert obs == [
+        MyItem(
+            id="a",
+            name="myname",
+            age=5,
+            birth_date=datetime.date(2000, 1, 1),
+            observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
+            meta={"yes": "no"}
+        )
+    ]
 
 def test_init_create_table():
     pytest.importorskip("sqlalchemy")

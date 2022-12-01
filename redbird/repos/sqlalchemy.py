@@ -1,4 +1,4 @@
-
+import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
@@ -320,15 +320,18 @@ class SQLRepo(TemplateRepo):
 
     def _create_table(self, session, model, name, primary_column=None):
         from sqlalchemy import Table, Column, MetaData
-        from sqlalchemy import String, Integer, Float, Boolean
+        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON
         types = {
             str: String,
             int: Integer,
             float: Float,
-            bool: Boolean
+            bool: Boolean,
+            datetime.date: Date,
+            datetime.datetime: DateTime,
+            dict: JSON
         }
         columns = [
-            Column(name, types[field.type_], primary_key=name == primary_column)
+            Column(name, types.get(field.type_, field.type_), primary_key=name == primary_column)
             for name, field in model.__fields__.items()
         ]
         meta = MetaData()
