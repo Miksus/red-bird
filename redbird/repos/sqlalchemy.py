@@ -1,4 +1,4 @@
-
+import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
@@ -193,7 +193,8 @@ class SQLRepo(TemplateRepo):
                 if if_missing == "raise":
                     raise NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
                 elif if_missing == "create":
-                    self._create_table(session, kwargs['model'], name=table, primary_column=kwargs.get('id_field'))
+                    model = kwargs['model']
+                    self._create_table(session, model, name=table, primary_column=kwargs.get('id_field', getattr(model, "__id_field__", None)))
 
             self._Base = automap_base()
             self._Base.prepare(engine=engine, reflect=True)
@@ -319,15 +320,18 @@ class SQLRepo(TemplateRepo):
 
     def _create_table(self, session, model, name, primary_column=None):
         from sqlalchemy import Table, Column, MetaData
-        from sqlalchemy import String, Integer, Float, Boolean
+        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON
         types = {
             str: String,
             int: Integer,
             float: Float,
-            bool: Boolean
+            bool: Boolean,
+            datetime.date: Date,
+            datetime.datetime: DateTime,
+            dict: JSON
         }
         columns = [
-            Column(name, types[field.type_], primary_key=name == primary_column)
+            Column(name, types.get(field.type_, field.type_), primary_key=name == primary_column)
             for name, field in model.__fields__.items()
         ]
         meta = MetaData()
