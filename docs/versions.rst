@@ -4,6 +4,11 @@
 Version history
 ===============
 
+- ``0.6.1``
+
+    - SQL: fix model based ``__id_field__`` in reflection
+    - SQL: fix date-like types in table creation with ``if_missing='create'``
+
 - ``0.6.0``
 
     - Added alternative way to set repository's ID field: setting ``__id_field__`` in model
