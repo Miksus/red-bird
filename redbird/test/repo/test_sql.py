@@ -250,7 +250,7 @@ def test_init_type():
         MyItem(
             id="a",
             name="myname",
-            age=5,
+            age=25,
             birth_date=datetime.date(2000, 1, 1),
             observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
             meta={"yes": "no"}
