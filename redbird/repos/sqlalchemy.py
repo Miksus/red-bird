@@ -1,14 +1,19 @@
 import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
 import typing
+
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
-
 from redbird.oper import Between, In, Operation, skip
 from redbird.utils.deprecate import deprecated
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -357,7 +362,7 @@ class SQLRepo(TemplateRepo):
                         cls = arg
                         break
             
-            if origin is typing.Literal:
+            if origin is Literal:
                 type_ = type(args[0])
                 for arg in args[1:]:
                     if not isinstance(arg, type_):

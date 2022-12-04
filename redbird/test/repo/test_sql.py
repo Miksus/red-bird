@@ -5,6 +5,11 @@ import pytest
 from redbird.repos import SQLRepo
 from pydantic import BaseModel
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 class MyItem(BaseModel):
     id: str
     name: str
@@ -235,7 +240,7 @@ def test_init_reflect_model_id_field_in_model():
 
     pytest.param(typing.Optional[str], "Jack", id="Optional[str]"),
     pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]"),
-    pytest.param(typing.Literal['yes', 'no'], "yes", id="Literal['...', '...']"),
+    pytest.param(Literal['yes', 'no'], "yes", id="Literal['...', '...']"),
 ])
 def test_init_type_insert(cls, example_value):
     pytest.importorskip("sqlalchemy")
@@ -275,8 +280,8 @@ def test_init_type_insert(cls, example_value):
     pytest.param(typing.Optional[str], True, 'String', id="Optional[str]"),
     pytest.param(typing.Union[str, None], True, 'String', id="Union[str, None]"),
     pytest.param(typing.Union[None, str], True, 'String', id="Union[None, str]"),
-    pytest.param(typing.Literal['yes', 'no'], False, 'String', id="Literal['...', '...']"),
-    pytest.param(typing.Optional[typing.Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]"),
+    pytest.param(Literal['yes', 'no'], False, 'String', id="Literal['...', '...']"),
+    pytest.param(typing.Optional[Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]"),
 ])
 def test_init_column(cls, nullable, sql_type):
     pytest.importorskip("sqlalchemy")
@@ -296,7 +301,7 @@ def test_init_column(cls, nullable, sql_type):
     assert isinstance(column.type, getattr(sqlalchemy, sql_type))
 
 @pytest.mark.parametrize("cls", [
-    pytest.param(typing.Literal[2, 'two'], id="Literal[2, 'two']"),
+    pytest.param(Literal[2, 'two'], id="Literal[2, 'two']"),
     pytest.param(typing.Union[str, int], id="Union[str, int]"),
     pytest.param(typing.Union[str, int, None], id="Union[str, int, None]"),
 ])
