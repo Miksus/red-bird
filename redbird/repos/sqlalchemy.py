@@ -320,7 +320,7 @@ class SQLRepo(TemplateRepo):
 
     def _create_table(self, session, model, name, primary_column=None):
         from sqlalchemy import Table, Column, MetaData
-        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON
+        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON, Interval
         types = {
             str: String,
             int: Integer,
@@ -328,6 +328,7 @@ class SQLRepo(TemplateRepo):
             bool: Boolean,
             datetime.date: Date,
             datetime.datetime: DateTime,
+            datetime.timedelta: Interval,
             dict: JSON
         }
         columns = [
