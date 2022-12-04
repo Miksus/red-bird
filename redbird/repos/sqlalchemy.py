@@ -13,7 +13,7 @@ from redbird.utils.deprecate import deprecated
 
 try:
     from typing import Literal
-except ImportError:
+except ImportError: # pragma: no cover
     from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ try:
         datetime.timedelta: sqlalchemy.Interval,
         dict: sqlalchemy.JSON,
     }
-except ImportError:
+except ImportError: # pragma: no cover
     HAS_SQLALCHEMY = False
 else:
     HAS_SQLALCHEMY = True
