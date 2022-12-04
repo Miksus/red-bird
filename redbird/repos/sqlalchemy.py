@@ -1,5 +1,6 @@
 import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
+import typing
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
@@ -12,7 +13,23 @@ from redbird.utils.deprecate import deprecated
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-
+try:
+    import sqlalchemy
+    TYPES = {
+        str: sqlalchemy.String,
+        int: sqlalchemy.Integer,
+        float: sqlalchemy.Float,
+        bool: sqlalchemy.Boolean,
+        datetime.date: sqlalchemy.Date,
+        datetime.datetime: sqlalchemy.DateTime,
+        datetime.timedelta: sqlalchemy.Interval,
+        dict: sqlalchemy.JSON,
+        typing.Literal: sqlalchemy.String
+    }
+except ImportError:
+    HAS_SQLALCHEMY = False
+else:
+    HAS_SQLALCHEMY = True
 
 class SQLRepo(TemplateRepo):
     """SQL Repository
@@ -318,21 +335,47 @@ class SQLRepo(TemplateRepo):
             stmt &= sql_oper
         return stmt
 
+    def _to_sqlalchemy_type(self, cls):
+        origin = typing.get_origin(cls)
+        if origin is not None:
+            # In form: 
+            # - Literal['', '']
+            # - Optional[...]
+            args = typing.get_args(cls)
+            if origin is typing.Union:
+                # Either:
+                # - Union[...]
+                # - Optional[...]
+                # Only Union[<TYPE>, NoneType] is allowed
+                none_type = type(None)
+                has_none_type = none_type in args
+                if len(args) > 2 or (len(args) == 2 and not has_none_type):
+                    raise TypeError(f"Union has more than one optional type: {str(cls)}. Cannot define SQL data type")
+                # Get the non-None type
+                for arg in args:
+                    if arg is not none_type:
+                        cls = arg
+                        break
+            
+            if origin is typing.Literal:
+                type_ = type(args[0])
+                for arg in args[1:]:
+                    if not isinstance(arg, type_):
+                        raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
+                cls = type_
+            
+        return TYPES.get(cls)
+
     def _create_table(self, session, model, name, primary_column=None):
         from sqlalchemy import Table, Column, MetaData
-        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON, Interval
-        types = {
-            str: String,
-            int: Integer,
-            float: Float,
-            bool: Boolean,
-            datetime.date: Date,
-            datetime.datetime: DateTime,
-            datetime.timedelta: Interval,
-            dict: JSON
-        }
+
         columns = [
-            Column(name, types.get(field.type_, field.type_), primary_key=name == primary_column)
+            Column(
+                name, 
+                self._to_sqlalchemy_type(field.type_), 
+                primary_key=name == primary_column, 
+                nullable=not field.required
+            )
             for name, field in model.__fields__.items()
         ]
         meta = MetaData()

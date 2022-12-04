@@ -1,5 +1,6 @@
 
 import datetime
+import typing
 import pytest
 from redbird.repos import SQLRepo
 from pydantic import BaseModel
@@ -221,17 +222,28 @@ def test_init_reflect_model_id_field_in_model():
     obs = engine.execute("select * from mytable")
     assert list(obs) == [('Jack', 20)]
 
-def test_init_type():
+@pytest.mark.parametrize("cls,example_value", [
+    pytest.param(str, "Jack", id="str"),
+    pytest.param(int, 5, id="int"),
+    pytest.param(float, 5.2, id="float"),
+
+    pytest.param(datetime.date, datetime.date(2022, 1, 1), id="datetime.date"),
+    pytest.param(datetime.datetime, datetime.datetime(2022, 1, 1, 12, 30), id="datetime.datetime"),
+    pytest.param(datetime.timedelta, datetime.timedelta(days=2), id="datetime.timedelta", marks=pytest.mark.skip("SQLite does not support Interval")),
+
+    pytest.param(dict, {"name": "Jack"}, id="dict"),
+
+    pytest.param(typing.Optional[str], "Jack", id="Optional[str]"),
+    pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]"),
+    pytest.param(typing.Literal['yes', 'no'], "yes", id="Literal['...', '...']"),
+])
+def test_init_type_insert(cls, example_value):
     pytest.importorskip("sqlalchemy")
 
     class MyItem(BaseModel):
         __id_field__ = "id"
         id: str
-        name: str
-        age: int
-        birth_date: datetime.date
-        observed: datetime.datetime
-        meta: dict
+        myfield: cls
 
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -239,23 +251,68 @@ def test_init_type():
     
     repo.add(MyItem(
         id="a",
-        name="myname",
-        age=25,
-        birth_date=datetime.date(2000, 1, 1),
-        observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
-        meta={"yes": "no"}
+        myfield=example_value
     ))
     obs = repo.filter_by().all()
     assert obs == [
         MyItem(
             id="a",
-            name="myname",
-            age=25,
-            birth_date=datetime.date(2000, 1, 1),
-            observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
-            meta={"yes": "no"}
+            myfield=example_value
         )
     ]
+
+@pytest.mark.parametrize("cls,nullable,sql_type", [
+    pytest.param(str, False, 'String', id="str"),
+    pytest.param(int, False, 'Integer', id="int"),
+    pytest.param(float, False, 'Float', id="float"),
+
+    pytest.param(datetime.date, False, 'Date', id="datetime.date"),
+    pytest.param(datetime.datetime, False, 'DateTime', id="datetime.datetime"),
+    pytest.param(datetime.timedelta, False, 'Interval', id="datetime.timedelta", marks=pytest.mark.skip("SQLite does not support Interval")),
+
+    pytest.param(dict, False, 'JSON', id="dict"),
+
+    pytest.param(typing.Optional[str], True, 'String', id="Optional[str]"),
+    pytest.param(typing.Union[str, None], True, 'String', id="Union[str, None]"),
+    pytest.param(typing.Union[None, str], True, 'String', id="Union[None, str]"),
+    pytest.param(typing.Literal['yes', 'no'], False, 'String', id="Literal['...', '...']"),
+    pytest.param(typing.Optional[typing.Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]"),
+])
+def test_init_column(cls, nullable, sql_type):
+    pytest.importorskip("sqlalchemy")
+
+    class MyItem(BaseModel):
+        __id_field__ = "id"
+        id: str
+        myfield: cls
+    import sqlalchemy
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+    repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
+    
+    # Test column
+    column = repo.model_orm.__table__.columns['myfield']
+    assert column.nullable is nullable
+    assert isinstance(column.type, getattr(sqlalchemy, sql_type))
+
+@pytest.mark.parametrize("cls", [
+    pytest.param(typing.Literal[2, 'two'], id="Literal[2, 'two']"),
+    pytest.param(typing.Union[str, int], id="Union[str, int]"),
+    pytest.param(typing.Union[str, int, None], id="Union[str, int, None]"),
+])
+def test_init_column_fail(cls):
+    pytest.importorskip("sqlalchemy")
+
+    class MyItem(BaseModel):
+        __id_field__ = "id"
+        id: str
+        myfield: cls
+
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+
+    with pytest.raises(TypeError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
 
 def test_init_create_table():
     pytest.importorskip("sqlalchemy")
