@@ -1,5 +1,6 @@
 
 import datetime
+import sys
 import typing
 import pytest
 from redbird.repos import SQLRepo
@@ -239,9 +240,9 @@ def test_init_reflect_model_id_field_in_model():
     pytest.param(dict, {"name": "Jack"}, id="dict"),
 
     pytest.param(typing.Optional[str], "Jack", id="Optional[str]"),
-    pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]"),
-    pytest.param(Literal['yes', 'no'], "yes", id="Literal['...', '...']"),
-    pytest.param(Literal[1, 2], 2, id="Literal[1, 2]"),
+    pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal['yes', 'no'], "yes", id="Literal['...', '...']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal[1, 2], 2, id="Literal[1, 2]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
 ])
 def test_init_type_insert(cls, example_value):
     pytest.importorskip("sqlalchemy")
@@ -281,9 +282,9 @@ def test_init_type_insert(cls, example_value):
     pytest.param(typing.Optional[str], True, 'String', id="Optional[str]"),
     pytest.param(typing.Union[str, None], True, 'String', id="Union[str, None]"),
     pytest.param(typing.Union[None, str], True, 'String', id="Union[None, str]"),
-    pytest.param(Literal['yes', 'no'], False, 'String', id="Literal['...', '...']"),
-    pytest.param(Literal[1, 2], False, 'Integer', id="Literal[1, 2]"),
-    pytest.param(typing.Optional[Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]"),
+    pytest.param(Literal['yes', 'no'], False, 'String', id="Literal['...', '...']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal[1, 2], False, 'Integer', id="Literal[1, 2]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Optional[Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
 ])
 def test_init_column(cls, nullable, sql_type):
     pytest.importorskip("sqlalchemy")
@@ -303,9 +304,9 @@ def test_init_column(cls, nullable, sql_type):
     assert isinstance(column.type, getattr(sqlalchemy, sql_type))
 
 @pytest.mark.parametrize("cls", [
-    pytest.param(Literal[2, 'two'], id="Literal[2, 'two']"),
-    pytest.param(typing.Union[str, int], id="Union[str, int]"),
-    pytest.param(typing.Union[str, int, None], id="Union[str, int, None]"),
+    pytest.param(Literal[2, 'two'], id="Literal[2, 'two']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Union[str, int], id="Union[str, int]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Union[str, int, None], id="Union[str, int, None]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
 ])
 def test_init_column_fail(cls):
     pytest.importorskip("sqlalchemy")

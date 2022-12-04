@@ -1,6 +1,7 @@
 import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
 import typing
+import sys
 
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
@@ -340,7 +341,8 @@ class SQLRepo(TemplateRepo):
         return stmt
 
     def _to_sqlalchemy_type(self, cls):
-        origin = typing.get_origin(cls)
+        is_older_py = sys.version_info < (3, 8)
+        origin = typing.get_origin(cls) if not is_older_py else None
         if origin is not None:
             # In form: 
             # - Literal['', '']
