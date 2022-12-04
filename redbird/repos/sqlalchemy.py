@@ -29,7 +29,6 @@ try:
         datetime.datetime: sqlalchemy.DateTime,
         datetime.timedelta: sqlalchemy.Interval,
         dict: sqlalchemy.JSON,
-        Literal: sqlalchemy.String
     }
 except ImportError:
     HAS_SQLALCHEMY = False

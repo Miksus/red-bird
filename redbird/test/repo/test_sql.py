@@ -241,6 +241,7 @@ def test_init_reflect_model_id_field_in_model():
     pytest.param(typing.Optional[str], "Jack", id="Optional[str]"),
     pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]"),
     pytest.param(Literal['yes', 'no'], "yes", id="Literal['...', '...']"),
+    pytest.param(Literal[1, 2], 2, id="Literal[1, 2]"),
 ])
 def test_init_type_insert(cls, example_value):
     pytest.importorskip("sqlalchemy")
@@ -281,6 +282,7 @@ def test_init_type_insert(cls, example_value):
     pytest.param(typing.Union[str, None], True, 'String', id="Union[str, None]"),
     pytest.param(typing.Union[None, str], True, 'String', id="Union[None, str]"),
     pytest.param(Literal['yes', 'no'], False, 'String', id="Literal['...', '...']"),
+    pytest.param(Literal[1, 2], False, 'Integer', id="Literal[1, 2]"),
     pytest.param(typing.Optional[Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]"),
 ])
 def test_init_column(cls, nullable, sql_type):
