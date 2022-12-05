@@ -259,7 +259,7 @@ class SQLRepo(TemplateRepo):
 
     def item_to_data(self, item:BaseModel):
         # Turn Pydantic item to ORM item
-        return self.model_orm(**self.item_to_dict(item))
+        return self.model_orm(**self.item_to_dict(item, exclude_unset=False))
 
     def orm_model_to_pydantic(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
@@ -272,12 +272,12 @@ class SQLRepo(TemplateRepo):
         Session = sessionmaker(bind=engine)
         return scoped_session(Session)
 
-    def item_to_dict(self, item):
+    def item_to_dict(self, item, exclude_unset=True):
         if isinstance(item, dict):
             return item
         elif hasattr(item, "dict"):
             # Is pydantic
-            return item.dict(exclude_unset=True)
+            return item.dict(exclude_unset=exclude_unset)
         else:
             d = vars(item)
             d.pop("_sa_instance_state", None)

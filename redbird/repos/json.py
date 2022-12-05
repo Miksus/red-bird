@@ -123,7 +123,7 @@ class JSONDirectoryRepo(TemplateRepo):
         id_value = self.get_field_value(item, self.id_field)
         filename = self.get_file_path(id_value)
         with open(filename, "w") as file:
-            data = self.item_to_dict(item)
+            data = self.item_to_dict(item, exclude_unset=False)
             json.dump(data, file, **self.kwds_json_dump)
 
     def delete_files(self, items: Iterator[Item]):

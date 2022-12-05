@@ -33,6 +33,15 @@ TEST_CASES = [
     pytest.param("json-dir"),
 ]
 
+TEST_CASES_DEFAULT = [
+    pytest.param("memory"),
+    pytest.param("sql-pydantic"),
+    pytest.param("mongo"),
+    pytest.param("mongo-mock"),
+    pytest.param("http-rest"),
+    pytest.param("csv"),
+    pytest.param("json-dir"),
+]
 
 def sort_items(items, repo, field="id"):
     return list(sorted(items, key=lambda x: repo.get_field_value(x, field)))
@@ -750,3 +759,19 @@ class TestMalformedData(RepoTests):
             actual = sort_items(actual, repo)
             expected = sort_items(expected, repo)
         assert actual == expected
+
+@pytest.mark.parametrize(
+    'repo_defaults',
+    TEST_CASES_DEFAULT,
+    indirect=True
+)
+class TestItemDefaults(RepoTests):
+
+    def test_add_with_default(self, repo_defaults):
+        repo = repo_defaults
+        Item = repo.model
+        
+        assert repo.filter_by().all() == []
+
+        repo.add(Item(id="a", name="Jack"))
+        assert repo.filter_by().all() == [Item(id="a", name="Jack", age=20, color="black")]

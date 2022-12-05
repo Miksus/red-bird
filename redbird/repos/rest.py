@@ -93,7 +93,7 @@ class RESTRepo(TemplateRepo):
     ordered: bool = Field(default=False, const=True)
 
     def insert(self, item):
-        json = self.item_to_dict(item)
+        json = self.item_to_dict(item, exclude_unset=False)
         self._request(
             "POST",
             self.url,

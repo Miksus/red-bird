@@ -42,6 +42,13 @@ class MongoItem(BaseModel):
     name: str
     age: int
 
+class PydanticItemWithDefaults(BaseModel):
+    __id_field__ = 'id'
+    id: str
+    name: str
+    age: Optional[int] = 20
+    color: str = Field(default_factory=lambda: "black")
+
 try:
     from sqlalchemy import Column, String, Integer, create_engine
     from sqlalchemy.orm import declarative_base
@@ -180,22 +187,22 @@ class RESTMock:
         )
 
 
-def get_repo(type_, tmpdir):
+def get_repo(type_, tmpdir, model=PydanticItem):
     if type_.startswith("sql-"):
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import Column, String, Integer, create_engine
     if type_ == "memory":
-        repo = MemoryRepo(model=PydanticItem, id_field="id")
+        repo = MemoryRepo(model=model, id_field="id")
 
     elif type_ == "memory-dict":
         repo = MemoryRepo(model=dict, id_field="id")
 
     elif type_ == "csv":
-        repo = CSVFileRepo(model=PydanticItem, id_field="id", filename=str(tmpdir / "repo.csv"))
+        repo = CSVFileRepo(model=model, id_field="id", filename=str(tmpdir / "repo.csv"))
         repo.create()
 
     elif type_ == "json-dir":
-        repo = JSONDirectoryRepo(model=PydanticItem, id_field="id", path=str(tmpdir))
+        repo = JSONDirectoryRepo(model=model, id_field="id", path=str(tmpdir))
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
@@ -208,12 +215,7 @@ def get_repo(type_, tmpdir):
 
     elif type_ == "sql-pydantic":
         engine = create_engine('sqlite://')
-        engine.execute("""CREATE TABLE pytest (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            age INTEGER
-        )""")
-        repo = SQLRepo(model=PydanticItem, engine=engine, table="pytest", id_field="id")
+        repo = SQLRepo(model=model, engine=engine, table="pytest", id_field="id", if_missing='create')
         #SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "sql-orm":
@@ -228,11 +230,11 @@ def get_repo(type_, tmpdir):
 
     elif type_ == "mongo-mock":
         pytest.importorskip("pymongo")
-        repo = MongoRepo(model=PydanticItem, uri="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
+        repo = MongoRepo(model=model, uri="mongodb://localhost:27017/pytest?authSource=admin", database="pytest", collection="items", id_field="id")
  
     elif type_ == "mongo":
         pytest.importorskip("pymongo")
-        repo = MongoRepo(model=PydanticItem, uri=get_mongo_uri(), database="pytest", collection="items", id_field="id")
+        repo = MongoRepo(model=model, uri=get_mongo_uri(), database="pytest", collection="items", id_field="id")
 
         # Empty the collection
         import pymongo
@@ -244,7 +246,7 @@ def get_repo(type_, tmpdir):
         col.delete_many({})
 
     elif type_ == "http-rest":
-        repo = RESTRepo(model=PydanticItem, url="http://localhost:5000/api/items", id_field="id")
+        repo = RESTRepo(model=model, url="http://localhost:5000/api/items", id_field="id")
 
     return repo
 
@@ -255,6 +257,20 @@ def get_repo(type_, tmpdir):
 @pytest.fixture
 def repo(request, tmpdir):
     repo = get_repo(request.param, tmpdir)
+    if request.param == "http-rest":
+        api = RESTMock()
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            api.add_routes(rsps)
+            yield repo
+    elif request.param == "mongo-mock":
+        with mongomock.patch(servers=(('localhost', 27017),)):
+            yield repo
+    else:
+        yield repo
+
+@pytest.fixture
+def repo_defaults(request, tmpdir):
+    repo = get_repo(request.param, tmpdir, model=PydanticItemWithDefaults)
     if request.param == "http-rest":
         api = RESTMock()
         with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
