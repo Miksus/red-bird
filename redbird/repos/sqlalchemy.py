@@ -1,18 +1,40 @@
 import datetime
 from typing import TYPE_CHECKING, Any, Optional, Type
+import typing
+import sys
+
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
 
-
 from redbird.oper import Between, In, Operation, skip
 from redbird.utils.deprecate import deprecated
+
+try:
+    from typing import Literal
+except ImportError: # pragma: no cover
+    from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-
+try:
+    import sqlalchemy
+    TYPES = {
+        str: sqlalchemy.String,
+        int: sqlalchemy.Integer,
+        float: sqlalchemy.Float,
+        bool: sqlalchemy.Boolean,
+        datetime.date: sqlalchemy.Date,
+        datetime.datetime: sqlalchemy.DateTime,
+        datetime.timedelta: sqlalchemy.Interval,
+        dict: sqlalchemy.JSON,
+    }
+except ImportError: # pragma: no cover
+    HAS_SQLALCHEMY = False
+else:
+    HAS_SQLALCHEMY = True
 
 class SQLRepo(TemplateRepo):
     """SQL Repository
@@ -237,7 +259,7 @@ class SQLRepo(TemplateRepo):
 
     def item_to_data(self, item:BaseModel):
         # Turn Pydantic item to ORM item
-        return self.model_orm(**self.item_to_dict(item))
+        return self.model_orm(**self.item_to_dict(item, exclude_unset=False))
 
     def orm_model_to_pydantic(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
@@ -250,12 +272,12 @@ class SQLRepo(TemplateRepo):
         Session = sessionmaker(bind=engine)
         return scoped_session(Session)
 
-    def item_to_dict(self, item):
+    def item_to_dict(self, item, exclude_unset=True):
         if isinstance(item, dict):
             return item
         elif hasattr(item, "dict"):
             # Is pydantic
-            return item.dict(exclude_unset=True)
+            return item.dict(exclude_unset=exclude_unset)
         else:
             d = vars(item)
             d.pop("_sa_instance_state", None)
@@ -318,20 +340,48 @@ class SQLRepo(TemplateRepo):
             stmt &= sql_oper
         return stmt
 
+    def _to_sqlalchemy_type(self, cls):
+        is_older_py = sys.version_info < (3, 8)
+        origin = typing.get_origin(cls) if not is_older_py else None
+        if origin is not None:
+            # In form: 
+            # - Literal['', '']
+            # - Optional[...]
+            args = typing.get_args(cls)
+            if origin is typing.Union:
+                # Either:
+                # - Union[...]
+                # - Optional[...]
+                # Only Union[<TYPE>, NoneType] is allowed
+                none_type = type(None)
+                has_none_type = none_type in args
+                if len(args) > 2 or (len(args) == 2 and not has_none_type):
+                    raise TypeError(f"Union has more than one optional type: {str(cls)}. Cannot define SQL data type")
+                # Get the non-None type
+                for arg in args:
+                    if arg is not none_type:
+                        cls = arg
+                        break
+            
+            if origin is Literal:
+                type_ = type(args[0])
+                for arg in args[1:]:
+                    if not isinstance(arg, type_):
+                        raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
+                cls = type_
+            
+        return TYPES.get(cls)
+
     def _create_table(self, session, model, name, primary_column=None):
         from sqlalchemy import Table, Column, MetaData
-        from sqlalchemy import String, Integer, Float, Boolean, Date, DateTime, JSON
-        types = {
-            str: String,
-            int: Integer,
-            float: Float,
-            bool: Boolean,
-            datetime.date: Date,
-            datetime.datetime: DateTime,
-            dict: JSON
-        }
+
         columns = [
-            Column(name, types.get(field.type_, field.type_), primary_key=name == primary_column)
+            Column(
+                name, 
+                self._to_sqlalchemy_type(field.type_), 
+                primary_key=name == primary_column, 
+                nullable=not field.required
+            )
             for name, field in model.__fields__.items()
         ]
         meta = MetaData()

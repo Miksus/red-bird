@@ -15,7 +15,7 @@ from .oper import Operation
 
 try:
     from typing import Literal
-except ImportError:
+except ImportError: # pragma: no cover
     from typing_extensions import Literal
 
 
@@ -274,7 +274,7 @@ class BaseRepo(ABC, BaseModel):
             repo.update(Item(id="a", color="red"))
         """
         qry = {self.id_field: self.get_field_value(item, self.id_field)}
-        values = self.item_to_dict(item)
+        values = self.item_to_dict(item, exclude_unset=True)
         # We don't update the ID
         values.pop(self.id_field, None)
         self.filter_by(**qry).update(**values)
@@ -284,12 +284,12 @@ class BaseRepo(ABC, BaseModel):
         self.delete(item)
         self.add(item)
 
-    def item_to_dict(self, item: Item) -> dict:
+    def item_to_dict(self, item: Item, exclude_unset=True) -> dict:
         if isinstance(item, dict):
             return item
         elif isinstance(item, BaseModel):
             # Pydantic model
-            return item.dict(exclude_unset=True)
+            return item.dict(exclude_unset=exclude_unset)
         else:
             return dict(**item)
 

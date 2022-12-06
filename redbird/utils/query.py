@@ -11,7 +11,7 @@ from redbird.oper import Operation
 
 try:
     from typing import Literal
-except ImportError:
+except ImportError: # pragma: no cover
     from typing_extensions import Literal
 
 class QueryMatcher:

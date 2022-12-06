@@ -1,8 +1,15 @@
 
 import datetime
+import sys
+import typing
 import pytest
 from redbird.repos import SQLRepo
 from pydantic import BaseModel
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 class MyItem(BaseModel):
     id: str
@@ -221,17 +228,29 @@ def test_init_reflect_model_id_field_in_model():
     obs = engine.execute("select * from mytable")
     assert list(obs) == [('Jack', 20)]
 
-def test_init_type():
+@pytest.mark.parametrize("cls,example_value", [
+    pytest.param(str, "Jack", id="str"),
+    pytest.param(int, 5, id="int"),
+    pytest.param(float, 5.2, id="float"),
+
+    pytest.param(datetime.date, datetime.date(2022, 1, 1), id="datetime.date"),
+    pytest.param(datetime.datetime, datetime.datetime(2022, 1, 1, 12, 30), id="datetime.datetime"),
+    pytest.param(datetime.timedelta, datetime.timedelta(days=2), id="datetime.timedelta", marks=pytest.mark.skip("SQLite does not support Interval")),
+
+    pytest.param(dict, {"name": "Jack"}, id="dict"),
+
+    pytest.param(typing.Optional[str], "Jack", id="Optional[str]"),
+    pytest.param(typing.Union[str, None], "Jack", id="Union[str, None]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal['yes', 'no'], "yes", id="Literal['...', '...']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal[1, 2], 2, id="Literal[1, 2]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+])
+def test_init_type_insert(cls, example_value):
     pytest.importorskip("sqlalchemy")
 
     class MyItem(BaseModel):
         __id_field__ = "id"
         id: str
-        name: str
-        age: int
-        birth_date: datetime.date
-        observed: datetime.datetime
-        meta: dict
+        myfield: cls
 
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
@@ -239,23 +258,69 @@ def test_init_type():
     
     repo.add(MyItem(
         id="a",
-        name="myname",
-        age=25,
-        birth_date=datetime.date(2000, 1, 1),
-        observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
-        meta={"yes": "no"}
+        myfield=example_value
     ))
     obs = repo.filter_by().all()
     assert obs == [
         MyItem(
             id="a",
-            name="myname",
-            age=25,
-            birth_date=datetime.date(2000, 1, 1),
-            observed=datetime.datetime(2000, 1, 1, 12, 30, 00),
-            meta={"yes": "no"}
+            myfield=example_value
         )
     ]
+
+@pytest.mark.parametrize("cls,nullable,sql_type", [
+    pytest.param(str, False, 'String', id="str"),
+    pytest.param(int, False, 'Integer', id="int"),
+    pytest.param(float, False, 'Float', id="float"),
+
+    pytest.param(datetime.date, False, 'Date', id="datetime.date"),
+    pytest.param(datetime.datetime, False, 'DateTime', id="datetime.datetime"),
+    pytest.param(datetime.timedelta, False, 'Interval', id="datetime.timedelta", marks=pytest.mark.skip("SQLite does not support Interval")),
+
+    pytest.param(dict, False, 'JSON', id="dict"),
+
+    pytest.param(typing.Optional[str], True, 'String', id="Optional[str]"),
+    pytest.param(typing.Union[str, None], True, 'String', id="Union[str, None]"),
+    pytest.param(typing.Union[None, str], True, 'String', id="Union[None, str]"),
+    pytest.param(Literal['yes', 'no'], False, 'String', id="Literal['...', '...']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(Literal[1, 2], False, 'Integer', id="Literal[1, 2]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Optional[Literal['yes', 'no']], True, 'String', id="Optional[Literal['...', '...']]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+])
+def test_init_column(cls, nullable, sql_type):
+    pytest.importorskip("sqlalchemy")
+
+    class MyItem(BaseModel):
+        __id_field__ = "id"
+        id: str
+        myfield: cls
+    import sqlalchemy
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+    repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
+    
+    # Test column
+    column = repo.model_orm.__table__.columns['myfield']
+    assert column.nullable is nullable
+    assert isinstance(column.type, getattr(sqlalchemy, sql_type))
+
+@pytest.mark.parametrize("cls", [
+    pytest.param(Literal[2, 'two'], id="Literal[2, 'two']", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Union[str, int], id="Union[str, int]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+    pytest.param(typing.Union[str, int, None], id="Union[str, int, None]", marks=pytest.mark.skipif(sys.version_info < (3, 8), reason="<py38")),
+])
+def test_init_column_fail(cls):
+    pytest.importorskip("sqlalchemy")
+
+    class MyItem(BaseModel):
+        __id_field__ = "id"
+        id: str
+        myfield: cls
+
+    from sqlalchemy import create_engine
+    engine = create_engine('sqlite://')
+
+    with pytest.raises(TypeError):
+        repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
 
 def test_init_create_table():
     pytest.importorskip("sqlalchemy")
