@@ -16,6 +16,8 @@ try:
 except ImportError: # pragma: no cover
     from typing_extensions import Literal
 
+from redbird.packages import sqlalchemy, pydantic_sqlalchemy
+
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
@@ -186,17 +188,13 @@ class SQLRepo(TemplateRepo):
     @classmethod
     @deprecated("Please use normal init instead.")
     def from_connection_string(cls, *args, conn_string, **kwargs):
-        from sqlalchemy import create_engine
-        return cls.from_engine(*args, engine=create_engine(conn_string), **kwargs)
+        return cls.from_engine(*args, engine=sqlalchemy.create_engine(conn_string), **kwargs)
 
     def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, if_missing="raise", **kwargs):
-        from sqlalchemy import create_engine, inspect
-        from sqlalchemy.ext.automap import automap_base
-        from sqlalchemy.exc import NoSuchTableError
 
         # Determine connection
         if conn_string is not None:
-            engine = create_engine(conn_string)
+            engine = sqlalchemy.create_engine(conn_string)
         if engine is not None:
             session = self.create_scoped_session(engine)
 
@@ -210,16 +208,17 @@ class SQLRepo(TemplateRepo):
                 )
             table = kwargs["table"]
             engine = session.get_bind()
-            table_exists = inspect(engine).has_table(table)
+            table_exists = sqlalchemy.inspect(engine).has_table(table)
             if not table_exists:
                 if if_missing == "raise":
-                    raise NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
+                    raise sqlalchemy.exc.NoSuchTableError(f"Table {table} is missing. Create the table or pass if_missing='create'")
                 elif if_missing == "create":
                     model = kwargs['model']
                     self._create_table(session, model, name=table, primary_column=kwargs.get('id_field', getattr(model, "__id_field__", None)))
 
+            from sqlalchemy.ext.automap import automap_base
             self._Base = automap_base()
-            self._Base.prepare(engine=engine, reflect=True)
+            self._Base.prepare(autoload_with=engine)
             try:
                 model_orm = self._Base.classes[table]
             except KeyError as exc:
@@ -230,13 +229,12 @@ class SQLRepo(TemplateRepo):
         super().__init__(*args, session=session, **kwargs)
 
     def insert(self, item):
-        from sqlalchemy.exc import IntegrityError
         row = self.item_to_data(item)
         self.session.add(row)
         if self.autocommit:
             try:
                 self.session.commit()
-            except IntegrityError as exc:
+            except sqlalchemy.exc.IntegrityError as exc:
                 self.session.rollback()
                 raise KeyFoundError(f"Item {self.get_field_value(item, self.id_field)} is already in the table.") from exc
 
@@ -263,14 +261,12 @@ class SQLRepo(TemplateRepo):
 
     def orm_model_to_pydantic(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
-        from pydantic_sqlalchemy import sqlalchemy_to_pydantic
-        return sqlalchemy_to_pydantic(model)
+        return pydantic_sqlalchemy.sqlalchemy_to_pydantic(model)
 
     @staticmethod
     def create_scoped_session(engine):
-        from sqlalchemy.orm import sessionmaker, scoped_session
-        Session = sessionmaker(bind=engine)
-        return scoped_session(Session)
+        Session = sqlalchemy.orm.sessionmaker(bind=engine)
+        return sqlalchemy.orm.scoped_session(Session)
 
     def item_to_dict(self, item, exclude_unset=True):
         if isinstance(item, dict):
@@ -314,10 +310,9 @@ class SQLRepo(TemplateRepo):
         return session.query(self.model_orm).filter(query)
 
     def format_query(self, oper: dict):
-        from sqlalchemy import Column, orm, true
-        stmt = true()
+        stmt = sqlalchemy.true()
         for column_name, oper_or_value in oper.items():
-            column = getattr(self.model_orm, column_name) if self.model_orm is not None else Column(column_name)
+            column = getattr(self.model_orm, column_name) if self.model_orm is not None else sqlalchemy.Column(column_name)
             if isinstance(oper_or_value, Operation):
                 oper = oper_or_value
                 if isinstance(oper, Between):
@@ -362,21 +357,19 @@ class SQLRepo(TemplateRepo):
                     if arg is not none_type:
                         cls = arg
                         break
-            
+
             if origin is Literal:
                 type_ = type(args[0])
                 for arg in args[1:]:
                     if not isinstance(arg, type_):
                         raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
                 cls = type_
-            
+
         return TYPES.get(cls)
 
     def _create_table(self, session, model, name, primary_column=None):
-        from sqlalchemy import Table, Column, MetaData
-
         columns = [
-            Column(
+            sqlalchemy.Column(
                 name, 
                 self._to_sqlalchemy_type(field.type_), 
                 primary_key=name == primary_column, 
@@ -384,8 +377,8 @@ class SQLRepo(TemplateRepo):
             )
             for name, field in model.__fields__.items()
         ]
-        meta = MetaData()
-        table = Table(name, meta, *columns)
+        meta = sqlalchemy.MetaData()
+        table = sqlalchemy.Table(name, meta, *columns)
 
         engine = session.get_bind()
         table.create(engine)

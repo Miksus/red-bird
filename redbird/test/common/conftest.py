@@ -191,6 +191,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
     if type_.startswith("sql-"):
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import Column, String, Integer, create_engine
+        import sqlalchemy
     if type_ == "memory":
         repo = MemoryRepo(model=model, id_field="id")
 
@@ -206,11 +207,13 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
-        engine.execute("""CREATE TABLE pytest (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            age INTEGER
-        )""")
+        with engine.begin() as conn:
+            conn.execute(sqlalchemy.text("""
+            CREATE TABLE pytest (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+            )"""))
         repo = SQLRepo(engine=engine, table="pytest", id_field="id")
 
     elif type_ == "sql-pydantic":

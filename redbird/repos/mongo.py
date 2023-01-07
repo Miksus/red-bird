@@ -8,6 +8,7 @@ from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError
 from redbird.oper import Between, GreaterEqual, GreaterThan, In, LessEqual, LessThan, NotEqual, Operation, skip
 from redbird.templates import TemplateRepo
+from redbird.packages import pymongo
 
 if TYPE_CHECKING:
     from pymongo import MongoClient
@@ -48,7 +49,6 @@ class MongoSession:
         return self._bind
 
     def create_client(self, url=None):
-        import pymongo
         url = self.url if url is None else url
         return pymongo.MongoClient(url)
 

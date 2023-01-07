@@ -4,19 +4,20 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from redbird.packages import requests
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
-
-
-
 from redbird.templates import TemplateRepo
+from redbird.utils.importing import get_import_error
 
 try:
     import requests
-except ImportError:
-    # Cannot import, we cannot create request Session
+except ImportError: # pragma: no cover
     # RESTRepo cannot be used
-    pass
+    class Session:
+        def __init__(self, *args, **kwargs):
+            # ImportError is raised here
+            raise get_import_error("requests")
 else:
     class Session(requests.Session):
         """Subclassed requests.Session for more

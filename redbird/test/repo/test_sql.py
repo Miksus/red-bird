@@ -42,15 +42,23 @@ else:
                 return False
             return other.id == self.id and other.name == self.name and other.age == self.age
 
+def execute_sql(text, engine):
+    import sqlalchemy
+    with engine.begin() as conn:
+        return conn.execute(sqlalchemy.text(text))
+
 def test_init_engine():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        age INTEGER
-    )""")
+    execute_sql(
+        """CREATE TABLE pytest (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            age INTEGER
+        )""",
+        engine=engine
+    )
     repo = SQLRepo(engine=engine, table="pytest")
     assert repo.model_orm.__table__.name == "pytest"
     assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
@@ -61,14 +69,18 @@ def test_init_engine():
 def test_init_conn_string(tmpdir):
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
+    import sqlalchemy
     with tmpdir.as_cwd() as old_dir:
         conn_string = 'sqlite:///pytest.db'
         engine = create_engine(conn_string)
-        engine.execute("""CREATE TABLE pytest (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            age INTEGER
-        )""")
+        execute_sql(
+            """CREATE TABLE pytest (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+            )""",
+            engine=engine
+        )
         repo = SQLRepo(conn_string=conn_string, table="pytest")
         assert repo.model_orm.__table__.name == "pytest"
         assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
@@ -82,11 +94,11 @@ def test_init_session():
     from sqlalchemy.orm import Session
     engine = create_engine('sqlite://')
     session = Session(engine)
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     repo = SQLRepo(session=session, table="pytest")
     assert repo.model_orm.__table__.name == "pytest"
     assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
@@ -98,11 +110,11 @@ def test_init_model():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     repo = SQLRepo(model=MyItem, engine=engine, table="pytest")
     assert repo.model is MyItem
 
@@ -113,11 +125,11 @@ def test_init_model_orm_mode():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     repo = SQLRepo(model=MyItemWithORM, engine=engine, table="pytest")
     assert repo.model is MyItemWithORM
 
@@ -128,11 +140,11 @@ def test_init_orm():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     repo = SQLRepo(model_orm=SQLItem, reflect_model=True, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
@@ -144,11 +156,11 @@ def test_init_model_and_orm():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     repo = SQLRepo(model=MyItem, model_orm=SQLItem, engine=engine)
     assert repo.model_orm is SQLItem
     assert issubclass(repo.model, BaseModel)
@@ -160,11 +172,11 @@ def test_init_dict():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT PRIMARY KEY,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
 
     repo = SQLRepo(model=dict, engine=engine, table="pytest")
     repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -180,11 +192,11 @@ def test_init_deprecated(tmpdir):
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import create_engine
         engine = create_engine('sqlite:///pytest.db')
-        engine.execute("""CREATE TABLE pytest (
+        execute_sql("""CREATE TABLE pytest (
             id TEXT PRIMARY KEY,
             name TEXT,
             age INTEGER
-        )""")
+        )""", engine=engine)
 
         repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
         repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -203,11 +215,11 @@ def test_init_reflect_model_without_primary_key():
     with pytest.raises(KeyError):
         repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create")
     
-    engine.execute("""CREATE TABLE pytest (
+    execute_sql("""CREATE TABLE pytest (
         id TEXT,
         name TEXT,
         age INTEGER
-    )""")
+    )""", engine=engine)
     with pytest.raises(KeyError):
         repo = SQLRepo(model=MyItem, engine=engine, table="mytable")
 
@@ -225,7 +237,7 @@ def test_init_reflect_model_id_field_in_model():
 
     # Make sure the __id_field__ is not in there
     repo.add(MyItem(name="Jack", age=20))
-    obs = engine.execute("select * from mytable")
+    obs = execute_sql("select * from mytable", engine=engine)
     assert list(obs) == [('Jack', 20)]
 
 @pytest.mark.parametrize("cls,example_value", [
