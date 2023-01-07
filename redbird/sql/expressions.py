@@ -151,6 +151,9 @@ class Table:
         return stmt
 
     def _to_sqlalchemy_type(self, cls):
+        from sqlalchemy.sql import sqltypes
+        if isinstance(cls, sqltypes.TypeEngine):
+            return cls
         is_older_py = sys.version_info < (3, 8)
         origin = typing.get_origin(cls) if not is_older_py else None
         if origin is not None:
@@ -179,7 +182,6 @@ class Table:
                     if not isinstance(arg, type_):
                         raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
                 cls = type_
-            
         return self.types.get(cls)
 
     def reflect(self):
@@ -190,6 +192,16 @@ class Table:
             columns = [
                 sqlalchemy.Column(name, self._to_sqlalchemy_type(type_))
                 for name, type_ in columns.items()
+            ]
+        elif isinstance(columns, (list, tuple)):
+            columns = [
+                sqlalchemy.Column(col, type_=sqlalchemy.String()) if isinstance(col, str) 
+                else sqlalchemy.Column(
+                    type_=self._to_sqlalchemy_type(col['type_']), 
+                    **{k: v for k, v in col.items() if k not in ('type_',)}
+                ) if isinstance(col, dict)
+                else col
+                for col in columns
             ]
         meta = sqlalchemy.MetaData()
         tbl = sqlalchemy.Table(self.name, meta, *columns)

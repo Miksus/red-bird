@@ -3,10 +3,37 @@ from pydantic import BaseModel
 from datetime import date
 import pytest
 
-from redbird.sql import Table, create_table
+from redbird.sql import Table, create_table, execute
 
-def test_create(engine):
-    create_table(table="mytable", columns=["col1", "col2"], engine=engine)
+@pytest.mark.parametrize("column_type", [
+    "string",
+    "sqlalchemy",
+    "dict",
+    "list-dicts"
+])
+def test_create(engine, column_type):
+    import sqlalchemy
+    if column_type == "string":
+        columns = ["col1", "col2"]
+    elif column_type == "dict":
+        columns = {"col1": str, "col2": sqlalchemy.String()}
+    elif column_type == "sqlalchemy":
+        columns = [
+            sqlalchemy.Column("col1", type_=sqlalchemy.String()),
+            sqlalchemy.Column("col2", type_=sqlalchemy.String())
+        ]
+    elif column_type == "list-dicts":
+        columns = [
+            {"name": "col1", "type_": str},
+            {"name": "col2", "type_": sqlalchemy.String()},
+        ]
+    create_table(table="mytable", columns=columns, engine=engine)
+
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
+    assert [
+        {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+        {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+    ] == list(res.mappings())
 
 def test_create_model(engine):
     class MyModel(BaseModel):
@@ -17,7 +44,7 @@ def test_create_model(engine):
 
     tbl = Table("mytable", engine=engine)
     tbl.create_from_model(MyModel)
-    res = engine.execute("PRAGMA table_info(mytable);")
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
     assert [
         {'cid': 0, 'name': 'name', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'score', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 0},
@@ -34,7 +61,7 @@ def test_create_model_primary_key(engine):
 
     tbl = Table("mytable", engine=engine)
     tbl.create_from_model(MyModel, primary_column="myid")
-    res = engine.execute("PRAGMA table_info(mytable);")
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
     assert [
         {'cid': 0, 'name': 'myid', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
     ] == list(res.mappings())
@@ -46,7 +73,7 @@ def test_create_model_multi_primary_key(engine):
 
     tbl = Table("mytable", engine=engine)
     tbl.create_from_model(MyModel, primary_column=("myid1", "myid2"))
-    res = engine.execute("PRAGMA table_info(mytable);")
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
     assert [
         {'cid': 0, 'name': 'myid1', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
         {'cid': 1, 'name': 'myid2', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 2},
@@ -60,7 +87,7 @@ def test_create_dict(engine):
         "mycol_2": int, 
         "mycol_3": date,
     })
-    res = engine.execute("PRAGMA table_info(mytable);")
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
     assert [
         {'cid': 0, 'name': 'mycol_1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'mycol_2', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 0},
@@ -75,7 +102,7 @@ def test_create_list(engine):
         sqlalchemy.Column("mycol_2", sqlalchemy.INTEGER, nullable=False),
         sqlalchemy.Column("mycol_3", sqlalchemy.DATE),
     ])
-    res = engine.execute("PRAGMA table_info(mytable);")
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
     assert [
         {'cid': 0, 'name': 'mycol_1', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
         {'cid': 1, 'name': 'mycol_2', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 0},
