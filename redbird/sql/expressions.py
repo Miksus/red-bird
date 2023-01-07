@@ -8,7 +8,7 @@ from pathlib import Path
 import typing
 
 from redbird.oper import Between, In, Operation, skip
-from redbird.packages import sqlalchemy
+from redbird.packages import sqlalchemy, import_exists
 
 from pydantic import BaseModel
 
@@ -36,7 +36,7 @@ class Table:
         datetime.datetime: sqlalchemy.DateTime,
         datetime.timedelta: sqlalchemy.Interval,
         dict: sqlalchemy.JSON,
-    }
+    } if import_exists("sqlalchemy") else {}
     _name: str
     _object: sqlalchemy.Table
 

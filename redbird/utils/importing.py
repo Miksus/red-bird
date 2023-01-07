@@ -6,6 +6,7 @@ def get_import_error(name:str):
 class _Missing_Package:
     def __init__(self, name:str) -> None:
         self.__name__ = name
+        self.__redbird_missing__ = True
 
     def __setattr__(self, name, value):
         if name == "__name__":
@@ -22,3 +23,6 @@ def import_optional(name:str):
         return importlib.import_module(name)
     except ImportError:
         return _Missing_Package(name)
+
+def import_exists(name:str):
+    return not isinstance(import_optional(name), _Missing_Package)
