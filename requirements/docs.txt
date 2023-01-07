@@ -1,4 +1,4 @@
-sphinx==5.*
+sphinx==4.*
 sphinx_book_theme==0.3.*
 sphinx-copybutton==0.5.*
 jinja2==3.*
