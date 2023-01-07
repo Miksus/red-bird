@@ -4,20 +4,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from redbird.packages import requests
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
-
-
-
 from redbird.templates import TemplateRepo
 
 try:
-    import requests
-except ImportError:
-    # Cannot import, we cannot create request Session
-    # RESTRepo cannot be used
-    pass
-else:
     class Session(requests.Session):
         """Subclassed requests.Session for more
         unified methods.
@@ -25,6 +17,13 @@ else:
 
         def remove(self):
             self.close()
+except AttributeError:
+    # requests is None (missing), we cannot create request Session
+    # RESTRepo cannot be used
+    class Session:
+        def __init__(self, *args, **kwargs):
+            # ImportError is raised here
+            import requests
 
 class RESTRepo(TemplateRepo):
 
