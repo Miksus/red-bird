@@ -45,12 +45,16 @@ else:
 def test_init_engine():
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
+    import sqlalchemy
     engine = create_engine('sqlite://')
-    engine.execute("""CREATE TABLE pytest (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        age INTEGER
-    )""")
+    with engine.begin() as conn:
+        conn.execute(sqlalchemy.text(
+            """CREATE TABLE pytest (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+            )"""
+        ))
     repo = SQLRepo(engine=engine, table="pytest")
     assert repo.model_orm.__table__.name == "pytest"
     assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
