@@ -8,8 +8,17 @@ from redbird.packages import requests
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation
 from redbird.base import BaseResult, BaseRepo
 from redbird.templates import TemplateRepo
+from redbird.utils.importing import get_import_error
 
 try:
+    import requests
+except ImportError: # pragma: no cover
+    # RESTRepo cannot be used
+    class Session:
+        def __init__(self, *args, **kwargs):
+            # ImportError is raised here
+            raise get_import_error("requests")
+else:
     class Session(requests.Session):
         """Subclassed requests.Session for more
         unified methods.
@@ -17,13 +26,6 @@ try:
 
         def remove(self):
             self.close()
-except AttributeError:
-    # requests is None (missing), we cannot create request Session
-    # RESTRepo cannot be used
-    class Session:
-        def __init__(self, *args, **kwargs):
-            # ImportError is raised here
-            import requests
 
 class RESTRepo(TemplateRepo):
 
