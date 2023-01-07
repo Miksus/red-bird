@@ -335,6 +335,38 @@ class SQLRepo(TemplateRepo):
             stmt &= sql_oper
         return stmt
 
+    def _to_sqlalchemy_type(self, cls):
+        is_older_py = sys.version_info < (3, 8)
+        origin = typing.get_origin(cls) if not is_older_py else None
+        if origin is not None:
+            # In form: 
+            # - Literal['', '']
+            # - Optional[...]
+            args = typing.get_args(cls)
+            if origin is typing.Union:
+                # Either:
+                # - Union[...]
+                # - Optional[...]
+                # Only Union[<TYPE>, NoneType] is allowed
+                none_type = type(None)
+                has_none_type = none_type in args
+                if len(args) > 2 or (len(args) == 2 and not has_none_type):
+                    raise TypeError(f"Union has more than one optional type: {str(cls)}. Cannot define SQL data type")
+                # Get the non-None type
+                for arg in args:
+                    if arg is not none_type:
+                        cls = arg
+                        break
+
+            if origin is Literal:
+                type_ = type(args[0])
+                for arg in args[1:]:
+                    if not isinstance(arg, type_):
+                        raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
+                cls = type_
+
+        return TYPES.get(cls)
+
     def _create_table(self, session, model, name, primary_column=None):
         columns = [
             sqlalchemy.Column(
