@@ -1,5 +1,5 @@
-sphinx
-pydata-sphinx-theme
-sphinx_book_theme
-sphinx-copybutton
-jinja2
+sphinx==5.*
+pydata-sphinx-theme==0.8.*
+sphinx_book_theme==0.3.*
+sphinx-copybutton==0.5.*
+jinja2==3.*
