@@ -45,7 +45,7 @@ def test_insert_dict(engine):
     )
     assert [
         {'id': 'a', 'name': 'Johnny', 'birth_date': '2000-01-01', 'score': 100}, 
-    ] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    ] == list(execute(sqlalchemy.text("select * from empty"), engine=engine).mappings())
 
 def test_delete(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
@@ -58,7 +58,7 @@ def test_delete(engine):
         #{'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
         {'id': 'c', 'name': 'James', 'birth_date': '2020-01-01', 'score': 300},
-    ] == list(engine.execute(sqlalchemy.text("select * from populated")).mappings())
+    ] == list(execute(sqlalchemy.text("select * from populated"), engine=engine).mappings())
 
 def test_update(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
@@ -72,7 +72,7 @@ def test_update(engine):
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 0},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
         {'id': 'c', 'name': 'James', 'birth_date': '2020-01-01', 'score': 300},
-    ] == list(engine.execute(sqlalchemy.text("select * from populated")).mappings())
+    ] == list(execute(sqlalchemy.text("select * from populated"), engine=engine).mappings())
 
 def test_count(engine):
     assert count(table="populated", engine=engine) == 3
