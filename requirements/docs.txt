@@ -1,5 +1,5 @@
-sphinx >= 1.7.5
+sphinx
 pydata-sphinx-theme
-sphinx_book_theme >= 0.3.0
+sphinx_book_theme
 sphinx-copybutton
-jinja2 == 3.1.*
+jinja2
