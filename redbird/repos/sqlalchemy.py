@@ -218,7 +218,7 @@ class SQLRepo(TemplateRepo):
 
             from sqlalchemy.ext.automap import automap_base
             self._Base = automap_base()
-            self._Base.prepare(engine=engine, reflect=True)
+            self._Base.prepare(autoload_with=engine)
             try:
                 model_orm = self._Base.classes[table]
             except KeyError as exc:

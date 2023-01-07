@@ -206,11 +206,13 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-dict":
         engine = create_engine('sqlite://')
-        engine.execute("""CREATE TABLE pytest (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            age INTEGER
-        )""")
+        with engine.begin() as conn:
+            conn.execute(sqlalchemy.text("""
+            CREATE TABLE pytest (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+            )"""))
         repo = SQLRepo(engine=engine, table="pytest", id_field="id")
 
     elif type_ == "sql-pydantic":
