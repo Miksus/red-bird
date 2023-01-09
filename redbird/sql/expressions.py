@@ -553,8 +553,21 @@ def to_native(value, sql_type, nullable=False):
         return value
     return py_type(value)
 
-def create_table(table, columns, engine):
-    return Table(engine=engine, table=table).create(columns)
+def create_table(*args, engine:'Engine', table:str, **kwargs):
+    """Create a table to a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to be created.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.create`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.create`
+    """
+    return Table(engine=engine, table=table).create(*args, **kwargs)
 
 def reflect_table(table:str, *columns, engine:'Engine', meta=None):
     """Reflect a table in an SQL database"""
