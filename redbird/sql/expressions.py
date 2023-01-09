@@ -335,6 +335,7 @@ class Table:
         return self.types.get(cls)
 
     def reflect(self):
+        """Reflect the table from the database"""
         self._object = reflect_table(self.name, engine=self.engine)
 
     def create(self, columns:Union[List['Column'], Mapping[str, Type]]):
@@ -444,6 +445,7 @@ class Table:
             return conn.execute(*args, **kwargs)
 
     def open_transaction(self):
+        """Open a transaction"""
         self._ctx = self._trans_ctx(self)
         return self._ctx.__enter__()
 
