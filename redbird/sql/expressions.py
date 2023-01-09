@@ -74,9 +74,9 @@ class Table:
         def __exit__(self, type_, value, traceback):
             self._ctx.__exit__(type_, value, traceback)
 
-    def __init__(self, table:str, engine:'sqlalchemy.engine.Engine'):
+    def __init__(self, name:str, engine:'sqlalchemy.engine.Engine'):
         self.engine = engine
-        self.name = table
+        self.name = name
 
     def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None) -> Iterable[dict]:
         """Read the database table using a query
@@ -581,7 +581,7 @@ def create_table(*args, engine:'Engine', table:str, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.create`
     """
-    return Table(engine=engine, table=table).create(*args, **kwargs)
+    return Table(engine=engine, name=table).create(*args, **kwargs)
 
 def reflect_table(table:str, *columns, engine:'Engine', meta=None):
     """Reflect a table in an SQL database"""
@@ -603,7 +603,7 @@ def select(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.select`
     """
-    return Table(engine=engine, table=table).select(*args, **kwargs)
+    return Table(engine=engine, name=table).select(*args, **kwargs)
 
 def insert(*args, engine:'Engine', table:str=None, **kwargs):
     """Insert row(s) to a table in a SQL database
@@ -619,7 +619,7 @@ def insert(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.insert`
     """
-    return Table(engine=engine, table=table).insert(*args, **kwargs)
+    return Table(engine=engine, name=table).insert(*args, **kwargs)
 
 def delete(*args, engine:'Engine', table:str=None, **kwargs):
     """Delete row(s) in a table in a SQL database
@@ -635,7 +635,7 @@ def delete(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.delete`
     """
-    return Table(engine=engine, table=table).delete(*args, **kwargs)
+    return Table(engine=engine, name=table).delete(*args, **kwargs)
 
 def update(*args, engine:'Engine', table:str=None, **kwargs):
     """Update row(s) to a table in a SQL database
@@ -651,7 +651,7 @@ def update(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.update`
     """
-    return Table(engine=engine, table=table).update(*args, **kwargs)
+    return Table(engine=engine, name=table).update(*args, **kwargs)
 
 def count(*args, engine:'Engine', table:str=None, **kwargs):
     """Count the number of rows in a table in a SQL database
@@ -667,7 +667,7 @@ def count(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.count`
     """
-    return Table(engine=engine, table=table).count(*args, **kwargs)
+    return Table(engine=engine, name=table).count(*args, **kwargs)
 
 def execute(*args, engine:'Engine', **kwargs):
     """Execute raw SQL or a SQL expression in a SQL database
@@ -683,4 +683,4 @@ def execute(*args, engine:'Engine', **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.execute`
     """
-    return Table(engine=engine, table=None).execute(*args, **kwargs)
+    return Table(engine=engine, name=None).execute(*args, **kwargs)
