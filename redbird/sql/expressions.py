@@ -188,6 +188,55 @@ class Table:
         self._object = reflect_table(self.name, engine=self.engine)
 
     def create(self, columns:Union[List['Column'], Mapping[str, Type]]):
+        """Create the table
+        
+        Parameters
+        ----------
+        columns : dict, list of sqlalchemy.Column, dict or string
+            Columns to be created.
+
+        Examples
+        --------
+
+        Create a table with columns ``column_1``, ``column_2`` and ``column_3``
+        (all of them all text): 
+
+        .. code-block:: python
+
+            table.create(["column_1", "column_2", "column_3"])
+
+        Create a table with columns ``column_1``, ``column_2`` and ``column_3``
+        with varying data types: 
+
+        .. code-block:: python
+
+            import datetime
+            table.create({"column_1": str, "column_2": int, "column_3": datetime.datetime})
+
+        Create a table with columns ``column_1``, ``column_2`` and ``column_3``
+        using SQLAlchemy columns: 
+
+        .. code-block:: python
+
+            from sqlalchemy import Column, String, Integer, DateTime
+            table.create([
+                Column("column_1", type_=String()),
+                Column("column_2", type_=Integer()),
+                Column("column_3", type_=DateTime())
+            ])
+
+        Create a table with columns ``column_1``, ``column_2`` and ``column_3``
+        using list of dicts: 
+
+        .. code-block:: python
+
+            from sqlalchemy import DateTime
+            table.create([
+                {"name": "column_1", "type_": str},
+                {"name": "column_2", "type_": int},
+                {"name": "column_3", "type_": DateTime()},
+            ])
+        """
         if isinstance(columns, Mapping):
             columns = [
                 sqlalchemy.Column(name, self._to_sqlalchemy_type(type_))
