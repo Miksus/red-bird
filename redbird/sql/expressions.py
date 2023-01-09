@@ -365,6 +365,15 @@ class Table:
         """Reflect the table from the database"""
         self._object = reflect_table(self.name, engine=self.engine)
 
+    def drop(self):
+        """Drop the table"""
+        self.object.drop(bind=self.engine)
+
+    def exists(self) -> bool:
+        """Check if the table exists"""
+        tbl = sqlalchemy.Table(self.name, sqlalchemy.MetaData())
+        return tbl.exists(bind=self.engine)
+
     def create(self, columns:Union[List['Column'], Mapping[str, Type]], exist_ok=False):
         """Create the table
         
