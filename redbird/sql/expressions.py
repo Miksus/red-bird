@@ -164,7 +164,31 @@ class Table:
             return self._format_results(rows)
         return rows
     
-    def insert(self, data):
+    def insert(self, data:Union[Mapping, List[dict]]):
+        """Insert data to the database
+        
+        Parameters
+        ----------
+        data : dict, list of dicts
+            Data to be inserted.
+
+        Examples
+        --------
+        Insert a single row:
+        
+        .. code-block:: python
+
+            table.insert({"column_1": "a", "column_2": 1})
+
+        Insert multiple rows:
+        
+        .. code-block:: python
+
+            table.insert([
+                {"column_1": "a", "column_2": 1},
+                {"column_1": "b", "column_2": 2},
+            ])
+        """
         table = self.object
         if isinstance(data, Mapping):
             statement = table.insert().values(**data)
