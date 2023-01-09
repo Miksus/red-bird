@@ -106,6 +106,27 @@ class Table:
         self.execute(statement)
 
     def count(self, where=None) -> int:
+        """Count the number of rows
+        
+        Parameters
+        ----------
+        where : dict, sqlalchemy expression, optional
+            Where clause to be satisfied for counting the rows.
+
+        Returns
+        -------
+        int
+            Count of rows (satisfying the where clause).
+
+        Examples
+        --------
+
+        Count rows where ``column_1 = "a" and column_2 = 1``:
+
+        .. code-block:: python
+
+            table.count({"column_1": "a", "column_2": 1}, {"column_3": "new value"})
+        """
         stmt = sqlalchemy.select(sqlalchemy.func.count()).select_from(self.object)
         if where is not None:
             if isinstance(where, dict):
