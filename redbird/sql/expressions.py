@@ -516,8 +516,8 @@ class Table:
         self.engine = value
 
     @property
-    def object(self):
-        "SQLAlchemy representation of the table"
+    def object(self) -> 'sqlalchemy.Table':
+        "sqlalchemy.Table: SQLAlchemy representation of the table"
         if self._object is None:
             self.reflect()
         return self._object
@@ -528,7 +528,8 @@ class Table:
         self._name = value.name
 
     @property
-    def name(self):
+    def name(self) -> str:
+        "str: name of the table"
         if self._object is not None:
             return self._object.name
         return self._name
