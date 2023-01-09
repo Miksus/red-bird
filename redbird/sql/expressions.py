@@ -365,7 +365,7 @@ class Table:
         """Reflect the table from the database"""
         self._object = reflect_table(self.name, engine=self.engine)
 
-    def create(self, columns:Union[List['Column'], Mapping[str, Type]]):
+    def create(self, columns:Union[List['Column'], Mapping[str, Type]], exist_ok=False):
         """Create the table
         
         Parameters
@@ -432,6 +432,11 @@ class Table:
             ]
         meta = sqlalchemy.MetaData()
         tbl = sqlalchemy.Table(self.name, meta, *columns)
+
+        if exist_ok and tbl.exists(bind=self.engine):
+            self._object = tbl
+            return
+
         tbl.create(bind=self.engine)
         self._object = tbl
 
