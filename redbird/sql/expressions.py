@@ -439,6 +439,21 @@ class Table:
         return self._ctx.__enter__()
 
     def __enter__(self):
+        """Open a transaction.
+        
+        Examples
+        --------
+        .. code-block:: python
+
+            from redbird.sql import Table
+            from sqlalchemy import create_engine
+
+            table = Table(engine=create_engine(...), table="mytable")
+
+            with table as transaction:
+                transaction.insert({"col_1": "a", "col_2": "b"})
+                transaction.delete({"col_2": "c"})
+        """
         self._ctx = self._trans_ctx(self)
         return self._ctx.__enter__()
 
