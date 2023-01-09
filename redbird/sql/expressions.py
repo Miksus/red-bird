@@ -24,7 +24,27 @@ if TYPE_CHECKING:
 
 
 class Table:
+    """SQL Table
 
+    Similar to ``sqlalchemy.Table`` except this has methods
+    to make certain operations more intuitive.
+
+    Attributes
+    ----------
+    table : str
+        Name of the table
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection.
+    
+    Examples
+    --------
+    .. code-block:: python
+
+        import sqlalchemy
+        from redbird.sql import Table
+
+        table = Table(engine=sqlalchemy.create_engine("sqlite://"), table="mytable")
+    """
     engine: 'Engine'
 
     types = {
