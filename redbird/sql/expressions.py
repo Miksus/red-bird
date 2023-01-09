@@ -423,6 +423,15 @@ class Table:
         self.create(sql_cols)
   
     def execute(self, *args, **kwargs):
+        """Execute SQL statement or raw SQL.
+        
+        Parameters
+        ----------
+        *args : tuple
+            Passed directly to sqlalchemy.Connection.execute.
+        **args : dict
+            Passed directly to sqlalchemy.Connection.execute.
+        """
         if len(args) == 1 and isinstance(args[0], str):
             # SQLAlchemy v2.0 won't accept string as 
             # expression but we do
