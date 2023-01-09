@@ -91,7 +91,31 @@ class Table:
         statement = table.insert().values(**data)
         self.execute(statement)
 
-    def delete(self, where):
+    def delete(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement']):
+        """Delete row(s) from the table
+        
+        Parameters
+        ----------
+        where : dict, sqlalchemy expression
+            Where clause to delete data.
+
+        Examples
+        --------
+
+        Delete where ``column_1 = "a" and column_2 = 1``:
+
+        .. code-block:: python
+
+            table.delete({"column_1": "a", "column_2": 1})
+
+        Delete where ``column_1 = "a" and column_2 = 1``:
+
+        .. code-block:: python
+
+            from sqlalchemy import Column
+            table.delete((Column("column_1") == "a") & (Column("column_2") == 1))
+
+        """
         if isinstance(where, dict):
             where = self.to_sql_expressions(where)
         table = self.object
