@@ -3,7 +3,7 @@ from copy import copy
 import datetime
 from functools import partial
 import sys
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Mapping, Tuple, Type, Union
+from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Type, Union
 from pathlib import Path
 import typing
 
@@ -54,7 +54,7 @@ class Table:
         def __exit__(self, type_, value, traceback):
             self._ctx.__exit__(type_, value, traceback)
 
-    def __init__(self, table, engine):
+    def __init__(self, table:str, engine:'sqlalchemy.engine.Engine'):
         self.engine = engine
         self.name = table
 
