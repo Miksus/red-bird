@@ -502,25 +502,104 @@ def to_native(value, sql_type, nullable=False):
 def create_table(table, columns, engine):
     return Table(engine=engine, table=table).create(columns)
 
-def reflect_table(table, *columns, engine, meta=None):
+def reflect_table(table:str, *columns, engine:'Engine', meta=None):
+    """Reflect a table in an SQL database"""
     if meta is None:
         meta = sqlalchemy.MetaData()
     return sqlalchemy.Table(table, meta, *columns, autoload_with=engine)
 
-def select(*args, engine, table=None, **kwargs):
+def select(*args, engine:'Engine', table:str=None, **kwargs):
+    """Read rows from a table in a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.select`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.select`
+    """
     return Table(engine=engine, table=table).select(*args, **kwargs)
 
-def insert(*args, engine, table=None, **kwargs):
+def insert(*args, engine:'Engine', table:str=None, **kwargs):
+    """Insert row(s) to a table in a SQL database
+
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.insert`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.insert`
+    """
     return Table(engine=engine, table=table).insert(*args, **kwargs)
 
-def delete(*args, engine, table=None, **kwargs):
+def delete(*args, engine:'Engine', table:str=None, **kwargs):
+    """Delete row(s) in a table in a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.delete`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.delete`
+    """
     return Table(engine=engine, table=table).delete(*args, **kwargs)
 
-def update(*args, engine, table=None, **kwargs):
+def update(*args, engine:'Engine', table:str=None, **kwargs):
+    """Update row(s) to a table in a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.update`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.update`
+    """
     return Table(engine=engine, table=table).update(*args, **kwargs)
 
-def count(*args, engine, table=None, **kwargs):
+def count(*args, engine:'Engine', table:str=None, **kwargs):
+    """Count the number of rows in a table in a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.count`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.count`
+    """
     return Table(engine=engine, table=table).count(*args, **kwargs)
 
-def execute(*args, engine, **kwargs):
+def execute(*args, engine:'Engine', **kwargs):
+    """Execute raw SQL or a SQL expression in a SQL database
+    
+    Parameters
+    ----------
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine for the connection
+    table : str
+        Name of the table to use.
+    *args
+        Passed to :py:meth:`redbird.sql.Table.execute`
+    **kwargs
+        Passed to :py:meth:`redbird.sql.Table.execute`
+    """
     return Table(engine=engine, table=None).execute(*args, **kwargs)
