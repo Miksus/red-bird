@@ -58,7 +58,65 @@ class Table:
         self.engine = engine
         self.name = table
 
-    def select(self, qry=None, columns:List[str]=None) -> List[dict]:
+    def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None) -> Iterable[dict]:
+        """Read the database table using a query
+        
+        Parameters
+        ----------
+        qry : str, sqlalchemy.sql.ClauseElement, optional
+            Query to filter the data. The argument can take various forms:
+
+            - ``str``: Query is considered to be raw SQL
+            - ``dict``: Query is considered to be column-filter pairs.
+              The pairs are combined using AND operator. If the filter
+              is Operation, it is turned to corresponing SQLAlchemy expression.
+              Else, the filter is considered to be an equal operator.
+            - sqlalchemy expression: The query is considered to be the *where*
+              clause of the select query. 
+
+            If not given, all rows are returned.
+        columns: list of string, optional
+            List of columns to return. By default returns all columns.
+
+        Returns
+        -------
+        Generator of dicts
+            Found rows as dicts.
+
+        Examples
+        --------
+        Select all rows:
+        
+        .. code-block:: python
+
+            table.select("select * from mytable")
+        
+        Select using raw SQL:
+        
+        .. code-block:: python
+
+            table.select("select * from mytable")
+
+        Select where ``column_1 = "a value" and column_2 = 10``:
+
+        .. code-block:: python
+
+            table.select({"column_1": "a value", "column_2": 10})
+
+        Select where ``column_1 = "a value" and column_2 = 10``:
+
+        .. code-block:: python
+
+            from sqlalchemy import Column
+            table.select((Column("column_1") == "a value") & (Column("column_2") == 10))
+
+        Select where ``column_1 = "a value" and column_2 = 10`` but include only the column 
+        ``column_1`` in the output:
+
+        .. code-block:: python
+
+            table.select({"column_1": "a value", "column_2": 10}, columns=["column_1"])
+        """
         if isinstance(qry, Path):
             qry = qry.read_text()
         elif qry is None:
