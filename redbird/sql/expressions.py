@@ -166,8 +166,11 @@ class Table:
     
     def insert(self, data):
         table = self.object
-        statement = table.insert().values(**data)
-        self.execute(statement)
+        if isinstance(data, Mapping):
+            statement = table.insert().values(**data)
+            self.execute(statement)
+        else:
+            self.execute(sqlalchemy.insert(self.object), data)
 
     def delete(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement']):
         """Delete row(s) from the table
