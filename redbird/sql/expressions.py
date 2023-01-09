@@ -98,7 +98,34 @@ class Table:
         statement = table.delete().where(where)
         self.execute(statement)
 
-    def update(self, where, values):
+    def update(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement'], values):
+        """Update row(s) in the table
+        
+        Parameters
+        ----------
+        where : dict, sqlalchemy expression
+            Where clause to update rows.
+        values : dict
+            Column-value pairs to update the 
+            rows matching the where clause.
+
+        Examples
+        --------
+
+        Set ``column_3`` to ``"new value"`` where ``column_1 = "a" and column_2 = 1``:
+
+        .. code-block:: python
+
+            table.delete({"column_1": "a", "column_2": 1}, {"column_3": "new value"})
+
+        Set ``column_3`` to ``"new value"`` where ``column_1 = "a" and column_2 = 1``:
+
+        .. code-block:: python
+
+            from sqlalchemy import Column
+            table.delete((Column("column_1") == "a") & (Column("column_2") == 1), {"column_3": "new value"})
+
+        """
         if isinstance(where, dict):
             where = self.to_sql_expressions(where)
         table = self.object
