@@ -35,6 +35,43 @@ def test_create(engine, column_type):
         {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
     ] == list(res.mappings())
 
+def test_drop(engine):
+    tbl = Table("mytable", engine=engine)
+
+    tbl.create(["col1", "col2"])
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
+    assert [
+        {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+        {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+    ] == list(res.mappings())
+
+    tbl.drop()
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
+    assert [] == list(res.mappings())
+
+def test_exists(engine):
+    tbl = Table("mytable", engine=engine)
+    assert not tbl.exists()
+    tbl.create(["col1", "col2"])
+    assert tbl.exists()
+    tbl.drop()
+    assert not tbl.exists()
+
+def test_create_already_exists(engine):
+    import sqlalchemy
+    create_table(table="mytable", columns=["col1", "col2"], engine=engine)
+
+    res = execute("PRAGMA table_info(mytable);", engine=engine)
+    assert [
+        {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+        {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
+    ] == list(res.mappings())
+
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        create_table(table="mytable", columns=["col1", "col2", "col3"], engine=engine)
+    
+    create_table(table="mytable", columns=["col1", "col2", "col3"], exist_ok=True, engine=engine)
+
 def test_create_model(engine):
     class MyModel(BaseModel):
         name: str
