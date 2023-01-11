@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
     from sqlalchemy import Column
 
+SINGULAR = Union[str, int, float, bool, datetime.datetime, datetime.date]
 
 class Table:
     """SQL Table
@@ -77,6 +78,64 @@ class Table:
     def __init__(self, name:str, engine:'sqlalchemy.engine.Engine'):
         self.engine = engine
         self.name = name
+
+    def __getitem__(self, keys:Union[SINGULAR, Tuple[SINGULAR], List[Union[SINGULAR, Tuple[SINGULAR]]]]) -> Union[Dict, List[Dict]]:
+        "Get item based on the index"
+
+        primary_keys = list(self.object.primary_key.columns)
+        if len(primary_keys) == 0:
+            raise TypeError("Table has no primary keys")
+
+        if isinstance(keys, list):
+            # Fetch multiple items/ranges
+            # Fetching multiple items
+            qries = []
+
+            n_levels = None
+            keys: List[Union[Tuple, SINGULAR]]
+            for item in keys:
+                if not isinstance(item, tuple):
+                    item = (item,)
+                n_levels = len(item) if n_levels is None else n_levels
+                if len(item) != n_levels:
+                    raise IndexError(f"Key out of range")
+                item_query = [
+                    primary_keys[i] == value
+                    for i, value in enumerate(item)
+                ]
+                qries.append(sqlalchemy.and_(*item_query))
+            qry = sqlalchemy.or_(*qries)
+
+            result = list(self.select(qry))
+
+            is_specific_items = n_levels == len(primary_keys)
+            if is_specific_items and len(keys) != len(result):
+                # Not all keys found
+                raise KeyError("Missing key(s)")
+            
+            return result
+        else:
+            # Keys: ("a", 1) or "a"
+            if not isinstance(keys, tuple):
+                keys = (keys,)
+
+            item_queries = []
+            for i, key in enumerate(keys):
+                item_queries.append(primary_keys[i] == key)
+                if isinstance(key, (list, tuple)):
+                    raise TypeError(f"Invalid index value type: {type(key)}")
+            qry = sqlalchemy.and_(*item_queries)
+            result = list(self.select(qry))
+
+            if len(result) == 0:
+                raise KeyError(f"Item {keys!r} not found")
+            
+            if len(keys) == len(primary_keys):
+                # Keys point to single item
+                return result[0]
+            else:
+                # Keys point to range
+                return result
 
     def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None) -> Iterable[dict]:
         """Read the database table using a query
