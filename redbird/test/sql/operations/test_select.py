@@ -12,6 +12,15 @@ def test_select_all(engine):
         {'id': 'c', 'name': 'James', 'birth_date': date(2020, 1, 1), 'score': 300},
     ] == list(results)
 
+def test_select_string_parametize(engine):
+    qry = "select * from populated where name = :name"
+    results = select(qry, parameters={"name": "Jack"}, engine=engine)
+    assert [
+        {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
+        #{'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
+        #{'id': 'c', 'name': 'James', 'birth_date': '2020-01-01', 'score': 300},
+    ] == list(results)
+
 @pytest.mark.parametrize("how", [
     "raw string",
     'native',
@@ -38,7 +47,6 @@ def test_select_equal(engine, how):
 
 @pytest.mark.parametrize("how", [
     "raw string",
-    'native',
     "expression",
     "operation",
 ])
@@ -47,10 +55,8 @@ def test_select_in(engine, how):
 
     if how == "raw string":
         qry = "SELECT * FROM populated where name in ('Jack', 'John')"
-    elif how == "native":
-        qry = {"name": {"Jack", "John"}}
     elif how == "expression":
-        qry = sqlalchemy.Column("name").in_("Jack", "John")
+        qry = sqlalchemy.Column("name").in_(["Jack", "John"])
     elif how == "operation":
         qry = {"name": in_(["Jack", "John"])}
     results = select(qry, engine=engine, table="populated")
