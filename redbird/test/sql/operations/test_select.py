@@ -25,7 +25,6 @@ def test_select_string_parametize(engine):
     "raw string",
     'native',
     "expression",
-    "operation",
 ])
 def test_select_equal(engine, how):
     import sqlalchemy
@@ -36,8 +35,6 @@ def test_select_equal(engine, how):
         qry = {"name": "John"}
     elif how == "expression":
         qry = sqlalchemy.Column("name") == "John"
-    elif how == "operation":
-        qry = {"name": in_(["Jack", "John"])}
     results = select(qry, engine=engine, table="populated")
     assert [
         #{'id': 'a', 'name': 'Jack', 'birth_date': date(2000, 1, 1), 'score': 100},
