@@ -82,6 +82,23 @@ class Table:
     def __getitem__(self, keys:Union[SINGULAR, Tuple[SINGULAR], List[Union[SINGULAR, Tuple[SINGULAR]]]]) -> Union[Dict, List[Dict]]:
         "Get item based on the index"
 
+        def _to_equal(column, value):
+            # Compare column with value (which can be slice)
+            if isinstance(value, slice):
+                if value.step is not None:
+                    raise ValueError("Slice step not supported")
+
+                if value.start is None and value.stop is None:
+                    return sqlalchemy.true()
+                elif value.start is None:
+                    return column <= value.stop
+                elif value.stop is None:
+                    return column >= value.start
+                else:
+                    # Both not None
+                    return column.between(value.start, value.stop)
+            return column == value
+
         primary_keys = list(self.object.primary_key.columns)
         if len(primary_keys) == 0:
             raise TypeError("Table has no primary keys")
@@ -100,8 +117,8 @@ class Table:
                 if len(item) != n_levels:
                     raise IndexError(f"Key out of range")
                 item_query = [
-                    primary_keys[i] == value
-                    for i, value in enumerate(item)
+                    _to_equal(primary_keys[i], key)
+                    for i, key in enumerate(item)
                 ]
                 qries.append(sqlalchemy.and_(*item_query))
             qry = sqlalchemy.or_(*qries)
@@ -120,17 +137,20 @@ class Table:
                 keys = (keys,)
 
             item_queries = []
+            has_slice = False
             for i, key in enumerate(keys):
-                item_queries.append(primary_keys[i] == key)
+                item_queries.append(_to_equal(primary_keys[i], key))
                 if isinstance(key, (list, tuple)):
                     raise TypeError(f"Invalid index value type: {type(key)}")
+                if isinstance(key, slice):
+                    has_slice = True
             qry = sqlalchemy.and_(*item_queries)
             result = list(self.select(qry))
 
-            if len(result) == 0:
+            if not has_slice and len(result) == 0:
                 raise KeyError(f"Item {keys!r} not found")
             
-            if len(keys) == len(primary_keys):
+            if not has_slice and (len(keys) == len(primary_keys)):
                 # Keys point to single item
                 return result[0]
             else:
