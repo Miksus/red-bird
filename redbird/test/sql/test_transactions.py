@@ -1,9 +1,7 @@
 import pytest
-from datetime import date, datetime
+from datetime import date
 
-import sqlalchemy
-from redbird.sql.expressions import insert, select, delete, update, count, Table
-from sqlalchemy import create_engine
+from redbird.sql.expressions import select, Table
 
 def test_enter_commit(engine):
     tbl = Table(bind=engine, name="empty")
