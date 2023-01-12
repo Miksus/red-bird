@@ -24,6 +24,95 @@ if TYPE_CHECKING:
 
 SINGULAR = Union[str, int, float, bool, datetime.datetime, datetime.date]
 
+class _KeyInspector:
+    # Utility for getitem, delitem and setitem
+    def __init__(self, primary_keys, keys):
+        self.primary_keys = primary_keys
+        self.keys = keys
+
+    def is_multi_item(self):
+        return isinstance(self.keys, list)
+
+    def is_specific(self):
+        # Is specific item(s) and not ranges with slice or without
+        n_primary_keys = len(self.primary_keys)
+        if self.is_range():
+            return False
+        if self.is_multi_item():
+            # Keys: [('a', 1), ('a', 2), ...]
+            first_key = self.keys[0]
+            levels = len(first_key) if not isinstance(first_key, (str,)) else 1
+        elif isinstance(self.keys, str):
+            levels = 1
+        else:
+            # Keys: ('a', 1)
+            levels = len(self.keys)
+
+        return levels == n_primary_keys
+
+    def is_range(self):
+        if isinstance(self.keys, tuple):
+            return any(isinstance(key, slice) for key in self.keys)
+        else:
+            return isinstance(self.keys, slice)
+
+    def _to_equal(self, column, value):
+        # Compare column with value (which can be slice)
+        if isinstance(value, slice):
+            if value.step is not None:
+                raise ValueError("Slice step not supported")
+
+            if value.start is None and value.stop is None:
+                return sqlalchemy.true()
+            elif value.start is None:
+                return column <= value.stop
+            elif value.stop is None:
+                return column >= value.start
+            else:
+                # Both not None
+                return column.between(value.start, value.stop)
+        return column == value
+
+    def to_query(self):
+        primary_keys = self.primary_keys
+        keys = self.keys
+        if len(primary_keys) == 0:
+            raise TypeError("Table has no primary keys")
+
+        if self.is_multi_item():
+            # Fetch multiple items/ranges
+            # Fetching multiple items
+            qries = []
+
+            n_levels = None
+            keys: List[Union[Tuple, SINGULAR]]
+            for item in keys:
+                if not isinstance(item, tuple):
+                    item = (item,)
+                n_levels = len(item) if n_levels is None else n_levels
+                if len(item) != n_levels:
+                    raise IndexError(f"Key out of range")
+                item_query = [
+                    self._to_equal(primary_keys[i], key)
+                    for i, key in enumerate(item)
+                ]
+                qries.append(sqlalchemy.and_(*item_query))
+            qry = sqlalchemy.or_(*qries)
+            return qry
+        else:
+            # Keys: ("a", 1) or "a"
+            if not isinstance(keys, tuple):
+                keys = (keys,)
+
+            item_queries = []
+            for i, key in enumerate(keys):
+                item_queries.append(self._to_equal(primary_keys[i], key))
+                if isinstance(key, (list, tuple)):
+                    raise TypeError(f"Invalid index value type: {type(key)}")
+            qry = sqlalchemy.and_(*item_queries)
+            return qry
+
+
 class Table:
     """SQL Table
 
@@ -61,7 +150,8 @@ class Table:
     _name: str
     _object: sqlalchemy.Table
 
-    class _trans_ctx(object):
+    class _trans_ctx:
+        # Utility for transaction context manager
         def __init__(self, obj:'Table'):
             self.obj = obj
 
@@ -81,81 +171,27 @@ class Table:
 
     def __getitem__(self, keys:Union[SINGULAR, Tuple[SINGULAR], List[Union[SINGULAR, Tuple[SINGULAR]]]]) -> Union[Dict, List[Dict]]:
         "Get item based on the index"
+        prim_key_cols = self.object.primary_key.columns
+        inspector = _KeyInspector(prim_key_cols, keys=keys)
+        qry = inspector.to_query()
+        results = list(self.select(qry))
 
-        def _to_equal(column, value):
-            # Compare column with value (which can be slice)
-            if isinstance(value, slice):
-                if value.step is not None:
-                    raise ValueError("Slice step not supported")
-
-                if value.start is None and value.stop is None:
-                    return sqlalchemy.true()
-                elif value.start is None:
-                    return column <= value.stop
-                elif value.stop is None:
-                    return column >= value.start
-                else:
-                    # Both not None
-                    return column.between(value.start, value.stop)
-            return column == value
-
-        primary_keys = list(self.object.primary_key.columns)
-        if len(primary_keys) == 0:
-            raise TypeError("Table has no primary keys")
-
-        if isinstance(keys, list):
-            # Fetch multiple items/ranges
-            # Fetching multiple items
-            qries = []
-
-            n_levels = None
-            keys: List[Union[Tuple, SINGULAR]]
-            for item in keys:
-                if not isinstance(item, tuple):
-                    item = (item,)
-                n_levels = len(item) if n_levels is None else n_levels
-                if len(item) != n_levels:
-                    raise IndexError(f"Key out of range")
-                item_query = [
-                    _to_equal(primary_keys[i], key)
-                    for i, key in enumerate(item)
-                ]
-                qries.append(sqlalchemy.and_(*item_query))
-            qry = sqlalchemy.or_(*qries)
-
-            result = list(self.select(qry))
-
-            is_specific_items = n_levels == len(primary_keys)
-            if is_specific_items and len(keys) != len(result):
+        has_results = len(results) > 0
+        is_specific = inspector.is_specific()
+        if inspector.is_multi_item():
+            if is_specific and not has_results:
                 # Not all keys found
                 raise KeyError("Missing key(s)")
-            
-            return result
+            return results
         else:
-            # Keys: ("a", 1) or "a"
-            if not isinstance(keys, tuple):
-                keys = (keys,)
-
-            item_queries = []
-            has_slice = False
-            for i, key in enumerate(keys):
-                item_queries.append(_to_equal(primary_keys[i], key))
-                if isinstance(key, (list, tuple)):
-                    raise TypeError(f"Invalid index value type: {type(key)}")
-                if isinstance(key, slice):
-                    has_slice = True
-            qry = sqlalchemy.and_(*item_queries)
-            result = list(self.select(qry))
-
-            if not has_slice and len(result) == 0:
+            if not inspector.is_range() and not has_results:
                 raise KeyError(f"Item {keys!r} not found")
-            
-            if not has_slice and (len(keys) == len(primary_keys)):
+            if is_specific:
                 # Keys point to single item
-                return result[0]
+                return results[0]
             else:
                 # Keys point to range
-                return result
+                return results
 
     def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> Iterable[dict]:
         """Read the database table using a query
