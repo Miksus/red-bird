@@ -9,7 +9,7 @@ def test_import():
 def test_import_fail():
     pkg = import_optional("redbird_missing_package")
     assert pkg.__name__ == "redbird_missing_package"
-    with pytest.raises(ImportError):
+    with pytest.raises(ModuleNotFoundError):
         pkg.session
-    with pytest.raises(ImportError):
+    with pytest.raises(ModuleNotFoundError):
         pkg.session = "value"
