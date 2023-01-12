@@ -44,6 +44,12 @@ class LessEqual(Operation):
     def __le__(self, value):
         return value <= self.value
 
+class Equal(Operation):
+    __py_magic__ = "__eq__"
+    __formatter__ = "format_equal"
+    def __eq__(self, value):
+        return value == self.value
+
 class NotEqual(Operation):
     __py_magic__ = "__ne__"
     __formatter__ = "format_not_equal"
@@ -94,6 +100,9 @@ def greater_equal(value):
     
 def less_equal(value):
     return LessEqual(value)
+
+def equal(value):
+    return Equal(value)
 
 def not_equal(value):
     return NotEqual(value)
