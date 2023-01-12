@@ -406,6 +406,18 @@ class Table:
                     sql_oper = oper_method(oper.value)
                 else:
                     raise NotImplementedError(f"Not implemented operator: {oper}")
+            elif isinstance(oper_or_value, slice):
+                start, stop, step = oper_or_value.start, oper_or_value.stop, oper_or_value.step
+                if step is not None:
+                    raise ValueError("Step cannot be interpret")
+                if start is not None and stop is not None:
+                    sql_oper = column.between(start, stop)
+                elif start is not None:
+                    sql_oper = column >= start
+                elif stop is not None:
+                    sql_oper = column <= stop
+                else:
+                    sql_oper = sqlalchemy.true()
             else:
                 value = oper_or_value
                 sql_oper = column == value
