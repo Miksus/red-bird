@@ -270,7 +270,7 @@ class Table:
             qry = sqlalchemy.true()
 
         if isinstance(qry, dict):
-            qry = self.to_sql_expressions(qry)
+            qry = to_expression(qry)
         if isinstance(qry, str):
             statement = sqlalchemy.text(qry)
         elif isinstance(qry, (sqlalchemy.sql.Selectable, sqlalchemy.sql.elements.TextClause)):
@@ -360,7 +360,7 @@ class Table:
 
         """
         if isinstance(where, dict):
-            where = self.to_sql_expressions(where)
+            where = to_expression(where)
         table = self.object
         statement = table.delete().where(where)
         result = self.execute(statement)
@@ -400,7 +400,7 @@ class Table:
 
         """
         if isinstance(where, dict):
-            where = self.to_sql_expressions(where)
+            where = to_expression(where)
         table = self.object
         statement = table.update().where(where).values(values)
         result = self.execute(statement)
@@ -431,7 +431,7 @@ class Table:
         stmt = sqlalchemy.select(sqlalchemy.func.count()).select_from(self.object)
         if where is not None:
             if isinstance(where, dict):
-                where = self.to_sql_expressions(where)
+                where = to_expression(where)
             stmt = stmt.where(where)
         return list(self.execute(stmt))[0][0]
 
@@ -445,44 +445,6 @@ class Table:
         "Get table's column types"
         cols = dict(self.object.columns)
         return {col_name: partial(to_native, sql_type=col.type, nullable=col.nullable) for col_name, col in cols.items()}
-
-    def to_sql_expressions(self, qry:dict, table=None):
-        stmt = sqlalchemy.true()
-        for column_name, oper_or_value in qry.items():
-            column = getattr(table, column_name) if table is not None else sqlalchemy.Column(column_name)
-            if isinstance(oper_or_value, Operation):
-                oper = oper_or_value
-                if isinstance(oper, Between):
-                    sql_oper = column.between(oper.start, oper.end)
-                elif isinstance(oper, In):
-                    sql_oper = column.in_(oper.value)
-                elif oper is skip:
-                    continue
-                elif hasattr(oper, "__py_magic__"):
-                    magic = oper.__py_magic__
-                    oper_method = getattr(column, magic)
-
-                    # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
-                    sql_oper = oper_method(oper.value)
-                else:
-                    raise NotImplementedError(f"Not implemented operator: {oper}")
-            elif isinstance(oper_or_value, slice):
-                start, stop, step = oper_or_value.start, oper_or_value.stop, oper_or_value.step
-                if step is not None:
-                    raise ValueError("Step cannot be interpret")
-                if start is not None and stop is not None:
-                    sql_oper = column.between(start, stop)
-                elif start is not None:
-                    sql_oper = column >= start
-                elif stop is not None:
-                    sql_oper = column <= stop
-                else:
-                    sql_oper = sqlalchemy.true()
-            else:
-                value = oper_or_value
-                sql_oper = column == value
-            stmt &= sql_oper
-        return stmt
 
     def _to_sqlalchemy_type(self, cls):
         from sqlalchemy.sql import sqltypes
@@ -832,3 +794,42 @@ def execute(*args, bind:'Engine', **kwargs):
         Passed to :py:meth:`redbird.sql.Table.execute`
     """
     return Table(bind=bind, name=None).execute(*args, **kwargs)
+
+
+def to_expression(qry:dict, table=None):
+    stmt = sqlalchemy.true()
+    for column_name, oper_or_value in qry.items():
+        column = getattr(table, column_name) if table is not None else sqlalchemy.Column(column_name)
+        if isinstance(oper_or_value, Operation):
+            oper = oper_or_value
+            if isinstance(oper, Between):
+                sql_oper = column.between(oper.start, oper.end)
+            elif isinstance(oper, In):
+                sql_oper = column.in_(oper.value)
+            elif oper is skip:
+                continue
+            elif hasattr(oper, "__py_magic__"):
+                magic = oper.__py_magic__
+                oper_method = getattr(column, magic)
+
+                # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
+                sql_oper = oper_method(oper.value)
+            else:
+                raise NotImplementedError(f"Not implemented operator: {oper}")
+        elif isinstance(oper_or_value, slice):
+            start, stop, step = oper_or_value.start, oper_or_value.stop, oper_or_value.step
+            if step is not None:
+                raise ValueError("Step cannot be interpret")
+            if start is not None and stop is not None:
+                sql_oper = column.between(start, stop)
+            elif start is not None:
+                sql_oper = column >= start
+            elif stop is not None:
+                sql_oper = column <= stop
+            else:
+                sql_oper = sqlalchemy.true()
+        else:
+            value = oper_or_value
+            sql_oper = column == value
+        stmt &= sql_oper
+    return stmt
