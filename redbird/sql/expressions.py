@@ -273,6 +273,8 @@ class Table:
             qry = self.to_sql_expressions(qry)
         if isinstance(qry, str):
             statement = sqlalchemy.text(qry)
+        elif isinstance(qry, (sqlalchemy.sql.Selectable, sqlalchemy.sql.elements.TextClause)):
+            statement = qry
         else:
             if columns is None:
                 columns = ()
@@ -285,9 +287,11 @@ class Table:
             statement = self.object.select(*columns)
             statement = statement.where(where)
             statement = statement.select_from(self.object)
-        parameters = {} if parameters is None else parameters
 
-        results = self.execute(statement, **parameters)
+        if parameters is not None:
+            statement = statement.bindparams(**parameters)
+        
+        results = self.execute(statement)
         rows = results.mappings()
         if self.name is not None:
             return self._format_results(rows)
@@ -524,8 +528,8 @@ class Table:
 
     def exists(self) -> bool:
         """Check if the table exists"""
-        tbl = sqlalchemy.Table(self.name, sqlalchemy.MetaData())
-        return tbl.exists(bind=self.bind)
+        inspector = sqlalchemy.inspect(self.bind)
+        return inspector.has_table(self.name)
 
     def create(self, columns:Union[List['Column'], Mapping[str, Type]], exist_ok=False):
         """Create the table
@@ -595,7 +599,7 @@ class Table:
         meta = sqlalchemy.MetaData()
         tbl = sqlalchemy.Table(self.name, meta, *columns)
 
-        if exist_ok and tbl.exists(bind=self.bind):
+        if exist_ok and self.exists():
             self._object = tbl
             return
 
