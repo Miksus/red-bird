@@ -12,7 +12,7 @@ import mongomock
 from redbird.repos.csv import CSVFileRepo
 from redbird.repos.json import JSONDirectoryRepo
 from redbird.repos.rest import RESTRepo
-from redbird.repos.sqlalchemy import SQLRepo
+from redbird.repos.sqlalchemy import SQLExpressionRepo, SQLRepo
 from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
@@ -224,6 +224,11 @@ def get_repo(type_, tmpdir, model=PydanticItem):
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
         repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items", id_field="id")
+        repo.create()
+
+    elif type_ == "sql-expr":
+        engine = create_engine('sqlite://')
+        repo = SQLExpressionRepo(model=model, engine=engine, table="items", id_field="id")
         repo.create()
 
     elif type_ == "sql-pydantic-orm":
