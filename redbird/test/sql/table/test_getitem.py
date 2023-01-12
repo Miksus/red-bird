@@ -123,7 +123,7 @@ def test_getitem_error(table_multiindex):
         table_multiindex[::2]
 
 def test_getitem_no_primary_key(engine):
-    tbl = Table(name="getitems_singleindex", engine=engine)
+    tbl = Table(name="getitems_singleindex", bind=engine)
     tbl.create([
         {"name": "index_1", "type_": str, "primary_key": False},
         {"name": "column_1", "type_": str, "primary_key": False},

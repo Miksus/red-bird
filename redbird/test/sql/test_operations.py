@@ -6,7 +6,7 @@ from redbird.oper import in_, between
 
 
 def test_count(engine):
-    assert count(table="populated", engine=engine) == 3
+    assert count(table="populated", bind=engine) == 3
 
 @pytest.mark.parametrize("how", [
     "string", "expression"
@@ -23,16 +23,16 @@ def test_execute(engine, how):
             INSERT INTO empty(id, name, score, birth_date) 
             VALUES ("a", "Max", 100, "2022-12-31")
         """)
-    execute(stmt, engine=engine)
+    execute(stmt, bind=engine)
     
-    assert list(select(table="empty", engine=engine)) == [
+    assert list(select(table="empty", bind=engine)) == [
         {
             "id": "a", "name": "Max", "score": 100, "birth_date": date(2022, 12, 31)
         }
     ]
 
 def test_count_where(engine):
-    assert count({"name": "John"}, table="populated", engine=engine) == 1
-    assert count({"name": "Johnz"}, table="populated", engine=engine) == 0
+    assert count({"name": "John"}, table="populated", bind=engine) == 1
+    assert count({"name": "Johnz"}, table="populated", bind=engine) == 0
 
 

@@ -2,10 +2,10 @@ import pytest
 from datetime import date, datetime
 
 from redbird.sql import insert, select, delete, update, count, execute, Table
-from redbird.oper import in_, between
+from redbird.oper import in_, between, equal
 
 def test_select_all(engine):
-    results = select(table="populated", engine=engine)
+    results = select(table="populated", bind=engine)
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': date(2000, 1, 1), 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': date(1990, 1, 1), 'score': 200},
@@ -14,7 +14,7 @@ def test_select_all(engine):
 
 def test_select_string_parametize(engine):
     qry = "select * from populated where name = :name"
-    results = select(qry, parameters={"name": "Jack"}, engine=engine)
+    results = select(qry, parameters={"name": "Jack"}, bind=engine)
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         #{'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
@@ -35,7 +35,7 @@ def test_select_equal(engine, how):
         qry = {"name": "John"}
     elif how == "expression":
         qry = sqlalchemy.Column("name") == "John"
-    results = select(qry, engine=engine, table="populated")
+    results = select(qry, bind=engine, table="populated")
     assert [
         #{'id': 'a', 'name': 'Jack', 'birth_date': date(2000, 1, 1), 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': date(1990, 1, 1), 'score': 200},
@@ -56,7 +56,7 @@ def test_select_in(engine, how):
         qry = sqlalchemy.Column("name").in_(["Jack", "John"])
     elif how == "operation":
         qry = {"name": in_(["Jack", "John"])}
-    results = select(qry, engine=engine, table="populated")
+    results = select(qry, bind=engine, table="populated")
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': date(2000, 1, 1), 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': date(1990, 1, 1), 'score': 200},
@@ -81,7 +81,7 @@ def test_select_range(engine, how):
         qry = sqlalchemy.Column("score").between(start, end)
     elif how == "operation":
         qry = {"score": between(start, end)}
-    results = select(qry, engine=engine, table="populated")
+    results = select(qry, bind=engine, table="populated")
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': date(2000, 1, 1), 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': date(1990, 1, 1), 'score': 200},
@@ -94,7 +94,7 @@ def test_select_range(engine, how):
 def test_select_without_table(engine, how):
     if how == "raw string":
         qry = "SELECT * FROM populated where name in ('Jack', 'John')"
-    results = select(qry, engine=engine)
+    results = select(qry, bind=engine)
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
@@ -102,7 +102,7 @@ def test_select_without_table(engine, how):
     ] == list(results)
 
 def test_select_dict(engine):
-    results = select({"name": "James", "birth_date": date(2020, 1, 1)}, table="populated", engine=engine)
+    results = select({"name": "James", "birth_date": date(2020, 1, 1)}, table="populated", bind=engine)
     assert [
         #{'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         #{'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
@@ -111,7 +111,7 @@ def test_select_dict(engine):
 
 def test_select_expr(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    results = select((sqlalchemy.Column("name") == "James") & (sqlalchemy.Column("birth_date") == date(2020, 1, 1)), table="populated", engine=engine)
+    results = select((sqlalchemy.Column("name") == "James") & (sqlalchemy.Column("birth_date") == date(2020, 1, 1)), table="populated", bind=engine)
     assert [
         #{'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         #{'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},

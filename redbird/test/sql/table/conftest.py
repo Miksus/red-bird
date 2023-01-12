@@ -4,7 +4,7 @@ from redbird.sql import Table
 
 @pytest.fixture()
 def table_singleindex(engine) -> Table:
-    tbl = Table(name="getitems_singleindex", engine=engine)
+    tbl = Table(name="getitems_singleindex", bind=engine)
     tbl.create([
         {"name": "index_1", "type_": str, "primary_key": True},
         {"name": "column_1", "type_": str, "primary_key": False},
@@ -19,7 +19,7 @@ def table_singleindex(engine) -> Table:
 
 @pytest.fixture()
 def table_multiindex(engine) -> Table:
-    tbl = Table(name="getitems", engine=engine)
+    tbl = Table(name="getitems", bind=engine)
     tbl.create([
         {"name": "index_1", "type_": str, "primary_key": True},
         {"name": "index_2", "type_": int, "primary_key": True},

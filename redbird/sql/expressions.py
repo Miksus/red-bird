@@ -135,7 +135,7 @@ class Table:
 
         table = Table(engine=sqlalchemy.create_engine("sqlite://"), table="mytable")
     """
-    engine: 'Engine'
+    bind: 'Engine'
 
     types = {
         str: sqlalchemy.String,
@@ -158,15 +158,15 @@ class Table:
         def __enter__(self):
             new_table = copy(self.obj)
             new_table._ctx = None
-            self._ctx = new_table.engine.begin()
-            new_table.engine = self._ctx.__enter__()
+            self._ctx = new_table.bind.begin()
+            new_table.bind = self._ctx.__enter__()
             return new_table
 
         def __exit__(self, type_, value, traceback):
             self._ctx.__exit__(type_, value, traceback)
 
-    def __init__(self, name:str, engine:'sqlalchemy.engine.Engine'):
-        self.engine = engine
+    def __init__(self, name:str, bind:'sqlalchemy.engine.Engine'):
+        self.bind = bind
         self.name = name
 
     def __getitem__(self, keys:Union[SINGULAR, Tuple[SINGULAR], List[Union[SINGULAR, Tuple[SINGULAR]]]]) -> Union[Dict, List[Dict]]:
@@ -516,16 +516,16 @@ class Table:
 
     def reflect(self):
         """Reflect the table from the database"""
-        self._object = reflect_table(self.name, engine=self.engine)
+        self._object = reflect_table(self.name, bind=self.bind)
 
     def drop(self):
         """Drop the table"""
-        self.object.drop(bind=self.engine)
+        self.object.drop(bind=self.bind)
 
     def exists(self) -> bool:
         """Check if the table exists"""
         tbl = sqlalchemy.Table(self.name, sqlalchemy.MetaData())
-        return tbl.exists(bind=self.engine)
+        return tbl.exists(bind=self.bind)
 
     def create(self, columns:Union[List['Column'], Mapping[str, Type]], exist_ok=False):
         """Create the table
@@ -595,11 +595,11 @@ class Table:
         meta = sqlalchemy.MetaData()
         tbl = sqlalchemy.Table(self.name, meta, *columns)
 
-        if exist_ok and tbl.exists(bind=self.engine):
+        if exist_ok and tbl.exists(bind=self.bind):
             self._object = tbl
             return
 
-        tbl.create(bind=self.engine)
+        tbl.create(bind=self.bind)
         self._object = tbl
 
     def create_from_model(self, model:BaseModel, primary_column=None):
@@ -631,7 +631,7 @@ class Table:
             # SQLAlchemy v2.0 won't accept string as 
             # expression but we do
             args = (sqlalchemy.text(*args),)
-        conn = self.connection
+        conn = self.bind
         if isinstance(conn, sqlalchemy.engine.Engine):
             with conn.begin() as conn:
                 return conn.execute(*args, **kwargs)
@@ -667,20 +667,11 @@ class Table:
 
     def rollback(self):
         "Rollback the open transaction (a transaction must be open)"
-        return self.connection.get_transaction().rollback()
+        return self.bind.get_transaction().rollback()
 
     def commit(self):
         "Commit the open transaction (a transaction must be open)"
-        return self.connection.get_transaction().commit()
-
-    @property
-    def connection(self) -> 'sqlalchemy.engine.Connection':
-        "Synonym to engine"
-        return self.engine
-
-    @connection.setter
-    def connection(self, value):
-        self.engine = value
+        return self.bind.get_transaction().commit()
 
     @property
     def object(self) -> 'sqlalchemy.Table':
@@ -720,12 +711,12 @@ def to_native(value, sql_type, nullable=False):
         return value
     return py_type(value)
 
-def create_table(*args, engine:'Engine', table:str, **kwargs):
+def create_table(*args, bind:'Engine', table:str, **kwargs):
     """Create a table to a SQL database
     
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to be created.
@@ -734,15 +725,15 @@ def create_table(*args, engine:'Engine', table:str, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.create`
     """
-    return Table(engine=engine, name=table).create(*args, **kwargs)
+    return Table(bind=bind, name=table).create(*args, **kwargs)
 
-def reflect_table(table:str, *columns, engine:'Engine', meta=None):
+def reflect_table(table:str, *columns, bind:'Engine', meta=None):
     """Reflect a table in an SQL database"""
     if meta is None:
         meta = sqlalchemy.MetaData()
-    return sqlalchemy.Table(table, meta, *columns, autoload_with=engine)
+    return sqlalchemy.Table(table, meta, *columns, autoload_with=bind)
 
-def select(*args, engine:'Engine', table:str=None, **kwargs):
+def select(*args, bind:'Engine', table:str=None, **kwargs):
     """Read rows from a table in a SQL database
     
     Parameters
@@ -756,14 +747,14 @@ def select(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.select`
     """
-    return Table(engine=engine, name=table).select(*args, **kwargs)
+    return Table(bind=bind, name=table).select(*args, **kwargs)
 
-def insert(*args, engine:'Engine', table:str=None, **kwargs):
+def insert(*args, bind:'Engine', table:str=None, **kwargs):
     """Insert row(s) to a table in a SQL database
 
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to use.
@@ -772,14 +763,14 @@ def insert(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.insert`
     """
-    return Table(engine=engine, name=table).insert(*args, **kwargs)
+    return Table(bind=bind, name=table).insert(*args, **kwargs)
 
-def delete(*args, engine:'Engine', table:str=None, **kwargs):
+def delete(*args, bind:'Engine', table:str=None, **kwargs):
     """Delete row(s) in a table in a SQL database
     
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to use.
@@ -788,14 +779,14 @@ def delete(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.delete`
     """
-    return Table(engine=engine, name=table).delete(*args, **kwargs)
+    return Table(bind=bind, name=table).delete(*args, **kwargs)
 
-def update(*args, engine:'Engine', table:str=None, **kwargs):
+def update(*args, bind:'Engine', table:str=None, **kwargs):
     """Update row(s) to a table in a SQL database
     
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to use.
@@ -804,14 +795,14 @@ def update(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.update`
     """
-    return Table(engine=engine, name=table).update(*args, **kwargs)
+    return Table(bind=bind, name=table).update(*args, **kwargs)
 
-def count(*args, engine:'Engine', table:str=None, **kwargs):
+def count(*args, bind:'Engine', table:str=None, **kwargs):
     """Count the number of rows in a table in a SQL database
     
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to use.
@@ -820,14 +811,14 @@ def count(*args, engine:'Engine', table:str=None, **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.count`
     """
-    return Table(engine=engine, name=table).count(*args, **kwargs)
+    return Table(bind=bind, name=table).count(*args, **kwargs)
 
-def execute(*args, engine:'Engine', **kwargs):
+def execute(*args, bind:'Engine', **kwargs):
     """Execute raw SQL or a SQL expression in a SQL database
     
     Parameters
     ----------
-    engine : sqlalchemy.engine.Engine
+    bind : sqlalchemy.engine.Engine
         SQLAlchemy engine for the connection
     table : str
         Name of the table to use.
@@ -836,4 +827,4 @@ def execute(*args, engine:'Engine', **kwargs):
     **kwargs
         Passed to :py:meth:`redbird.sql.Table.execute`
     """
-    return Table(engine=engine, name=None).execute(*args, **kwargs)
+    return Table(bind=bind, name=None).execute(*args, **kwargs)

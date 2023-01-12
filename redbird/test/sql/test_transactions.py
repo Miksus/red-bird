@@ -6,7 +6,7 @@ from redbird.sql.expressions import insert, select, delete, update, count, Table
 from sqlalchemy import create_engine
 
 def test_enter_commit(engine):
-    tbl = Table(engine=engine, name="empty")
+    tbl = Table(bind=engine, name="empty")
 
     with tbl as trans:
         trans.insert(
@@ -21,7 +21,7 @@ def test_enter_commit(engine):
     ] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
 
 def test_enter_rollback(engine):
-    tbl = Table(engine=engine, name="empty")
+    tbl = Table(bind=engine, name="empty")
     try:
         with tbl as trans:
             trans.insert(
@@ -36,7 +36,7 @@ def test_enter_rollback(engine):
     assert [] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
 
 def test_enter_manual_rollback(engine):
-    tbl = Table(engine=engine, name="empty")
+    tbl = Table(bind=engine, name="empty")
 
     with tbl as trans:
         trans.insert(
@@ -50,7 +50,7 @@ def test_enter_manual_rollback(engine):
     assert [] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
 
 def test_transaction_commit(engine):
-    tbl = Table(engine=engine, name="empty")
+    tbl = Table(bind=engine, name="empty")
     trans = tbl.open_transaction()
     trans.insert(
         {'id': 'a', 'name': 'Johnny', 'birth_date': date(2000, 1, 1), 'score': 100},
@@ -66,7 +66,7 @@ def test_transaction_commit(engine):
     ] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
 
 def test_transaction_rollback(engine):
-    tbl = Table(engine=engine, name="empty")
+    tbl = Table(bind=engine, name="empty")
     trans = tbl.open_transaction()
     trans.insert(
         {'id': 'a', 'name': 'Johnny', 'birth_date': date(2000, 1, 1), 'score': 100},
