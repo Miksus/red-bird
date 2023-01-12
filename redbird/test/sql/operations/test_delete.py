@@ -5,11 +5,11 @@ from redbird.sql import delete, execute
 
 def test_delete(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    delete(
+    assert delete(
         {'name': 'Jack', 'birth_date': date(2000, 1, 1)}, 
         table="populated", 
         engine=engine
-    )
+    ) == 1
     assert [
         #{'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 100},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},

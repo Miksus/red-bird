@@ -6,12 +6,12 @@ from redbird.oper import in_, between
 
 def test_update(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    update(
+    assert update(
         {'name': 'Jack', 'birth_date': date(2000, 1, 1)},
         {'score': 0},
         table="populated", 
         engine=engine
-    )
+    ) == 1
     assert [
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 0},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},

@@ -281,13 +281,18 @@ class Table:
         else:
             self.execute(sqlalchemy.insert(self.object), data)
 
-    def delete(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement']):
+    def delete(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement']) -> int:
         """Delete row(s) from the table
         
         Parameters
         ----------
         where : dict, sqlalchemy expression
             Where clause to delete data.
+
+        Returns
+        -------
+        int
+            Count of rows deleted.
 
         Examples
         --------
@@ -310,9 +315,10 @@ class Table:
             where = self.to_sql_expressions(where)
         table = self.object
         statement = table.delete().where(where)
-        self.execute(statement)
+        result = self.execute(statement)
+        return result.rowcount
 
-    def update(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement'], values):
+    def update(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement'], values) -> int:
         """Update row(s) in the table
         
         Parameters
@@ -322,6 +328,11 @@ class Table:
         values : dict
             Column-value pairs to update the 
             rows matching the where clause.
+
+        Returns
+        -------
+        int
+            Count of rows updated.
 
         Examples
         --------
@@ -344,7 +355,8 @@ class Table:
             where = self.to_sql_expressions(where)
         table = self.object
         statement = table.update().where(where).values(values)
-        self.execute(statement)
+        result = self.execute(statement)
+        return result.rowcount
 
     def count(self, where=None) -> int:
         """Count the number of rows
