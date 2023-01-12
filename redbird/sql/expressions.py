@@ -148,7 +148,7 @@ class Table:
         dict: sqlalchemy.JSON,
     } if import_exists("sqlalchemy") else {}
     _name: str
-    _object: sqlalchemy.Table
+    _object: 'sqlalchemy.Table'
 
     class _trans_ctx:
         # Utility for transaction context manager
