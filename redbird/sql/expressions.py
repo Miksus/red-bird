@@ -193,6 +193,14 @@ class Table:
                 # Keys point to range
                 return results
 
+    def __delitem__(self, keys):
+        prim_key_cols = self.object.primary_key.columns
+        inspector = _KeyInspector(prim_key_cols, keys)
+        qry = inspector.to_query()
+        nrows = self.delete(qry)
+        if not inspector.is_range() and nrows == 0:
+            raise KeyError("Item not found")
+
     def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> Iterable[dict]:
         """Read the database table using a query
         
