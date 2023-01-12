@@ -157,7 +157,7 @@ class Table:
                 # Keys point to range
                 return result
 
-    def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None) -> Iterable[dict]:
+    def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> Iterable[dict]:
         """Read the database table using a query
         
         Parameters
@@ -174,8 +174,12 @@ class Table:
               clause of the select query. 
 
             If not given, all rows are returned.
-        columns: list of string, optional
+        columns : list of string, optional
             List of columns to return. By default returns all columns.
+        parameters : dict, optional
+            Parameters for the query. If the query is as raw SQL,
+            they should be set in the query with ``:myparam``, ie.
+            ``select * from table where col = :myparam``.
 
         Returns
         -------
@@ -188,7 +192,7 @@ class Table:
         
         .. code-block:: python
 
-            table.select("select * from mytable")
+            table.select()
         
         Select using raw SQL:
         
@@ -237,7 +241,9 @@ class Table:
             statement = self.object.select(*columns)
             statement = statement.where(where)
             statement = statement.select_from(self.object)
-        results = self.execute(statement)
+        parameters = {} if parameters is None else parameters
+
+        results = self.execute(statement, **parameters)
         rows = results.mappings()
         if self.name is not None:
             return self._format_results(rows)
