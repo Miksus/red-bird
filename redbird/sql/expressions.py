@@ -647,7 +647,7 @@ class Table:
         return self._object
 
     @object.setter
-    def object(self, value: sqlalchemy.Table):
+    def object(self, value: 'sqlalchemy.Table'):
         self._object = value
         self._name = value.name
 
