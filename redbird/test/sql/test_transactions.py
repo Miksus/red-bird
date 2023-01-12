@@ -18,7 +18,7 @@ def test_enter_commit(engine):
     assert [
         {'id': 'a', 'name': 'Johnny', 'birth_date': "2000-01-01", 'score': 100},
         {'id': 'b', 'name': 'James', 'birth_date': "2020-01-01", 'score': 100},
-    ] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    ] == list(select("select * from empty", bind=engine))
 
 def test_enter_rollback(engine):
     tbl = Table(bind=engine, name="empty")
@@ -33,7 +33,7 @@ def test_enter_rollback(engine):
             raise RuntimeError("Oops")
     except RuntimeError:
         ...
-    assert [] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    assert [] == list(select("select * from empty", bind=engine))
 
 def test_enter_manual_rollback(engine):
     tbl = Table(bind=engine, name="empty")
@@ -47,7 +47,7 @@ def test_enter_manual_rollback(engine):
         )
         trans.rollback()
 
-    assert [] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    assert [] == list(select("select * from empty", bind=engine))
 
 def test_transaction_commit(engine):
     tbl = Table(bind=engine, name="empty")
@@ -63,7 +63,7 @@ def test_transaction_commit(engine):
     assert [
         {'id': 'a', 'name': 'Johnny', 'birth_date': "2000-01-01", 'score': 100},
         {'id': 'b', 'name': 'James', 'birth_date': "2020-01-01", 'score': 100},
-    ] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    ] == list(select("select * from empty", bind=engine))
 
 def test_transaction_rollback(engine):
     tbl = Table(bind=engine, name="empty")
@@ -76,4 +76,4 @@ def test_transaction_rollback(engine):
     )
     trans.rollback()
 
-    assert [] == list(engine.execute(sqlalchemy.text("select * from empty")).mappings())
+    assert [] == list(select("select * from empty", bind=engine))
