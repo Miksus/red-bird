@@ -60,7 +60,7 @@ class SQLRepo(TemplateRepo):
     table : str, optional
         Table name where the items lies. Should only be given
         if no model_orm specified.
-    session : sqlalchemy.session.Session
+    session : sqlalchemy.orm.Session
         Connection session to the database.
         Pass either conn_string, engine or session if
         model_orm is not defined.
