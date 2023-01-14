@@ -3,10 +3,28 @@ from datetime import date
 
 from redbird.sql import delete, execute
 
-def test_delete(engine):
+def test_delete_all(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     assert delete(
-        {'name': 'Jack', 'birth_date': date(2000, 1, 1)}, 
+        {}, 
+        table="populated", 
+        bind=engine
+    ) == 3
+    assert [] == list(execute(sqlalchemy.text("select * from populated"), bind=engine).mappings())
+
+@pytest.mark.parametrize("how", [
+    "dict", "expressions"
+])
+def test_delete(engine, how):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    if how == "dict":
+        where = {'name': 'Jack', 'birth_date': date(2000, 1, 1)}
+    elif how == "expressions":
+        where = (sqlalchemy.Column("name") == "Jack") & (sqlalchemy.Column("birth_date") == date(2000, 1, 1))
+
+    assert delete(
+        where, 
         table="populated", 
         bind=engine
     ) == 1
