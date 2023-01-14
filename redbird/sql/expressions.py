@@ -116,26 +116,27 @@ class _KeyInspector:
 class Table:
     """SQL Table
 
-    Similar to ``sqlalchemy.Table`` except this has methods
-    to make certain operations more intuitive.
+    Similar to ``sqlalchemy.Table`` except this class always
+    points to a specific SQL table in a specific database
+    (which may not yet exist) and provides further abstraction.
 
     Attributes
     ----------
-    table : str
-        Name of the table
-    engine : sqlalchemy.engine.Engine
-        SQLAlchemy engine for the connection.
+    name : str
+        Name of the table.
+    bind : sqlalchemy.engine.Connectable
+        SQLAlchemy engine or connection.
     
     Examples
     --------
     .. code-block:: python
 
-        import sqlalchemy
+        from sqlalchemy import create_engine
         from redbird.sql import Table
 
-        table = Table(engine=sqlalchemy.create_engine("sqlite://"), table="mytable")
+        table = Table("mytable", bind=create_engine("sqlite://"))
     """
-    bind: 'Engine'
+    bind: 'sqlalchemy.engine.Connectable'
 
     types = {
         str: sqlalchemy.String,
@@ -170,7 +171,7 @@ class Table:
         self.name = name
 
     def __getitem__(self, keys:Union[SINGULAR, Tuple[SINGULAR], List[Union[SINGULAR, Tuple[SINGULAR]]]]) -> Union[Dict, List[Dict]]:
-        "Get item based on the index"
+        "Get item based on the index."
         prim_key_cols = self.object.primary_key.columns
         inspector = _KeyInspector(prim_key_cols, keys=keys)
         qry = inspector.to_query()
@@ -202,11 +203,11 @@ class Table:
             raise KeyError("Item not found")
 
     def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> Iterable[dict]:
-        """Read the database table using a query
+        """Read the database table using a query.
         
         Parameters
         ----------
-        qry : str, sqlalchemy.sql.ClauseElement, optional
+        qry : str, dict, sqlalchemy.sql.ClauseElement, optional
             Query to filter the data. The argument can take various forms:
 
             - ``str``: Query is considered to be raw SQL
@@ -242,27 +243,64 @@ class Table:
         
         .. code-block:: python
 
-            table.select("select * from mytable")
+            table.select("SELECT * FROM mytable")
 
-        Select where ``column_1 = "a value" and column_2 = 10``:
+        Select using dictionary:
 
         .. code-block:: python
 
             table.select({"column_1": "a value", "column_2": 10})
 
-        Select where ``column_1 = "a value" and column_2 = 10``:
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+            
+                SELECT * 
+                FROM mytable 
+                WHERE column_1 = 'a value' AND column_2 = 10
+
+        Select using SQLAlchemy expressions:
 
         .. code-block:: python
 
             from sqlalchemy import Column
             table.select((Column("column_1") == "a value") & (Column("column_2") == 10))
 
-        Select where ``column_1 = "a value" and column_2 = 10`` but include only the column 
-        ``column_1`` in the output:
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+            
+                SELECT * 
+                FROM mytable 
+                WHERE column_1 = 'a value' AND column_2 = 10
+
+        Select and return specific column(s):
 
         .. code-block:: python
 
-            table.select({"column_1": "a value", "column_2": 10}, columns=["column_1"])
+            table.select(columns=["column_1", "column_2"])
+
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+            
+                SELECT column_1, column_2 
+                FROM mytable
+
+        Select using raw strings and SQL parameters:
+
+        .. code-block:: python
+
+            table.select(
+                "SELECT * FROM mytable WHERE column_1 = :myparam",
+                parameters={"myparam": "a value"}
+            )
         """
         if isinstance(qry, Path):
             qry = qry.read_text()
@@ -298,7 +336,7 @@ class Table:
         return rows
     
     def insert(self, data:Union[Mapping, List[dict]]):
-        """Insert data to the database
+        """Insert data to the database.
         
         Parameters
         ----------
@@ -330,7 +368,7 @@ class Table:
             self.execute(sqlalchemy.insert(self.object), data)
 
     def delete(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement']) -> int:
-        """Delete row(s) from the table
+        """Delete row(s) from the table.
         
         Parameters
         ----------
@@ -345,18 +383,36 @@ class Table:
         Examples
         --------
 
-        Delete where ``column_1 = "a" and column_2 = 1``:
+        Delete using dictionary:
 
         .. code-block:: python
 
             table.delete({"column_1": "a", "column_2": 1})
 
-        Delete where ``column_1 = "a" and column_2 = 1``:
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+            
+                DELETE FROM mytable 
+                WHERE column_1 = 'a' AND column_2 = 1
+
+        Delete using SQL expressions:
 
         .. code-block:: python
 
             from sqlalchemy import Column
             table.delete((Column("column_1") == "a") & (Column("column_2") == 1))
+
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+            
+                DELETE FROM mytable 
+                WHERE column_1 = 'a' AND column_2 = 1
 
         """
         if isinstance(where, dict):
@@ -366,8 +422,8 @@ class Table:
         result = self.execute(statement)
         return result.rowcount
 
-    def update(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement'], values) -> int:
-        """Update row(s) in the table
+    def update(self, where:Union[dict, 'sqlalchemy.sql.ClauseElement'], values:dict) -> int:
+        """Update row(s) in the table.
         
         Parameters
         ----------
@@ -385,18 +441,38 @@ class Table:
         Examples
         --------
 
-        Set ``column_3`` to ``"new value"`` where ``column_1 = "a" and column_2 = 1``:
+        Update using dicts:
 
         .. code-block:: python
 
-            table.delete({"column_1": "a", "column_2": 1}, {"column_3": "new value"})
+            table.update({"column_1": "a", "column_2": 1}, {"column_3": "new value"})
 
-        Set ``column_3`` to ``"new value"`` where ``column_1 = "a" and column_2 = 1``:
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+                
+                UPDATE mytable 
+                SET column_3='new value' 
+                WHERE column_1 = 'a' and column_2 = 1
+
+        Update using expressions:
 
         .. code-block:: python
 
             from sqlalchemy import Column
-            table.delete((Column("column_1") == "a") & (Column("column_2") == 1), {"column_3": "new value"})
+            table.update((Column("column_1") == "a") & (Column("column_2") == 1), {"column_3": "new value"})
+
+        .. note::
+
+            The above is same as:
+
+            .. code-block:: sql
+                
+                UPDATE mytable 
+                SET column_3='new value' 
+                WHERE column_1 = 'a' and column_2 = 1
 
         """
         if isinstance(where, dict):
@@ -407,7 +483,7 @@ class Table:
         return result.rowcount
 
     def count(self, where=None) -> int:
-        """Count the number of rows
+        """Count the number of rows.
         
         Parameters
         ----------
@@ -422,11 +498,11 @@ class Table:
         Examples
         --------
 
-        Count rows where ``column_1 = "a" and column_2 = 1``:
+        Count based on dict:
 
         .. code-block:: python
 
-            table.count({"column_1": "a", "column_2": 1}, {"column_3": "new value"})
+            table.count({"column_1": "a", "column_2": 1})
         """
         stmt = sqlalchemy.select(sqlalchemy.func.count()).select_from(self.object)
         if where is not None:
@@ -481,15 +557,15 @@ class Table:
         return self.types.get(cls)
 
     def reflect(self):
-        """Reflect the table from the database"""
+        """Reflect the table from the database."""
         self._object = reflect_table(self.name, bind=self.bind)
 
     def drop(self):
-        """Drop the table"""
+        """Drop the table."""
         self.object.drop(bind=self.bind)
 
     def exists(self) -> bool:
-        """Check if the table exists"""
+        """Check if the table exists."""
         inspector = sqlalchemy.inspect(self.bind)
         return inspector.has_table(self.name)
 
@@ -500,12 +576,18 @@ class Table:
         ----------
         columns : dict, list of sqlalchemy.Column, dict or string
             Columns to be created.
+        exist_ok : bool
+            If false (default), an exception is raised.
 
         Examples
         --------
 
+        There are various ways to call this method:
+
+        - Using list of columns (all of the)
+
         Create a table with columns ``column_1``, ``column_2`` and ``column_3``
-        (all of them all text): 
+        (all of them are textual columns): 
 
         .. code-block:: python
 
@@ -614,7 +696,7 @@ class Table:
             from redbird.sql import Table
             from sqlalchemy import create_engine
 
-            table = Table(engine=create_engine(...), table="mytable")
+            table = Table("mytable", bind=create_engine(...))
 
             # Open the transaction
             transaction = table.open_transaction()
@@ -646,7 +728,7 @@ class Table:
             from redbird.sql import Table
             from sqlalchemy import create_engine
 
-            table = Table(engine=create_engine(...), table="mytable")
+            table = Table("mytable", bind=create_engine(...))
 
             with table.transaction() as trans:
 
@@ -690,7 +772,7 @@ class Table:
 
 
 def to_native(value, sql_type, nullable=False):
-    "Convert sql type to Python native"
+    "Convert sql type to Python native."
     py_type = sql_type.python_type
     if isinstance(value, py_type):
         return value
@@ -703,7 +785,7 @@ def to_native(value, sql_type, nullable=False):
     return py_type(value)
 
 def create_table(*args, bind:'Engine', table:str, **kwargs):
-    """Create a table to a SQL database
+    """Create a table to a SQL database.
     
     Parameters
     ----------
@@ -725,7 +807,7 @@ def reflect_table(table:str, *columns, bind:'Engine', meta=None):
     return sqlalchemy.Table(table, meta, *columns, autoload_with=bind)
 
 def select(*args, bind:'Engine', table:str=None, **kwargs):
-    """Read rows from a table in a SQL database
+    """Read rows from a table in a SQL database.
     
     Parameters
     ----------
@@ -741,7 +823,7 @@ def select(*args, bind:'Engine', table:str=None, **kwargs):
     return Table(bind=bind, name=table).select(*args, **kwargs)
 
 def insert(*args, bind:'Engine', table:str=None, **kwargs):
-    """Insert row(s) to a table in a SQL database
+    """Insert row(s) to a table in a SQL database.
 
     Parameters
     ----------
@@ -757,7 +839,7 @@ def insert(*args, bind:'Engine', table:str=None, **kwargs):
     return Table(bind=bind, name=table).insert(*args, **kwargs)
 
 def delete(*args, bind:'Engine', table:str=None, **kwargs):
-    """Delete row(s) in a table in a SQL database
+    """Delete row(s) in a table in a SQL database.
     
     Parameters
     ----------
@@ -773,7 +855,7 @@ def delete(*args, bind:'Engine', table:str=None, **kwargs):
     return Table(bind=bind, name=table).delete(*args, **kwargs)
 
 def update(*args, bind:'Engine', table:str=None, **kwargs):
-    """Update row(s) to a table in a SQL database
+    """Update row(s) to a table in a SQL database.
     
     Parameters
     ----------
@@ -789,8 +871,8 @@ def update(*args, bind:'Engine', table:str=None, **kwargs):
     return Table(bind=bind, name=table).update(*args, **kwargs)
 
 def count(*args, bind:'Engine', table:str=None, **kwargs):
-    """Count the number of rows in a table in a SQL database
-    
+    """Count the number of rows in a table in a SQL database.
+
     Parameters
     ----------
     bind : sqlalchemy.engine.Engine
@@ -805,8 +887,8 @@ def count(*args, bind:'Engine', table:str=None, **kwargs):
     return Table(bind=bind, name=table).count(*args, **kwargs)
 
 def execute(*args, bind:'Engine', **kwargs):
-    """Execute raw SQL or a SQL expression in a SQL database
-    
+    """Execute raw SQL or a SQL expression in a SQL database.
+
     Parameters
     ----------
     bind : sqlalchemy.engine.Engine
