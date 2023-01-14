@@ -4,6 +4,11 @@
 Version history
 ===============
 
+- ``0.7.0``
+
+    - SQL: add new repo, :py:class:`redbird.repos.SQLExprRepo`, which relies on SQLAlchemy' SQL expressions
+    - SQL: add SQL tools (``redbird.sql``) to make SQL operations more intuitive
+
 - ``0.6.1``
 
     - SQL: fix model based ``__id_field__`` in reflection
