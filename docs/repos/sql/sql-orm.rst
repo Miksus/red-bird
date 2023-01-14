@@ -1,12 +1,20 @@
 
-SQL Repository
-==============
+SQL ORM Repository
+==================
+
+SQLRepo is an SQL repository that relies on 
+SQLAlchemy's object-relational mapping (ORM).
+The difference to ``SQLExprRepo`` is that 
+``SQLRepo`` is more object centric and it may
+be useful if you already use ORM in some places.
+It is also more complex and in some cases more 
+error prone.
+
 
 SQLRepo can be initiated numerous ways. You may 
 initiate it with session, engine or SQLAlchemy 
 connection string and you may optionally supply
 ORM model.
-
 
 .. code-block:: python
 

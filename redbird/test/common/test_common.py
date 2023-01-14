@@ -25,6 +25,7 @@ TEST_CASES = [
     pytest.param("sql-dict"),
     pytest.param("sql-pydantic"),
     pytest.param("sql-orm"),
+    pytest.param("sql-expr"),
     pytest.param("sql-pydantic-orm"),
     pytest.param("mongo"),
     pytest.param("mongo-mock"),
@@ -36,6 +37,7 @@ TEST_CASES = [
 TEST_CASES_DEFAULT = [
     pytest.param("memory"),
     pytest.param("sql-pydantic"),
+    pytest.param("sql-expr"),
     pytest.param("mongo"),
     pytest.param("mongo-mock"),
     pytest.param("http-rest"),

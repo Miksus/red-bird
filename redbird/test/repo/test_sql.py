@@ -198,11 +198,13 @@ def test_init_deprecated(tmpdir):
             age INTEGER
         )""", engine=engine)
 
-        repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
+        with pytest.warns(DeprecationWarning):
+            repo = SQLRepo.from_engine(model=dict, engine=engine, table="pytest")
         repo.add({"id": "a", "name": "Jack", "age": 500})
         assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}]
         
-        repo = SQLRepo.from_connection_string(model=dict, conn_string="sqlite:///pytest.db", table="pytest")
+        with pytest.warns(DeprecationWarning):
+            repo = SQLRepo.from_connection_string(model=dict, conn_string="sqlite:///pytest.db", table="pytest")
         repo.add({"id": "b", "name": "Jack", "age": 5000})
         assert list(repo) == [{"id": "a", "name": "Jack", "age": 500}, {"id": "b", "name": "Jack", "age": 5000}]
 

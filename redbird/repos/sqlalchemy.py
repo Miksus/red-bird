@@ -5,8 +5,10 @@ import sys
 
 from pydantic import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
+from redbird.dummy import DummySession
 from redbird.templates import TemplateRepo
 from redbird.exc import KeyFoundError
+from redbird.sql.expressions import Table, to_expression
 
 from redbird.oper import Between, In, Operation, skip
 from redbird.utils.deprecate import deprecated
@@ -20,23 +22,6 @@ from redbird.packages import sqlalchemy, pydantic_sqlalchemy
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
-
-try:
-    import sqlalchemy
-    TYPES = {
-        str: sqlalchemy.String,
-        int: sqlalchemy.Integer,
-        float: sqlalchemy.Float,
-        bool: sqlalchemy.Boolean,
-        datetime.date: sqlalchemy.Date,
-        datetime.datetime: sqlalchemy.DateTime,
-        datetime.timedelta: sqlalchemy.Interval,
-        dict: sqlalchemy.JSON,
-    }
-except ImportError: # pragma: no cover
-    HAS_SQLALCHEMY = False
-else:
-    HAS_SQLALCHEMY = True
 
 class SQLRepo(TemplateRepo):
     """SQL Repository
@@ -75,7 +60,7 @@ class SQLRepo(TemplateRepo):
     table : str, optional
         Table name where the items lies. Should only be given
         if no model_orm specified.
-    session : sqlalchemy.session.Session
+    session : sqlalchemy.orm.Session
         Connection session to the database.
         Pass either conn_string, engine or session if
         model_orm is not defined.
@@ -310,75 +295,53 @@ class SQLRepo(TemplateRepo):
         return session.query(self.model_orm).filter(query)
 
     def format_query(self, oper: dict):
-        stmt = sqlalchemy.true()
-        for column_name, oper_or_value in oper.items():
-            column = getattr(self.model_orm, column_name) if self.model_orm is not None else sqlalchemy.Column(column_name)
-            if isinstance(oper_or_value, Operation):
-                oper = oper_or_value
-                if isinstance(oper, Between):
-                    sql_oper = column.between(oper.start, oper.end)
-                elif isinstance(oper, In):
-                    sql_oper = column.in_(oper.value)
-                elif oper is skip:
-                    continue
-                elif hasattr(oper, "__py_magic__"):
-                    magic = oper.__py_magic__
-                    oper_method = getattr(column, magic)
-
-                    # Here we form the SQLAlchemy operation, ie.: column("mycol") >= 5
-                    sql_oper = oper_method(oper.value)
-                else:
-                    raise NotImplementedError(f"Not implemented operator: {oper}")
-            else:
-                value = oper_or_value
-                sql_oper = column == value
-            stmt &= sql_oper
-        return stmt
-
-    def _to_sqlalchemy_type(self, cls):
-        is_older_py = sys.version_info < (3, 8)
-        origin = typing.get_origin(cls) if not is_older_py else None
-        if origin is not None:
-            # In form: 
-            # - Literal['', '']
-            # - Optional[...]
-            args = typing.get_args(cls)
-            if origin is typing.Union:
-                # Either:
-                # - Union[...]
-                # - Optional[...]
-                # Only Union[<TYPE>, NoneType] is allowed
-                none_type = type(None)
-                has_none_type = none_type in args
-                if len(args) > 2 or (len(args) == 2 and not has_none_type):
-                    raise TypeError(f"Union has more than one optional type: {str(cls)}. Cannot define SQL data type")
-                # Get the non-None type
-                for arg in args:
-                    if arg is not none_type:
-                        cls = arg
-                        break
-
-            if origin is Literal:
-                type_ = type(args[0])
-                for arg in args[1:]:
-                    if not isinstance(arg, type_):
-                        raise TypeError(f"Literal values are not same types: {str(cls)}. Cannot define SQL data type")
-                cls = type_
-
-        return TYPES.get(cls)
+        return to_expression(oper, table=self.model_orm)
 
     def _create_table(self, session, model, name, primary_column=None):
-        columns = [
-            sqlalchemy.Column(
-                name, 
-                self._to_sqlalchemy_type(field.type_), 
-                primary_key=name == primary_column, 
-                nullable=not field.required
-            )
-            for name, field in model.__fields__.items()
-        ]
-        meta = sqlalchemy.MetaData()
-        table = sqlalchemy.Table(name, meta, *columns)
+        table = Table(bind=session.get_bind(), name=name)
+        table.create_from_model(model, primary_column=primary_column)
 
-        engine = session.get_bind()
-        table.create(engine)
+class SQLExprRepo(TemplateRepo):
+
+    table: Optional[str]
+    engine: Optional[Any]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def insert(self, item):
+        row = self.item_to_dict(item, exclude_unset=False)
+        try:
+            self.object.insert(row)
+        except sqlalchemy.exc.IntegrityError as exc:
+            raise KeyFoundError(f"Inserting item {self.get_field_value(item, self.id_field)} failed.") from exc
+
+    def query_data(self, query):
+        for data in self.object.select(query):
+            yield data
+
+    def query_data_first(self, query):
+        item = self.object.select(query).first()
+        if item is not None:
+            return self.data_to_item(item)
+
+    def query_update(self, query, values):
+        self.object.update(query, values)
+
+    def query_delete(self, query):
+        self.object.delete(query)
+
+    def query_count(self, query):
+        return self.object.count(query)
+
+    @property
+    def object(self) -> Table:
+        return Table(bind=self.engine, name=self.table)
+
+    def create(self):
+        tbl = self.object
+        tbl.create_from_model(self.model, primary_column=self.id_field)
+
+    @property
+    def session(self):
+        return DummySession()

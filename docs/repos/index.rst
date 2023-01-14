@@ -14,7 +14,7 @@ for all features except those stated otherwise.
    memory
    csv
    json_dir
-   sql
+   sql/index
    mongo
 
    custom_repo

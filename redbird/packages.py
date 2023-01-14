@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from redbird.utils.importing import import_optional
+from redbird.utils.importing import import_optional, import_exists
 
 if TYPE_CHECKING:
     import sqlalchemy as sqlalchemy_lib

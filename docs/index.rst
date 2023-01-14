@@ -221,6 +221,7 @@ Delete items from the database:
    repos/index
    crud
    operations
+   sql/index
    logging_handler
    examples/index
    references/index

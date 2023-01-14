@@ -20,5 +20,8 @@ class _Missing_Package:
 def import_optional(name:str):
     try:
         return importlib.import_module(name)
-    except ImportError:
+    except ModuleNotFoundError:
         return _Missing_Package(name)
+
+def import_exists(name:str):
+    return not isinstance(import_optional(name), _Missing_Package)
