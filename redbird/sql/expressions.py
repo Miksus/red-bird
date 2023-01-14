@@ -414,6 +414,12 @@ class Table:
                 DELETE FROM mytable 
                 WHERE column_1 = 'a' AND column_2 = 1
 
+        Delete all:
+
+        .. code-block:: python
+
+            table.delete({})
+
         """
         if isinstance(where, dict):
             where = to_expression(where)
@@ -473,6 +479,12 @@ class Table:
                 UPDATE mytable 
                 SET column_3='new value' 
                 WHERE column_1 = 'a' and column_2 = 1
+
+        Update all:
+
+        .. code-block:: python
+
+            table.update({}, {"column_3": "new value"})
 
         """
         if isinstance(where, dict):
