@@ -301,7 +301,7 @@ class SQLRepo(TemplateRepo):
         table = Table(bind=session.get_bind(), name=name)
         table.create_from_model(model, primary_column=primary_column)
 
-class SQLExpressionRepo(TemplateRepo):
+class SQLExprRepo(TemplateRepo):
 
     table: Optional[str]
     engine: Optional[Any]
