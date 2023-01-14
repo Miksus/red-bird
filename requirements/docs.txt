@@ -2,3 +2,8 @@ sphinx==4.*
 sphinx_book_theme==0.3.*
 sphinx-copybutton==0.5.*
 jinja2==3.*
+
+sqlalchemy==1.*
+pymongo
+requests
+pydantic_sqlalchemy
