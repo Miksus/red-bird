@@ -605,11 +605,6 @@ class Table:
             return conn.execute(*args, **kwargs)
 
     def open_transaction(self):
-        """Open a transaction"""
-        self._ctx = self._trans_ctx(self)
-        return self._ctx.__enter__()
-
-    def __enter__(self):
         """Open a transaction.
         
         Examples
@@ -621,15 +616,45 @@ class Table:
 
             table = Table(engine=create_engine(...), table="mytable")
 
-            with table as transaction:
-                transaction.insert({"col_1": "a", "col_2": "b"})
-                transaction.delete({"col_2": "c"})
+            # Open the transaction
+            transaction = table.open_transaction()
+
+            # Perform operations
+            transaction.insert({"col_1": "a", "col_2": "b"})
+            transaction.delete({"col_2": "c"})
+
+            # Commit or rollback the changes
+            if successful:
+                transaction.commit()
+            else:
+                transaction.rollbac()
         """
         self._ctx = self._trans_ctx(self)
         return self._ctx.__enter__()
 
-    def __exit__(self, type_, value, traceback):
-        self._ctx.__exit__(type_, value, traceback)
+    def transaction(self):
+        """Open a transaction context.
+        
+        If an error is raised inside the with block,
+        the changes are rollbacked. Else they are 
+        commited.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from redbird.sql import Table
+            from sqlalchemy import create_engine
+
+            table = Table(engine=create_engine(...), table="mytable")
+
+            with table.transaction() as trans:
+
+                # Perform operations
+                trans.insert({"col_1": "a", "col_2": "b"})
+                trans.delete({"col_2": "c"})
+        """
+        return self._trans_ctx(self)
 
     def rollback(self):
         "Rollback the open transaction (a transaction must be open)"

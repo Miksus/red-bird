@@ -6,7 +6,7 @@ from redbird.sql.expressions import select, Table
 def test_enter_commit(engine):
     tbl = Table(bind=engine, name="empty")
 
-    with tbl as trans:
+    with tbl.transaction() as trans:
         trans.insert(
             {'id': 'a', 'name': 'Johnny', 'birth_date': date(2000, 1, 1), 'score': 100},
         )
@@ -21,7 +21,7 @@ def test_enter_commit(engine):
 def test_enter_rollback(engine):
     tbl = Table(bind=engine, name="empty")
     try:
-        with tbl as trans:
+        with tbl.transaction() as trans:
             trans.insert(
                 {'id': 'a', 'name': 'Johnny', 'birth_date': date(2000, 1, 1), 'score': 100},
             )
@@ -36,7 +36,7 @@ def test_enter_rollback(engine):
 def test_enter_manual_rollback(engine):
     tbl = Table(bind=engine, name="empty")
 
-    with tbl as trans:
+    with tbl.transaction() as trans:
         trans.insert(
             {'id': 'a', 'name': 'Johnny', 'birth_date': date(2000, 1, 1), 'score': 100},
         )
