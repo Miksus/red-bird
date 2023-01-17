@@ -166,6 +166,35 @@ class Table:
         def __exit__(self, type_, value, traceback):
             self._ctx.__exit__(type_, value, traceback)
 
+    class _exec_ctx:
+        # Utility for execution context manager
+        def __init__(self, obj:'Table', args, kwargs):
+            self.obj = obj
+            self.args = args
+            self.kwargs = kwargs
+
+        def __enter__(self):
+            bind = self.obj.bind
+
+            # sqlalchemy.engine.Engine does not have "closed" attribute
+            # but Connection does. We use this to define if it is open
+            is_open = hasattr(bind, "closed") and not bind.closed
+            if is_open:
+                # "execute" should return Results that are still open
+                return self.obj.execute(*self.args, **self.kwargs)
+            else:
+                self._conn = bind.connect()
+                self._conn.__enter__()
+
+                new_table = copy(self.obj)
+                new_table.bind = self._conn
+
+                return new_table.execute(*self.args, **self.kwargs)
+
+        def __exit__(self, type_, value, traceback):
+            if hasattr(self, "_conn"):
+                self._conn.__exit__(type_, value, traceback)
+
     def __init__(self, name:str, bind:'sqlalchemy.engine.Engine'):
         self.bind = bind
         self.name = name
@@ -202,7 +231,7 @@ class Table:
         if not inspector.is_range() and nrows == 0:
             raise KeyError("Item not found")
 
-    def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> Iterable[dict]:
+    def select(self, qry:Union[str, dict, 'sqlalchemy.sql.ClauseElement', None]=None, columns:Optional[List[str]]=None, parameters:Optional[Dict]=None) -> List[dict]:
         """Read the database table using a query.
         
         Parameters
@@ -328,12 +357,12 @@ class Table:
 
         if parameters is not None:
             statement = statement.bindparams(**parameters)
-        
-        results = self.execute(statement)
-        rows = results.mappings()
-        if self.name is not None:
-            return self._format_results(rows)
-        return rows
+
+        with self.execution(statement) as results:
+            rows = results.mappings()
+            if self.name is not None:
+                rows = self._format_results(rows)
+            return list(rows)
     
     def insert(self, data:Union[Mapping, List[dict]]):
         """Insert data to the database.
@@ -521,7 +550,9 @@ class Table:
             if isinstance(where, dict):
                 where = to_expression(where)
             stmt = stmt.where(where)
-        return list(self.execute(stmt))[0][0]
+
+        with self.execution(stmt) as results:
+            return results.scalar_one()
 
     def _format_results(self, res:Iterable[Tuple]) -> Iterable[dict]:
         columns = self._get_types()
@@ -757,6 +788,10 @@ class Table:
     def commit(self):
         "Commit the open transaction (a transaction must be open)"
         return self.bind.get_transaction().commit()
+
+    def execution(self, *args, **kwargs):
+        "Context manager to manipulate the execution result"
+        return self._exec_ctx(self, args, kwargs)
 
     @property
     def object(self) -> 'sqlalchemy.Table':

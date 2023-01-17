@@ -18,7 +18,7 @@ def test_update_all(engine):
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': -999},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': -999},
         {'id': 'c', 'name': 'James', 'birth_date': '2020-01-01', 'score': -999},
-    ] == list(execute(sqlalchemy.text("select * from populated"), bind=engine).mappings())
+    ] == list(select("select * from populated", bind=engine))
 
 @pytest.mark.parametrize("how", [
     "dict", "expressions"
@@ -41,4 +41,4 @@ def test_update(engine, how):
         {'id': 'a', 'name': 'Jack', 'birth_date': '2000-01-01', 'score': 0},
         {'id': 'b', 'name': 'John', 'birth_date': '1990-01-01', 'score': 200},
         {'id': 'c', 'name': 'James', 'birth_date': '2020-01-01', 'score': 300},
-    ] == list(execute(sqlalchemy.text("select * from populated"), bind=engine).mappings())
+    ] == list(select("select * from populated", bind=engine))

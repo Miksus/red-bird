@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from datetime import date
 import pytest
 
-from redbird.sql import Table, create_table, execute
+from redbird.sql import Table, create_table, execute, select
 
 @pytest.mark.parametrize("column_type", [
     "string",
@@ -29,25 +29,25 @@ def test_create(engine, column_type):
         ]
     create_table(table="mytable", columns=columns, bind=engine)
 
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
 
 def test_drop(engine):
     tbl = Table("mytable", bind=engine)
 
     tbl.create(["col1", "col2"])
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
 
     tbl.drop()
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
-    assert [] == list(res.mappings())
+    res = select("PRAGMA table_info(mytable);", bind=engine)
+    assert [] == list(res)
 
 def test_exists(engine):
     tbl = Table("mytable", bind=engine)
@@ -61,11 +61,11 @@ def test_create_already_exists(engine):
     import sqlalchemy
     create_table(table="mytable", columns=["col1", "col2"], bind=engine)
 
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'col1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'col2', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
 
     with pytest.raises(sqlalchemy.exc.OperationalError):
         create_table(table="mytable", columns=["col1", "col2", "col3"], bind=engine)
@@ -81,13 +81,13 @@ def test_create_model(engine):
 
     tbl = Table("mytable", bind=engine)
     tbl.create_from_model(MyModel)
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'name', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'score', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 2, 'name': 'birth_date', 'type': 'DATE', 'notnull': 1, 'dflt_value': None, 'pk': 0},
         {'cid': 3, 'name': 'color', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
 
     tbl.insert({"name": "Jack", "birth_date": date(2000, 1, 1)})
     assert list(tbl.select()) == [{'name': 'Jack', 'score': 999, 'birth_date': date(2000, 1, 1), 'color': None}]
@@ -98,10 +98,10 @@ def test_create_model_primary_key(engine):
 
     tbl = Table("mytable", bind=engine)
     tbl.create_from_model(MyModel, primary_column="myid")
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'myid', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
-    ] == list(res.mappings())
+    ] == list(res)
 
 def test_create_model_multi_primary_key(engine):
     class MyModel(BaseModel):
@@ -110,11 +110,11 @@ def test_create_model_multi_primary_key(engine):
 
     tbl = Table("mytable", bind=engine)
     tbl.create_from_model(MyModel, primary_column=("myid1", "myid2"))
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'myid1', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
         {'cid': 1, 'name': 'myid2', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 2},
-    ] == list(res.mappings())
+    ] == list(res)
 
 def test_create_dict(engine):
 
@@ -124,12 +124,12 @@ def test_create_dict(engine):
         "mycol_2": int, 
         "mycol_3": date,
     })
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'mycol_1', 'type': 'VARCHAR', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 1, 'name': 'mycol_2', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 0},
         {'cid': 2, 'name': 'mycol_3', 'type': 'DATE', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
 
 def test_create_list(engine):
     sqlalchemy = pytest.importorskip("sqlalchemy")
@@ -139,9 +139,9 @@ def test_create_list(engine):
         sqlalchemy.Column("mycol_2", sqlalchemy.INTEGER, nullable=False),
         sqlalchemy.Column("mycol_3", sqlalchemy.DATE),
     ])
-    res = execute("PRAGMA table_info(mytable);", bind=engine)
+    res = select("PRAGMA table_info(mytable);", bind=engine)
     assert [
         {'cid': 0, 'name': 'mycol_1', 'type': 'VARCHAR', 'notnull': 1, 'dflt_value': None, 'pk': 1},
         {'cid': 1, 'name': 'mycol_2', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 0},
         {'cid': 2, 'name': 'mycol_3', 'type': 'DATE', 'notnull': 0, 'dflt_value': None, 'pk': 0},
-    ] == list(res.mappings())
+    ] == list(res)
