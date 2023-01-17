@@ -28,7 +28,7 @@ using native Python data types:
     ])
 
     # Select rows where product is milk and quantity is 1
-    list(table.select({"product": "milk", "quantity": 1}))
+    table.select({"product": "milk", "quantity": 1})
 
     # Update item(s)
     table.update(where={"product": "milk"}, values={"quantity": 3})
@@ -66,7 +66,7 @@ using SQLAlchemy's SQL expressions:
 
     # Select rows where product is milk and quantity is 1
     qry = (sqlalchemy.Column("product") == "milk") & (sqlalchemy.Column("quantity") == 1)
-    list(table.select(qry))
+    table.select(qry)
 
     # Update item(s)
     table.update(where=sqlalchemy.Column("product") == "milk", values={"quantity": 3})

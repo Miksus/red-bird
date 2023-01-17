@@ -257,7 +257,7 @@ class Table:
 
         Returns
         -------
-        Generator of dicts
+        List of dicts
             Found rows as dicts.
 
         Examples
@@ -752,7 +752,7 @@ class Table:
             if successful:
                 transaction.commit()
             else:
-                transaction.rollbac()
+                transaction.rollback()
         """
         self._ctx = self._trans_ctx(self)
         return self._ctx.__enter__()
