@@ -4,6 +4,10 @@
 Version history
 ===============
 
+- ``0.7.1``
+
+    - SQL: Fix bug in ``redbird.sql.Table.select`` about closed resource.
+
 - ``0.7.0``
 
     - SQL: add new repo, :py:class:`redbird.repos.SQLExprRepo`, which relies on SQLAlchemy' SQL expressions
