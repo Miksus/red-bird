@@ -1,9 +1,9 @@
 import pytest
 
 @pytest.fixture()
-def engine():
+def engine(tmpdir):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine('sqlite://')
+    engine = sqlalchemy.create_engine(f'sqlite:///{tmpdir}/testing.db')
     with engine.begin() as conn:
         conn.execute(sqlalchemy.text("""
         CREATE TABLE empty (

@@ -227,7 +227,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
         repo.create()
 
     elif type_ == "sql-expr":
-        engine = create_engine('sqlite://')
+        engine = create_engine(f'sqlite:///{tmpdir}/logs.db')
         repo = SQLExprRepo(model=model, engine=engine, table="items", id_field="id")
         repo.create()
 
