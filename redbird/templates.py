@@ -14,13 +14,17 @@ class TemplateResult(BaseResult):
         try:
             items = self.repo.query_items(self.query_)
         except NotImplementedError:
-            for data in self.repo.query_data(self.query_):
-                try:
-                    yield self.repo.data_to_item(data)
-                except ValueError:
-                    _handle_conversion_error(self.repo, data)
+            pass
         else:
              yield from items
+             return
+
+        # Handle not implemented
+        for data in self.repo.query_data(self.query_):
+            try:
+                yield self.repo.data_to_item(data)
+            except ValueError:
+                _handle_conversion_error(self.repo, data)
 
     def query_data(self) -> Iterator[Data]:
         "Get actual result"
@@ -41,7 +45,8 @@ class TemplateResult(BaseResult):
         except NotImplementedError:
             # Has no custom replace implemented, using 
             # default alternative (delete, add)
-            return super().replace(**kwargs)
+            pass
+        return super().replace(**kwargs)
 
     def count(self) -> int:
         try:
@@ -49,32 +54,37 @@ class TemplateResult(BaseResult):
         except NotImplementedError:
             # Has no custom replace implemented, using 
             # default alternative (len(self))
-            return super().count()
+            pass
+        return super().count()
 
     def first(self) -> Item:
         try:
             return self.repo.query_read_first(self.query_)
         except NotImplementedError:
-            return super().first()
+            pass
+        return super().first()
 
     def limit(self, n:int) -> List[Item]:
         try:
             return self.repo.query_read_limit(self.query_, n)
         except NotImplementedError:
-            return super().limit(n)
+            pass
+        return super().limit(n)
 
     def last(self) -> Item:
         try:
             return self.repo.query_read_last(self.query_)
         except NotImplementedError:
-            return super().last()
+            pass
+        return super().last()
 
     def format_query(self, query: dict) -> dict:
         qry = super().format_query(query)
         try:
             return self.repo.format_query(qry)
         except NotImplementedError:
-            return qry
+            pass
+        return qry
 
 
 class TemplateRepo(BaseRepo):
