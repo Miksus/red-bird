@@ -203,7 +203,7 @@ class BaseRepo(ABC, BaseModel):
             raise ValueError(f"Invalid value: {if_exists}")
 
     @abstractmethod
-    def insert(self):
+    def insert(self, item: Item):
         """Insert item to the repository
         
         Parameters
