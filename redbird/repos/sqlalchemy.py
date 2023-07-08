@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional, Type
 import typing
 import sys
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic.v1 import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.dummy import DummySession
 from redbird.templates import TemplateRepo

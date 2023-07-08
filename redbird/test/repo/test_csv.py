@@ -2,7 +2,7 @@
 from typing import Optional
 
 from redbird.repos import CSVFileRepo
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 class Item(BaseModel):
     id: str

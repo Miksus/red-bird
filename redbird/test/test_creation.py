@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 import pytest
 from redbird import BaseRepo, BaseResult
 from redbird.repos import MemoryRepo

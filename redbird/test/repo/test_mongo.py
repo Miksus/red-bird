@@ -4,7 +4,7 @@ from typing import Optional
 from redbird.repos import MongoRepo
 
 import pytest
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 class Item(BaseModel):
     id: str

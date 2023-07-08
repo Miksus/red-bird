@@ -17,7 +17,7 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 
 # ------------------------
 # TEST ITEMS

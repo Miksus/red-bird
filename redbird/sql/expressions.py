@@ -10,7 +10,7 @@ import typing
 from redbird.oper import Between, In, Operation, skip
 from redbird.packages import sqlalchemy, import_exists
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 
 try:
@@ -707,7 +707,7 @@ class Table:
             for name, field in model.__fields__.items()
         ]
         self.create(sql_cols)
-  
+
     def execute(self, *args, **kwargs):
         """Execute SQL statement or raw SQL.
         

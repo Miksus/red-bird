@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Dict, Generator, Iterator, List, Mapping, Opti
 from dataclasses import dataclass
 import warnings
 
-from pydantic import BaseModel, Field, validator
+from pydantic.v1 import BaseModel, Field, validator
 
 from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError, _handle_conversion_error
 from redbird.utils.case import to_case
