@@ -66,7 +66,7 @@ class CSVFileRepo(TemplateRepo):
     kwds_csv: dict = {}
 
     _session = PrivateAttr()
-    ordered: bool = Field(default=True, const=True)
+    ordered: bool = Field(default=True)
 
     def insert(self, item):
         file_non_zero = self.filename.exists() and self.filename.stat().st_size > 0

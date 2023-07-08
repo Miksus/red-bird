@@ -4,7 +4,7 @@ import sys
 import typing
 import pytest
 from redbird.repos import SQLRepo
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 try:
     from typing import Literal
@@ -20,8 +20,7 @@ class MyItemWithORM(BaseModel):
     id: str
     name: str
     age: int
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 try:
     from sqlalchemy.orm import declarative_base

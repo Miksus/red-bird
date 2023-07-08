@@ -9,14 +9,14 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 class ItemWithCol(BaseModel):
     __colname__ = 'items'
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 def test_creation_defaults():
     pytest.importorskip("pymongo")

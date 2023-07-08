@@ -56,7 +56,7 @@ class MemoryRepo(TemplateRepo):
     #cls_result = MemoryResult
     collection: List[Any] = []
 
-    ordered: bool = Field(default=False, const=True)
+    ordered: bool = Field(default=False)
     _session = PrivateAttr()
     
     def insert(self, item):

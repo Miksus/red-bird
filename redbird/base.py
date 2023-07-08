@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Dict, Generator, Iterator, List, Mapping, Opti
 from dataclasses import dataclass
 import warnings
 
-from pydantic import BaseModel, Field, validator
+from pydantic import ConfigDict, BaseModel, Field, validator
 
 from redbird.exc import ConversionWarning, DataToItemError, KeyFoundError, ItemToDataError, _handle_conversion_error
 from redbird.utils.case import to_case
@@ -142,16 +142,18 @@ class BaseRepo(ABC, BaseModel):
     cls_result: ClassVar[Type[BaseResult]]
 
     model: Type = dict
-    id_field: Optional[str]
-    
+    id_field: Optional[str] = None
+
     query_model: Optional[Type[BaseModel]] = BasicQuery
 
     errors_query: Literal['raise', 'warn', 'discard'] = 'raise'
     field_access: Literal['attr', 'key', 'infer'] = 'infer'
 
     # Attributes that specifies how the repo behaves
-    ordered: bool = Field(default=False, const=True)
+    ordered: bool = Field(default=False)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator('id_field', always=True)
     def set_id_field(cls, value, values):
         if value is None:
@@ -376,3 +378,4 @@ class BaseRepo(ABC, BaseModel):
         }[field_access]
         
         func(item, key, value)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
