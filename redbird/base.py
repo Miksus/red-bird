@@ -143,14 +143,14 @@ class BaseRepo(ABC, BaseModel):
 
     model: Type = dict
     id_field: Optional[str]
-    
+
     query_model: Optional[Type[BaseModel]] = BasicQuery
 
     errors_query: Literal['raise', 'warn', 'discard'] = 'raise'
     field_access: Literal['attr', 'key', 'infer'] = 'infer'
 
     # Attributes that specifies how the repo behaves
-    ordered: bool = Field(default=False, const=True)
+    ordered: bool = Field(default=False)
 
     @validator('id_field', always=True)
     def set_id_field(cls, value, values):
@@ -376,3 +376,6 @@ class BaseRepo(ABC, BaseModel):
         }[field_access]
         
         func(item, key, value)
+
+    class Config:
+        arbitrary_types_allowed = True

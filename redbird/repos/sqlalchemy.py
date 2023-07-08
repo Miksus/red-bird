@@ -161,7 +161,7 @@ class SQLRepo(TemplateRepo):
     engine: Optional[Any]
     autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
-    ordered: bool = Field(default=True, const=True)
+    ordered: bool = Field(default=True)
     _Base = PrivateAttr()
 
     @classmethod

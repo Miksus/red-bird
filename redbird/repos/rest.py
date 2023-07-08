@@ -91,7 +91,7 @@ class RESTRepo(TemplateRepo):
 
     _session = PrivateAttr()
 
-    ordered: bool = Field(default=False, const=True)
+    ordered: bool = Field(default=False)
 
     def insert(self, item):
         json = self.item_to_dict(item, exclude_unset=False)
