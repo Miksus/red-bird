@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Union, TextIO
 
 import csv
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic.v1 import BaseModel, Field, PrivateAttr
 from redbird import BaseRepo, BaseResult
 from redbird.base import Data, Item
 from redbird.templates import TemplateRepo

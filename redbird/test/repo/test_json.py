@@ -5,7 +5,7 @@ from typing import Optional
 import pytest
 
 from redbird.repos import JSONDirectoryRepo
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 class Item(BaseModel):
     id: str

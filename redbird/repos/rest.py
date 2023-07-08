@@ -2,7 +2,7 @@
 import urllib.parse as urlparse
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic.v1 import BaseModel, Field, PrivateAttr
 
 from redbird.packages import requests
 from redbird.oper import GreaterEqual, GreaterThan, LessEqual, LessThan, NotEqual, Operation

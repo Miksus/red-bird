@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic.v1 import BaseModel, Field, ValidationError
 
 from redbird.base import BaseResult, BaseRepo
 from redbird.exc import KeyFoundError

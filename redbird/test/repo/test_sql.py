@@ -4,7 +4,7 @@ import sys
 import typing
 import pytest
 from redbird.repos import SQLRepo
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 
 try:
     from typing import Literal
