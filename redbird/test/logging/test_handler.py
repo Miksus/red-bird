@@ -17,9 +17,9 @@ class LogRecord(BaseModel):
     pathname: str
     filename: str
     module: str
-    exc_info: Optional[tuple]
-    exc_text: Optional[str]
-    stack_info: Optional[tuple]
+    exc_info: Optional[tuple] = None
+    exc_text: Optional[str] = None
+    stack_info: Optional[tuple] = None
     lineno: int
     funcName: str
     created: float

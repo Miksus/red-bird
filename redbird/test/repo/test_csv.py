@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 def test_filecontent(tmpdir):
     file = tmpdir / "test.csv"

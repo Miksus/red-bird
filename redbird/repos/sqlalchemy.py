@@ -155,10 +155,10 @@ class SQLRepo(TemplateRepo):
         repo = SQLRepo(model=Car, model_orm=CarORM, engine=engine)
     """
 
-    model_orm: Optional[Any]
-    table: Optional[str]
-    session: Any
-    engine: Optional[Any]
+    model_orm: Optional[Any] = None
+    table: Optional[str] = None
+    session: Any = None
+    engine: Optional[Any] = None
     autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
     ordered: bool = Field(default=True)
@@ -303,8 +303,8 @@ class SQLRepo(TemplateRepo):
 
 class SQLExprRepo(TemplateRepo):
 
-    table: Optional[str]
-    engine: Optional[Any]
+    table: Optional[str] = None
+    engine: Optional[Any] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

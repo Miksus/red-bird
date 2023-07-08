@@ -10,7 +10,7 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 def sort_items(items, repo, field="id"):
     return list(sorted(items, key=lambda x: repo.get_field_value(x, field)))

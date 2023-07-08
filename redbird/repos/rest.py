@@ -84,7 +84,7 @@ class RESTRepo(TemplateRepo):
 
         repo = RESTRepo(url="http://example.com/api", url_params={"fields": "car_type,car_model,registration_number"})
     """
-    result: Optional[Union[str, Callable]]
+    result: Optional[Union[str, Callable]] = None
     url: str
     url_params: dict = {}
     headers: dict = {}

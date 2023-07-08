@@ -145,9 +145,9 @@ class MongoRepo(TemplateRepo):
         NotEqual: "$ne",
         In: "$in",
     }
-    session: Any
-    database: Optional[str]
-    collection: Optional[str]
+    session: Any = None
+    database: Optional[str] = None
+    collection: Optional[str] = None
 
     ordered: bool = Field(default=True)
 
