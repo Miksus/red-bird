@@ -59,3 +59,6 @@ docs/_build/
 
 # Coverage
 cov_data/
+
+# custom
+test.py
