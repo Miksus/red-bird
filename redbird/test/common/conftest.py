@@ -223,7 +223,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items", id_field="id")
+        repo = SQLRepo(orm=SQLItem, engine=engine, table="items", id_field="id")
         repo.create()
 
     elif type_ == "sql-expr":
@@ -233,7 +233,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-pydantic-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model=PydanticItemORM, model_orm=SQLItem, engine=engine, id_field="id")
+        repo = SQLRepo(model=PydanticItemORM, orm=SQLItem, engine=engine, id_field="id")
         SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "mongo-mock":

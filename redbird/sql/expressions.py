@@ -699,12 +699,12 @@ class Table:
         sql_cols = [
             sqlalchemy.Column(
                 name, 
-                self._to_sqlalchemy_type(field.type_), 
+                self._to_sqlalchemy_type(field.annotation), 
                 primary_key=name in primary_column if primary_column is not None else False, 
-                nullable=not field.required,
+                nullable=not field.is_required(),
                 default=field.default
             )
-            for name, field in model.__fields__.items()
+            for name, field in model.model_fields.items()
         ]
         self.create(sql_cols)
   
