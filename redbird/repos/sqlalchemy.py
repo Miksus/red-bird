@@ -158,7 +158,7 @@ class SQLRepo(TemplateRepo):
 
     orm: Optional[Any]
     table: Optional[str]
-    session: Any
+    session: Optional[Any]
     engine: Optional[Any] = None
     autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
@@ -217,7 +217,7 @@ class SQLRepo(TemplateRepo):
                 raise KeyError(f"Cannot automap table '{table}'. Perhaps table missing primary key?") from exc
             kwargs["orm"] = orm
         if reflect_model:
-            kwargs["model"] = self.orm_model_to_pydantic(kwargs["rm"])
+            kwargs["model"] = self.orm_model_to_pydantic(kwargs["orm"])
         super().__init__(*args, session=session, **kwargs)
 
     def insert(self, item):
@@ -238,7 +238,9 @@ class SQLRepo(TemplateRepo):
 
     def data_to_item(self, item_orm):
         # Turn ORM item to Pydantic item
-        set_attrs = self.model.model_config.get("from_attributes", None)
+        set_attrs = None
+        if hasattr(self.model, "model_config"):
+            set_attrs = self.model.model_config.get("from_attributes", None)
         if set_attrs:
             # Use Pydantic methods
              return self.model.model_validate(item_orm)

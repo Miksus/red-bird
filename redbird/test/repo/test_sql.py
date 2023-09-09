@@ -3,8 +3,11 @@ import datetime
 import sys
 import typing
 import pytest
+import os
+from pathlib import Path
+from contextlib import contextmanager
 from redbird.repos import SQLRepo
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 try:
     from typing import Literal
@@ -20,8 +23,20 @@ class MyItemWithORM(BaseModel):
     id: str
     name: str
     age: int
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+@contextmanager
+def change_working_directory(tmpdir: Path):
+    origin = Path().absolute()
+    try:
+        os.chdir(tmpdir)
+        yield
+    finally:
+        os.chdir(origin)
+
+
 
 try:
     from sqlalchemy.orm import declarative_base
@@ -70,7 +85,7 @@ def test_init_conn_string(tmpdir):
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     import sqlalchemy
-    with tmpdir.as_cwd() as old_dir:
+    with change_working_directory(tmpdir) as old_dir:
         conn_string = 'sqlite:///pytest.db'
         engine = create_engine(conn_string)
         execute_sql(
@@ -188,7 +203,7 @@ def test_init_fail_missing_connection():
         SQLRepo(model=MyItem, table="my_table")
 
 def test_init_deprecated(tmpdir):
-    with tmpdir.as_cwd() as old_dir:
+    with change_working_directory(tmpdir) as old_dir:
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import create_engine
         engine = create_engine('sqlite:///pytest.db')

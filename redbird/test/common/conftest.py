@@ -17,7 +17,7 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 # ------------------------
 # TEST ITEMS
@@ -33,8 +33,9 @@ class PydanticItemORM(BaseModel):
     id: str
     name: str
     age: Optional[int]
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 class MongoItem(BaseModel):
     __colname__ = 'items'

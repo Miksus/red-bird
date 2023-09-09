@@ -1,5 +1,6 @@
 
 from typing import Optional
+from pathlib import Path
 
 from redbird.repos import CSVFileRepo
 from pydantic import BaseModel
@@ -7,9 +8,10 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 def test_filecontent(tmpdir):
+    
     file = tmpdir / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item)
 
