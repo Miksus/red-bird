@@ -156,9 +156,9 @@ class SQLRepo(TemplateRepo):
         repo = SQLRepo(model=Car, orm=CarORM, engine=engine)
     """
 
-    orm: Optional[Any]
-    table: Optional[str]
-    session: Optional[Any]
+    orm: Optional[Any] = None
+    table: Optional[str] = None
+    session: Optional[Any] = None
     engine: Optional[Any] = None
     autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 

@@ -10,43 +10,43 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 def sort_items(items, repo, field="id"):
     return list(sorted(items, key=lambda x: repo.get_field_value(x, field)))
 
-def test_missing_id(tmpdir):
+def test_missing_id(tmp_path):
     with pytest.raises(ValueError):
-        repo = JSONDirectoryRepo(path=tmpdir, model=Item)
+        repo = JSONDirectoryRepo(path=tmp_path, model=Item)
 
-def test_filecontent(tmpdir):
-    repo = JSONDirectoryRepo(path=tmpdir, model=Item, id_field="id")
+def test_filecontent(tmp_path):
+    repo = JSONDirectoryRepo(path=tmp_path, model=Item, id_field="id")
 
     repo.add(Item(id="1111", name="Jack", age=20))
     repo.add(Item(id="2222", name="John"))
     repo.add(Item(id="3333", name="James", age=30))
 
-    content = (tmpdir / "1111.json").read_text(encoding="UTF-8")
+    content = (tmp_path / "1111.json").read_text(encoding="UTF-8")
     assert content == '{"id": "1111", "name": "Jack", "age": 20}'
 
     repo.filter_by(id="1111").update(age=40)
-    content = (tmpdir / "1111.json").read_text(encoding="UTF-8")
+    content = (tmp_path / "1111.json").read_text(encoding="UTF-8")
     assert content == '{"id": "1111", "name": "Jack", "age": 40}'
 
     repo.filter_by(id="2222").delete()
-    assert not (tmpdir / "2222.json").exists()
+    assert not (tmp_path / "2222.json").exists()
 
     repo.filter_by().delete()
-    assert not (tmpdir / "1111.json").exists()
-    assert not (tmpdir / "3333.json").exists()
+    assert not (tmp_path / "1111.json").exists()
+    assert not (tmp_path / "3333.json").exists()
 
 
-def test_kwds_json(tmpdir):
-    repo = JSONDirectoryRepo(path=tmpdir, model=Item, id_field="id", kwds_json_dump={'indent': 4, 'sort_keys': True})
+def test_kwds_json(tmp_path):
+    repo = JSONDirectoryRepo(path=tmp_path, model=Item, id_field="id", kwds_json_dump={'indent': 4, 'sort_keys': True})
 
     repo.add(Item(id="1111", name="Jack", age=20))
 
-    content = (tmpdir / "1111.json").read_text(encoding="UTF-8")
+    content = (tmp_path / "1111.json").read_text(encoding="UTF-8")
     assert content == dedent('''
     {
         "age": 20,
@@ -58,8 +58,8 @@ def test_kwds_json(tmpdir):
     # Testing reading
     assert repo['1111'] == Item(id="1111", name="Jack", age=20)
 
-def test_dict_operations(tmpdir):
-    repo = JSONDirectoryRepo(path=tmpdir, id_field="id")
+def test_dict_operations(tmp_path):
+    repo = JSONDirectoryRepo(path=tmp_path, id_field="id")
 
     # Insert
     repo.add(dict(id="a", name="Jack", age=20))

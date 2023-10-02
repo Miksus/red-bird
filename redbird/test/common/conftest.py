@@ -27,12 +27,12 @@ class PydanticItem(BaseModel):
     __colname__ = 'items'
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 class PydanticItemORM(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
     model_config = ConfigDict(
         from_attributes=True
     )
