@@ -317,11 +317,24 @@ def test_init_type_insert(cls, example_value):
 ])
 def test_init_column(cls, nullable, sql_type):
     pytest.importorskip("sqlalchemy")
-
-    class MyItem(BaseModel):
-        __id_field__ = "id"
-        id: str
-        myfield: cls
+    DEFAULT_ARG_TYPES = [
+        typing.Optional[str], 
+        typing.Union[str, None], 
+        typing.Union[None, str],
+        typing.Optional[Literal["yes", "no"]]
+        ]
+    if cls in DEFAULT_ARG_TYPES:
+        print(cls)
+        class MyItem(BaseModel):
+            __id_field__ = "id"
+            id: str
+            myfield: cls = None
+    else:
+        print(cls)
+        class MyItem(BaseModel):
+            __id_field__ = "id"
+            id: str
+            myfield: cls
     import sqlalchemy
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
