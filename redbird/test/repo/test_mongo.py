@@ -9,7 +9,7 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 class ItemWithCol(BaseModel):

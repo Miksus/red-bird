@@ -146,8 +146,8 @@ class MongoRepo(TemplateRepo):
         In: "$in",
     }
     session: Any
-    database: Optional[str]
-    collection: Optional[str]
+    database: Optional[str] = None
+    collection: Optional[str] = None
 
     ordered: bool = Field(default=True)
 

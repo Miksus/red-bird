@@ -77,7 +77,7 @@ def test_create_model(engine):
         name: str
         score: int = 999
         birth_date: date
-        color: Optional[str]
+        color: Optional[str] = None
 
     tbl = Table("mytable", bind=engine)
     tbl.create_from_model(MyModel)
