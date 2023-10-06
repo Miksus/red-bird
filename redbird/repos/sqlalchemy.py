@@ -268,7 +268,7 @@ class SQLRepo(TemplateRepo):
             return item
         elif hasattr(item, "dict"):
             # Is pydantic
-            return item.dict(exclude_unset=exclude_unset)
+            return item.model_dump(exclude_unset=exclude_unset)
         else:
             d = vars(item)
             d.pop("_sa_instance_state", None)

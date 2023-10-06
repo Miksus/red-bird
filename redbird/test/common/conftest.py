@@ -123,12 +123,12 @@ class RESTMock:
     def get(self, request):
         params = self.get_params(request)
         data = self.repo.filter_by(**params).all()
-        data = [item.dict() for item in data]
+        data = [item.model_dump() for item in data]
         return (200, {"Content-Type": "application/json"}, json.dumps(data))
 
     def get_one(self, request):
         id = self.get_id(request)
-        data = self.repo[id].dict()
+        data = self.repo[id].model_dump()
         return (200, {"Content-Type": "application/json"}, json.dumps(data))
 
     def get_params(self, req):
