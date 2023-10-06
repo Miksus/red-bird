@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union, Type
 
 
 from pydantic import BaseModel, Field, ValidationError
@@ -134,8 +134,8 @@ class MongoRepo(TemplateRepo):
         repo = MongoRepo(client=MongoClient("mongodb://localhost:27017"))
     """
     # cls_result = MongoResult
-    default_id_field = "_id"
-    cls_session = MongoSession
+    default_id_field:str = "_id"
+    cls_session:Type = MongoSession
 
     __operators__ = {
         GreaterThan: "$gt",
@@ -146,10 +146,10 @@ class MongoRepo(TemplateRepo):
         In: "$in",
     }
     session: Any
-    database: Optional[str]
-    collection: Optional[str]
+    database: Optional[str] = None
+    collection: Optional[str] = None
 
-    ordered: bool = Field(default=True, const=True)
+    ordered: bool = Field(default=True)
 
     def __init__(self, *args, uri=None, client=None, session=None, **kwargs):
         if uri is not None:

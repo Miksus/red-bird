@@ -7,10 +7,11 @@ from pydantic import BaseModel
 class Item(BaseModel):
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
-def test_filecontent(tmpdir):
-    file = tmpdir / "test.csv"
+def test_filecontent(tmp_path):
+    
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item)
 
     repo.add(Item(id="a", name="Jack", age=20))
@@ -28,28 +29,28 @@ def test_filecontent(tmpdir):
     repo.filter_by().delete()
     assert "id,name,age\n" == file.read_text(encoding="UTF-8")
 
-def test_none(tmpdir):
-    file = tmpdir / "test.csv"
+def test_none(tmp_path):
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item)
     repo.add(Item(id="b", name="John"))
     assert [Item(id="b", name="John", age=None)] == repo.filter_by().all()
 
-def test_none_read(tmpdir):
-    file = tmpdir / "test.csv"
+def test_none_read(tmp_path):
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item)
 
     assert [] == repo.filter_by().all()
     assert repo.filename.read_text() == "id,name,age\n"
 
-def test_fieldnames_read(tmpdir):
-    file = tmpdir / "test.csv"
+def test_fieldnames_read(tmp_path):
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, fieldnames=["id", "name", "age"])
 
     assert [] == repo.filter_by().all()
     assert repo.filename.read_text() == "id,name,age\n"
 
-def test_kwds_csv(tmpdir):
-    file = tmpdir / "test.csv"
+def test_kwds_csv(tmp_path):
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, model=Item, kwds_csv={'delimiter': '|'})
 
     repo.add(Item(id="a", name="Jack", age=20))
@@ -59,8 +60,8 @@ def test_kwds_csv(tmpdir):
 
     assert repo.filter_by().all() == [Item(id="a", name="Jack", age=20), Item(id="b", name="John")]
 
-def test_dict_operations(tmpdir):
-    file = tmpdir / "test.csv"
+def test_dict_operations(tmp_path):
+    file = tmp_path / "test.csv"
     repo = CSVFileRepo(filename=file, fieldnames=['id', 'name', 'age'])
 
     # Insert

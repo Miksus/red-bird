@@ -4,6 +4,7 @@ import typing
 import sys
 
 from pydantic import BaseModel, Field, PrivateAttr
+from pydantic.main import _object_setattr
 from redbird import BaseRepo, BaseResult
 from redbird.dummy import DummySession
 from redbird.templates import TemplateRepo
@@ -31,11 +32,11 @@ class SQLRepo(TemplateRepo):
     conn_string : str, optional
         Connection string to the database. 
         Pass either conn_string, engine or session if
-        model_orm is not defined.
+        orm is not defined.
     engine : sqlalchemy.engine.Engine, optional
         SQLAlchemy engine to connect the database. 
         Pass either conn_string, engine or session if
-        model_orm is not defined.
+        orm is not defined.
     model : Type
         Class of an item in the repository.
         Commonly dict or subclass of Pydantic
@@ -54,16 +55,16 @@ class SQLRepo(TemplateRepo):
         the item in case of validation error in 
         converting data to the item model from
         the repository. By default raise 
-    model_orm : Type of Base, optional
+    orm : Type of Base, optional
         Subclass of SQL Alchemy representation of the item.
         This is the class that is operated behind the scenes.
     table : str, optional
         Table name where the items lies. Should only be given
-        if no model_orm specified.
+        if no orm specified.
     session : sqlalchemy.orm.Session
         Connection session to the database.
         Pass either conn_string, engine or session if
-        model_orm is not defined.
+        orm is not defined.
 
     Examples
     --------
@@ -106,7 +107,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=Car, engine=engine)
+        repo = SQLRepo(orm=Car, engine=engine)
 
     Using ORM model and reflect Pydantic Model:
 
@@ -126,7 +127,7 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=Car, reflect_model=True, engine=engine)
+        repo = SQLRepo(orm=Car, reflect_model=True, engine=engine)
 
     Using ORM model and Pydantic Model:
 
@@ -152,17 +153,17 @@ class SQLRepo(TemplateRepo):
         from redbird.repos import SQLRepo
 
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model=Car, model_orm=CarORM, engine=engine)
+        repo = SQLRepo(model=Car, orm=CarORM, engine=engine)
     """
 
-    model_orm: Optional[Any]
-    table: Optional[str]
-    session: Any
-    engine: Optional[Any]
+    orm: Optional[Any] = None
+    table: Optional[str] = None
+    session: Optional[Any] = None
+    engine: Optional[Any] = None
     autocommit: bool = Field(default=True, description="Whether to automatically commit the writes (create, delete, update)")
 
-    ordered: bool = Field(default=True, const=True)
-    _Base = PrivateAttr()
+    ordered: bool = Field(default=True)
+    _Base: Any
 
     @classmethod
     @deprecated("Please use normal init instead.")
@@ -177,14 +178,20 @@ class SQLRepo(TemplateRepo):
 
     def __init__(self, *args, reflect_model=False, conn_string=None, engine=None, session=None, if_missing="raise", **kwargs):
 
+        # Pre-emptively initiate pydantic extra and private
+        # Allow for using _Base as private attribute before
+        # running super().__init__()
+        _object_setattr(self, "__pydantic_extra__", {})
+        _object_setattr(self, "__pydantic_private__", None)
+
         # Determine connection
         if conn_string is not None:
             engine = sqlalchemy.create_engine(conn_string)
         if engine is not None:
             session = self.create_scoped_session(engine)
 
-        # Create model_orm/model
-        if "model_orm" not in kwargs:
+        # Create orm/model
+        if "orm" not in kwargs:
             if session is None:
                 raise TypeError(
                     "Connection cannot be determined. "
@@ -205,12 +212,12 @@ class SQLRepo(TemplateRepo):
             self._Base = automap_base()
             self._Base.prepare(autoload_with=engine)
             try:
-                model_orm = self._Base.classes[table]
+                orm = self._Base.classes[table]
             except KeyError as exc:
                 raise KeyError(f"Cannot automap table '{table}'. Perhaps table missing primary key?") from exc
-            kwargs["model_orm"] = model_orm
+            kwargs["orm"] = orm
         if reflect_model:
-            kwargs["model"] = self.orm_model_to_pydantic(kwargs["model_orm"])
+            kwargs["model"] = self.orm_model_to_pydantic(kwargs["orm"])
         super().__init__(*args, session=session, **kwargs)
 
     def insert(self, item):
@@ -231,9 +238,12 @@ class SQLRepo(TemplateRepo):
 
     def data_to_item(self, item_orm):
         # Turn ORM item to Pydantic item
-        if hasattr(self.model, "from_orm") and self.model.Config.orm_mode:
+        set_attrs = None
+        if hasattr(self.model, "model_config"):
+            set_attrs = self.model.model_config.get("from_attributes", None)
+        if set_attrs:
             # Use Pydantic methods
-             return self.model.from_orm(item_orm)
+             return self.model.model_validate(item_orm)
         else:
             # Turn ORM to model using mapping
             d = vars(item_orm)
@@ -242,7 +252,7 @@ class SQLRepo(TemplateRepo):
 
     def item_to_data(self, item:BaseModel):
         # Turn Pydantic item to ORM item
-        return self.model_orm(**self.item_to_dict(item, exclude_unset=False))
+        return self.orm(**self.item_to_dict(item, exclude_unset=False))
 
     def orm_model_to_pydantic(self, model):
         # Turn SQLAlchemy BaseModel to Pydantic BaseModel
@@ -258,7 +268,7 @@ class SQLRepo(TemplateRepo):
             return item
         elif hasattr(item, "dict"):
             # Is pydantic
-            return item.dict(exclude_unset=exclude_unset)
+            return item.model_dump(exclude_unset=exclude_unset)
         else:
             d = vars(item)
             d.pop("_sa_instance_state", None)
@@ -266,7 +276,7 @@ class SQLRepo(TemplateRepo):
 
     def create(self):
         "Create the database and table"
-        self.model_orm.__table__.create(bind=self.session.bind)
+        self.orm.__table__.create(bind=self.session.bind)
 
     def query_data(self, query):
         for data in self._filter_orm(query):
@@ -292,10 +302,10 @@ class SQLRepo(TemplateRepo):
 
     def _filter_orm(self, query):
         session = self.session
-        return session.query(self.model_orm).filter(query)
+        return session.query(self.orm).filter(query)
 
     def format_query(self, oper: dict):
-        return to_expression(oper, table=self.model_orm)
+        return to_expression(oper, table=self.orm)
 
     def _create_table(self, session, model, name, primary_column=None):
         table = Table(bind=session.get_bind(), name=name)

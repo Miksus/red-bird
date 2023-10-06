@@ -54,7 +54,7 @@ Using ORM model:
     from redbird.repos import SQLRepo
 
     engine = create_engine('sqlite://')
-    repo = SQLRepo(model_orm=Car, engine=engine)
+    repo = SQLRepo(orm=Car, engine=engine)
 
 Using ORM model and reflect Pydantic Model:
 
@@ -74,7 +74,7 @@ Using ORM model and reflect Pydantic Model:
     from redbird.repos import SQLRepo
 
     engine = create_engine('sqlite://')
-    repo = SQLRepo(model_orm=Car, reflect_model=True, engine=engine)
+    repo = SQLRepo(orm=Car, reflect_model=True, engine=engine)
 
 Using ORM model and Pydantic Model:
 
@@ -100,7 +100,7 @@ Using ORM model and Pydantic Model:
     from redbird.repos import SQLRepo
 
     engine = create_engine('sqlite://')
-    repo = SQLRepo(model=Car, model_orm=CarORM, engine=engine)
+    repo = SQLRepo(model=Car, orm=CarORM, engine=engine)
 
 Usage
 -----

@@ -84,14 +84,14 @@ class RESTRepo(TemplateRepo):
 
         repo = RESTRepo(url="http://example.com/api", url_params={"fields": "car_type,car_model,registration_number"})
     """
-    result: Optional[Union[str, Callable]]
+    result: Optional[Union[str, Callable]] = None
     url: str
     url_params: dict = {}
     headers: dict = {}
 
     _session = PrivateAttr()
 
-    ordered: bool = Field(default=False, const=True)
+    ordered: bool = Field(default=False)
 
     def insert(self, item):
         json = self.item_to_dict(item, exclude_unset=False)

@@ -17,7 +17,7 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import greater_equal, greater_than, less_equal, less_than, not_equal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 # ------------------------
 # TEST ITEMS
@@ -27,14 +27,15 @@ class PydanticItem(BaseModel):
     __colname__ = 'items'
     id: str
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 class PydanticItemORM(BaseModel):
     id: str
     name: str
-    age: Optional[int]
-    class Config:
-        orm_mode = True
+    age: Optional[int] = None
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 class MongoItem(BaseModel):
     __colname__ = 'items'
@@ -122,12 +123,12 @@ class RESTMock:
     def get(self, request):
         params = self.get_params(request)
         data = self.repo.filter_by(**params).all()
-        data = [item.dict() for item in data]
+        data = [item.model_dump() for item in data]
         return (200, {"Content-Type": "application/json"}, json.dumps(data))
 
     def get_one(self, request):
         id = self.get_id(request)
-        data = self.repo[id].dict()
+        data = self.repo[id].model_dump()
         return (200, {"Content-Type": "application/json"}, json.dumps(data))
 
     def get_params(self, req):
@@ -223,7 +224,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model_orm=SQLItem, engine=engine, table="items", id_field="id")
+        repo = SQLRepo(orm=SQLItem, engine=engine, table="items", id_field="id")
         repo.create()
 
     elif type_ == "sql-expr":
@@ -233,7 +234,7 @@ def get_repo(type_, tmpdir, model=PydanticItem):
 
     elif type_ == "sql-pydantic-orm":
         engine = create_engine('sqlite://')
-        repo = SQLRepo(model=PydanticItemORM, model_orm=SQLItem, engine=engine, id_field="id")
+        repo = SQLRepo(model=PydanticItemORM, orm=SQLItem, engine=engine, id_field="id")
         SQLItem.__table__.create(bind=repo.session.bind)
 
     elif type_ == "mongo-mock":

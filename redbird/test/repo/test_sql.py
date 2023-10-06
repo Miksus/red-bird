@@ -3,8 +3,11 @@ import datetime
 import sys
 import typing
 import pytest
+import os
+from pathlib import Path
+from contextlib import contextmanager
 from redbird.repos import SQLRepo
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 try:
     from typing import Literal
@@ -20,8 +23,20 @@ class MyItemWithORM(BaseModel):
     id: str
     name: str
     age: int
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+@contextmanager
+def change_working_directory(tmpdir: Path):
+    origin = Path().absolute()
+    try:
+        os.chdir(tmpdir)
+        yield
+    finally:
+        os.chdir(origin)
+
+
 
 try:
     from sqlalchemy.orm import declarative_base
@@ -60,8 +75,8 @@ def test_init_engine():
         engine=engine
     )
     repo = SQLRepo(engine=engine, table="pytest")
-    assert repo.model_orm.__table__.name == "pytest"
-    assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+    assert repo.orm.__table__.name == "pytest"
+    assert all(hasattr(repo.orm, col) for col in ("id", "name", "age"))
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
@@ -70,7 +85,7 @@ def test_init_conn_string(tmpdir):
     pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine
     import sqlalchemy
-    with tmpdir.as_cwd() as old_dir:
+    with change_working_directory(tmpdir) as old_dir:
         conn_string = 'sqlite:///pytest.db'
         engine = create_engine(conn_string)
         execute_sql(
@@ -82,8 +97,8 @@ def test_init_conn_string(tmpdir):
             engine=engine
         )
         repo = SQLRepo(conn_string=conn_string, table="pytest")
-        assert repo.model_orm.__table__.name == "pytest"
-        assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+        assert repo.orm.__table__.name == "pytest"
+        assert all(hasattr(repo.orm, col) for col in ("id", "name", "age"))
 
         repo.add({"id": "a", "name": "Jack", "age": 500})
         assert list(repo) == [dict(id="a", name="Jack", age=500)]
@@ -100,8 +115,8 @@ def test_init_session():
         age INTEGER
     )""", engine=engine)
     repo = SQLRepo(session=session, table="pytest")
-    assert repo.model_orm.__table__.name == "pytest"
-    assert all(hasattr(repo.model_orm, col) for col in ("id", "name", "age"))
+    assert repo.orm.__table__.name == "pytest"
+    assert all(hasattr(repo.orm, col) for col in ("id", "name", "age"))
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
     assert list(repo) == [dict(id="a", name="Jack", age=500)]
@@ -145,8 +160,8 @@ def test_init_orm():
         name TEXT,
         age INTEGER
     )""", engine=engine)
-    repo = SQLRepo(model_orm=SQLItem, reflect_model=True, engine=engine)
-    assert repo.model_orm is SQLItem
+    repo = SQLRepo(orm=SQLItem, reflect_model=True, engine=engine)
+    assert repo.orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -161,8 +176,8 @@ def test_init_model_and_orm():
         name TEXT,
         age INTEGER
     )""", engine=engine)
-    repo = SQLRepo(model=MyItem, model_orm=SQLItem, engine=engine)
-    assert repo.model_orm is SQLItem
+    repo = SQLRepo(model=MyItem, orm=SQLItem, engine=engine)
+    assert repo.orm is SQLItem
     assert issubclass(repo.model, BaseModel)
 
     repo.add({"id": "a", "name": "Jack", "age": 500})
@@ -188,7 +203,7 @@ def test_init_fail_missing_connection():
         SQLRepo(model=MyItem, table="my_table")
 
 def test_init_deprecated(tmpdir):
-    with tmpdir.as_cwd() as old_dir:
+    with change_working_directory(tmpdir) as old_dir:
         pytest.importorskip("sqlalchemy")
         from sqlalchemy import create_engine
         engine = create_engine('sqlite:///pytest.db')
@@ -302,18 +317,31 @@ def test_init_type_insert(cls, example_value):
 ])
 def test_init_column(cls, nullable, sql_type):
     pytest.importorskip("sqlalchemy")
-
-    class MyItem(BaseModel):
-        __id_field__ = "id"
-        id: str
-        myfield: cls
+    DEFAULT_ARG_TYPES = [
+        typing.Optional[str], 
+        typing.Union[str, None], 
+        typing.Union[None, str],
+        typing.Optional[Literal["yes", "no"]]
+        ]
+    if cls in DEFAULT_ARG_TYPES:
+        print(cls)
+        class MyItem(BaseModel):
+            __id_field__ = "id"
+            id: str
+            myfield: cls = None
+    else:
+        print(cls)
+        class MyItem(BaseModel):
+            __id_field__ = "id"
+            id: str
+            myfield: cls
     import sqlalchemy
     from sqlalchemy import create_engine
     engine = create_engine('sqlite://')
     repo = SQLRepo(model=MyItem, engine=engine, table="mytable", if_missing="create", id_field="id")
     
     # Test column
-    column = repo.model_orm.__table__.columns['myfield']
+    column = repo.orm.__table__.columns['myfield']
     assert column.nullable is nullable
     assert isinstance(column.type, getattr(sqlalchemy, sql_type))
 

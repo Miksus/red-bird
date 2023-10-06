@@ -16,7 +16,7 @@ from redbird.repos.memory import MemoryRepo
 from redbird.repos.mongo import MongoRepo
 from redbird.oper import in_, skip, between, greater_equal, greater_than, less_equal, less_than, not_equal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 
 TEST_CASES = [
@@ -700,13 +700,13 @@ class TestMalformedData(RepoTests):
             id: str
             name: int
             age: int
-
+        
         self.populate(repo, [
-            {"id": "a", "name": 1, "age": 20},
+            {"id": "a", "name": "1", "age": 20},
             {"id": "b", "name": "Jack", "age": 20},
             {"id": "c", "name": "James", "age": 30},
-            {"id": "d", "name": 2, "age": 30},
-            {"id": "e", "name": 3, "age": 30},
+            {"id": "d", "name": "2", "age": 30},
+            {"id": "e", "name": "3", "age": 30},
         ])
         repo.model = MalformedItem
 
@@ -721,11 +721,11 @@ class TestMalformedData(RepoTests):
             age: int
 
         self.populate(repo, [
-            {"id": "a", "name": 1, "age": 20},
+            {"id": "a", "name": "1", "age": 20},
             {"id": "b", "name": "Jack", "age": 20},
             {"id": "c", "name": "James", "age": 30},
-            {"id": "d", "name": 2, "age": 30},
-            {"id": "e", "name": 3, "age": 30},
+            {"id": "d", "name": "2", "age": 30},
+            {"id": "e", "name": "3", "age": 30},
         ])
         repo.model = MalformedItem
         repo.errors_query = "warn"
@@ -741,11 +741,11 @@ class TestMalformedData(RepoTests):
             age: int
 
         self.populate(repo, [
-            {"id": "a", "name": 1, "age": 20},
+            {"id": "a", "name": "1", "age": 20},
             {"id": "b", "name": "Jack", "age": 20},
             {"id": "c", "name": "James", "age": 30},
-            {"id": "d", "name": 2, "age": 30},
-            {"id": "e", "name": 3, "age": 30},
+            {"id": "d", "name": "2", "age": 30},
+            {"id": "e", "name": "3", "age": 30},
         ])
         repo.model = MalformedItem
         repo.errors_query = "discard"

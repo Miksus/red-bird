@@ -590,6 +590,13 @@ class Table:
                     if arg is not none_type:
                         cls = arg
                         break
+                if typing.get_origin(cls) is Literal:
+                    nested_args = typing.get_args(cls)
+                    type_ = type(nested_args[0])
+                    for nested_arg in nested_args:
+                        if not isinstance(nested_arg, type_):
+                            raise TypeError(f"Literal Values are not same types: {str(cls)}. Cannot define SQL data type")
+                    cls = type_
             
             if origin is Literal:
                 type_ = type(args[0])
@@ -699,12 +706,12 @@ class Table:
         sql_cols = [
             sqlalchemy.Column(
                 name, 
-                self._to_sqlalchemy_type(field.type_), 
+                self._to_sqlalchemy_type(field.annotation), 
                 primary_key=name in primary_column if primary_column is not None else False, 
-                nullable=not field.required,
+                nullable=not field.is_required(),
                 default=field.default
             )
-            for name, field in model.__fields__.items()
+            for name, field in model.model_fields.items()
         ]
         self.create(sql_cols)
   

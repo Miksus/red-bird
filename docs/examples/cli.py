@@ -37,7 +37,7 @@ def delete_item(item_id):
 
 def add_model_to_parser(parser: argparse.ArgumentParser, model):
     "Add Pydantic model's attributes as arguments to the parser"
-    fields = model.__fields__
+    fields = model.model_fields
     for name, field in fields.items():
         parser.add_argument(
             f"--{name}", 
